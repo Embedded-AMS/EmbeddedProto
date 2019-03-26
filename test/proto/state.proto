@@ -1,0 +1,25 @@
+
+syntax = "proto3";
+
+enum State {
+    READY   = 0;
+    SET     = 1;
+    GO      = 2;
+}
+
+message Position {
+    int32 x = 1;
+    int32 y = 2;
+    int32 z = 3;
+}
+
+message Velocity {
+    float u = 1;
+    float v = 2;
+    float w = 3;
+}
+
+message Object {
+    Position pos = 1;
+    Velocity vel = 2;
+}
