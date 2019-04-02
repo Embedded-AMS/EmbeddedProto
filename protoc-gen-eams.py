@@ -63,10 +63,14 @@ def generate_json(request, response):
         f.content = json.dumps(json_output, indent=2)
 
 
-if __name__ == '__main__':
+def main_plugin():
     # Read request message from stdin
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
+
+    # Write the requests to a file for easy debugging.
+    with open("debug_request.bin", 'wb') as file:
+        file.write(request.SerializeToString())
 
     # Create response
     response = plugin.CodeGeneratorResponse()
@@ -79,3 +83,31 @@ if __name__ == '__main__':
 
     # Write to stdout
     io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
+
+
+def main_cli():
+    with open("debug_request.bin", 'rb') as file:
+        data = file.read()
+        request = plugin.CodeGeneratorRequest.FromString(data)
+
+        # Create response
+        response = plugin.CodeGeneratorResponse()
+
+        # Generate code
+        generate_json(request, response)
+
+        # Serialise response message
+        output = response.SerializeToString()
+
+        print(output)
+
+
+if __name__ == '__main__':
+    # Check if we are running as a plugin under protoc
+    if '--protoc-plugin' in sys.argv:
+        main_plugin()
+    else:
+        main_cli()
+
+
+# protoc --plugin=protoc-gen-eams=protoc-gen-eams.sh --eams_out=./build ./test/proto/state.proto
