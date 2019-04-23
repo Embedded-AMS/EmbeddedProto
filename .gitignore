@@ -20,3 +20,11 @@ venv/*
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
+
+# Ignore CMake output
+**/CMakeCache.txt
+cmake_install.cmake
+CMakeFiles/**
+
+# Ignore build results
+**/*.a
