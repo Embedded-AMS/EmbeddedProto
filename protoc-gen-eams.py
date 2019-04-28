@@ -93,7 +93,7 @@ def generate_message(message):
 
     template_message_class = \
         """
-class {{ msg.name }}: public Message 
+class {{ msg.name }}: public ::EmbeddedProto::MessageInterface 
 {
   public:
     {{ msg.name }}() : 
@@ -248,6 +248,7 @@ def generate_code(request, respones):
 #pragma once
 
 #include <cstdint>
+{% if messages %}#include <MessageInterface.h>{% endif %}
 
 {%- if namespace %}
 namespace {{ namespace }}
@@ -292,13 +293,13 @@ def main_plugin():
     response = plugin.CodeGeneratorResponse()
 
     # Generate code
-    generate_json(request, response)
+    generate_code(request, response)
 
     # Serialise response message
     output = response.SerializeToString()
 
     # Write to stdout
-    io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
+    io.open(sys.stdout.fileno(), "wb").write(output)
 
 
 def main_cli():
@@ -312,10 +313,6 @@ def main_cli():
         # Generate code
         generate_code(request, response)
 
-        # Serialise response message
-        output = response.SerializeToString()
-
-        # print(output)
         for response_file in response.file:
             print(response_file.name)
             print(response_file.content)

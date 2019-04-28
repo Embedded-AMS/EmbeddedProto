@@ -7,7 +7,7 @@
 namespace EmbeddedProto {
 
 template<class NANOPB_STRUCT>
-class MessageNanopbTemplate : public EmbeddedProto
+class MessageNanopbTemplate : public MessageInterface
 {
 public:
     MessageNanopbTemplate() = default;

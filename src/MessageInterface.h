@@ -14,12 +14,9 @@ public:
         ERROR_BUFFER_TO_SMALL,
     }
 
-    //! This default constructor clears the message data into its default state.
-    MessageInterface() {
-        clear();
-    };
+    MessageInterface() = default;
 
-    ~MessageInterface() = default;
+    virtual ~MessageInterface() = default;
 
     //! Function to serialize this message.
     /*!
