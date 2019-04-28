@@ -28,3 +28,4 @@ CMakeFiles/**
 
 # Ignore build results
 **/*.a
+build/*
