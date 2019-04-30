@@ -4,6 +4,7 @@
 #define _MESSAGE_INTERFACE_H_
 
 #include <cstdint>
+#include <WireFormatter.h>
 
 namespace EmbeddedProto {
 
@@ -12,7 +13,7 @@ public:
     enum class Result {
         OK,
         ERROR_BUFFER_TO_SMALL,
-    }
+    };
 
     MessageInterface() = default;
 

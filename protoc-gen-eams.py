@@ -97,8 +97,8 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
 {
   public:
     {{ msg.name }}() : 
-        {%- for field in single_fields %}
-        {{field.name}}({{field.default_value}}),
+        {% set j = joiner(",\n") %}
+        {%- for field in single_fields %}{{j()}}_{{field.name}}({{field.default_value}})
         {%- endfor %}
     {
     
@@ -110,6 +110,28 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
     void set_{{field.name}}(const {{field.type}}& x) { _{{field.name}} = x; }
     {{field.type}} get_{{field.name}}() const { return _{{field.name}}; }
     {% endfor %}
+    
+    Result serialize(uint8_t* buffer, uint32_t length) const final 
+    {
+    {% for field in single_fields %}
+        if({{field.default_value}} != _{{field.name}})
+        {
+            buffer = ::EmbeddedProto::WireFormatter::{{field.serialize}}({{field.number}}, _{{field.name}}, buffer);
+        }
+    {% endfor %}
+        return Result::OK;
+    };
+    
+    Result deserialize(const uint8_t* buffer, uint32_t length) final
+    {
+        return Result::OK;    
+    }; 
+    
+    void clear() final 
+    {
+    
+    }
+    
     
   private:
 
@@ -125,8 +147,10 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
     class SingleField:
         def __init__(self, field):
             self.name = field.name
+            self.number = field.number
             self.type = self.type_to_str(field)
-            self.default_value = self.type_to_default(field)
+            self.default_value = self.type_to_default_value(field)
+            self.serialize = self.type_to_serialize(field)
 
         @staticmethod
         def type_to_str(_field):
@@ -141,9 +165,9 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
             elif FieldDescriptorProto.TYPE_INT32 == _field.type:
                 return "int32_t"
             elif FieldDescriptorProto.TYPE_FIXED64 == _field.type:
-                return "int64_t"
+                return "uint64_t"
             elif FieldDescriptorProto.TYPE_FIXED32 == _field.type:
-                return "int32_t"
+                return "uint32_t"
             elif FieldDescriptorProto.TYPE_BOOL == _field.type:
                 return "bool"
             elif FieldDescriptorProto.TYPE_STRING == _field.type:
@@ -175,7 +199,7 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
                 pass
 
         @staticmethod
-        def type_to_default(_field):
+        def type_to_default_value(_field):
             if FieldDescriptorProto.TYPE_DOUBLE == _field.type:
                 return "0.0"
             elif FieldDescriptorProto.TYPE_FLOAT == _field.type:
@@ -200,6 +224,52 @@ class {{ msg.name }}: public ::EmbeddedProto::MessageInterface
             else:
                 # All other types are numbers with default zero.
                 return "0"
+
+        @staticmethod
+        def type_to_serialize(_field):
+            if FieldDescriptorProto.TYPE_DOUBLE == _field.type:
+                return "WriteDouble"
+            elif FieldDescriptorProto.TYPE_FLOAT == _field.type:
+                return "WriteFloat"
+            elif FieldDescriptorProto.TYPE_INT64 == _field.type:
+                return "WriteInt"
+            elif FieldDescriptorProto.TYPE_UINT64 == _field.type:
+                return "WriteUInt"
+            elif FieldDescriptorProto.TYPE_INT32 == _field.type:
+                return "WriteInt"
+            elif FieldDescriptorProto.TYPE_FIXED64 == _field.type:
+                return "WriteFixed"
+            elif FieldDescriptorProto.TYPE_FIXED32 == _field.type:
+                return "WriteFixed"
+            elif FieldDescriptorProto.TYPE_BOOL == _field.type:
+                return "WriteBool"
+            elif FieldDescriptorProto.TYPE_STRING == _field.type:
+                # TODO
+                pass
+            elif FieldDescriptorProto.TYPE_GROUP == _field.type:
+                # Deprecated
+                pass
+            elif FieldDescriptorProto.TYPE_MESSAGE == _field.type:
+                # TODO
+                pass
+            elif FieldDescriptorProto.TYPE_BYTES == _field.type:
+                # TODO
+                pass
+            elif FieldDescriptorProto.TYPE_UINT32 == _field.type:
+                return "WriteUInt"
+            elif FieldDescriptorProto.TYPE_ENUM == _field.type:
+                # TODO
+                pass
+            elif FieldDescriptorProto.TYPE_SFIXED32 == _field.type:
+                return "WriteSFixed"
+            elif FieldDescriptorProto.TYPE_SFIXED64 == _field.type:
+                return "WriteSFixed"
+            elif FieldDescriptorProto.TYPE_SINT32 == _field.type:
+                return "WriteSInt"
+            elif FieldDescriptorProto.TYPE_SINT64 == _field.type:
+                return "WriteSInt"
+            else:
+                pass
 
     # Split out the simple fields from the more complicated ones.
     single_fields = []

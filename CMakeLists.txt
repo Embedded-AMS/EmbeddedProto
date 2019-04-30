@@ -9,9 +9,10 @@ add_subdirectory(external/googletest)
 
 file(GLOB src_files
     "test/*.cpp"
+    "build/EAMS/*cpp"
 )
 
-include_directories(test src)
+include_directories(test src build/EAMS)
 include_directories(external/googletest/googletest external/googletest/googletest/include)
 
 add_executable(test_EmbeddedProto ${src_files})
