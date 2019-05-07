@@ -5,197 +5,158 @@
 
 #include <cstdint>
 #include <limits> 
+#include <type_traits>
 
 namespace EmbeddedProto
 {
 
-//! Definitions of the different encoding types used in protobuf.
-enum class WireType 
-{
-  VARINT            = 0,  //!< int32, int64, uint32, uint64, sint32, sint64, bool, enum.
-  FIXED64           = 1,  //!< fixed64, sfixed64, double
-  LENGTH_DELIMITED  = 2,  //!< string, bytes, embedded messages, packed repeated fields
-  START_GROUP       = 3,  //!< Depricated
-  END_GROUP         = 4,  //!< Depricated
-  FIXED32           = 5,  //!< fixed32, sfixed32, float
-};
-/*
-enum class FieldDescriptorProto_Type {
-  DOUBLE    = 1,
-  FLOAT     = 2,
-  INT64     = 3,
-  UINT64    = 4,
-  INT32     = 5,
-  FIXED64   = 6,
-  FIXED32   = 7,
-  BOOL      = 8,
-  STRING    = 9,
-  GROUP     = 10,
-  MESSAGE   = 11,
-  BYTES     = 12,
-  UINT32    = 13,
-  ENUM      = 14,
-  SFIXED32  = 15,
-  SFIXED64  = 16,
-  SINT32    = 17,
-  SINT64    = 18,
-};
-*/
-enum class EncodingType {
-  VARINT,
-  ZIGZAG,
-  FIXED,
-  STRING, // ???
-  BYTES,  // ??? 
-  MESSAGE
-}
+  //! Definitions of the different encoding types used in protobuf.
+  enum class WireType 
+  {
+    VARINT            = 0,  //!< int32, int64, uint32, uint64, sint32, sint64, bool, enum.
+    FIXED64           = 1,  //!< fixed64, sfixed64, double
+    LENGTH_DELIMITED  = 2,  //!< string, bytes, embedded messages, packed repeated fields
+    START_GROUP       = 3,  //!< Depricated
+    END_GROUP         = 4,  //!< Depricated
+    FIXED32           = 5,  //!< fixed32, sfixed32, float
+  };
 
-template<class TYPE, EncodingType ENCODING_TYPE, WireType WIRE_TYPE, uint32_t FIELD_NUMBER, 
-          bool REPEATED>
-class Field
-{
-  public:
+  //! The base class for any type of field.
+  /*!
+      This class defines the basic structor for any type of field, that includes the basic types
+      but also nested messages
+  */
+  class Field 
+  {
+    public:
 
-    //! This typedef will return a unsigned 32 or 64 value depending on the field type.
-    typedef typename std::conditional<sizeof(TYPE) <= sizeof(uint32_t), uint32_t, 
-                                                                uint64_t>::type VAR_UINT_TYPE;
-
-    //! This typedef will return a signed 32 or 64 value depending on the field type.
-    typedef typename std::conditional<sizeof(TYPE) <= sizeof(uint32_t), int32_t, 
-                                                                int64_t>::type VAR_INT_TYPE;
-
-    //! Create the tag of a field. 
-    /*!
-      This is the combination of the field number and wire type of the field. The field number is 
-      shifted to the left by three bits. This creates space to or the wire type of the designated 
-      field.
-    */
-    static constexpr uint32_t TAG = ((static_cast<uint32_t>(FIELD_NUMBER) << 3) 
-                                      | static_cast<uint32_t>(WIRE_TYPE));
-
-
-    //! The default constructor without any special initialization.
-    Field() = default;
-    
-    //! The constructor which allows setting the data value to an initial value.
-    Field(const TYPE& x) :
-      _data(x)
-    {
-
-    }
-
-    ~Field() = default;
-
-    const TYPE& get() const
-    {
-      return _data;
-    }
-
-    const TYPE& operator()() const
-    {
-      return _data;
-    }
-
-
-    Field<TYPE, WIRE_TYPE, FIELD_NUMBER>& operator=(const TYPE& x) 
-    {
-      _data = x;
-      return *this;
-    }
-
-    uint8_t* write(uint8_t* target) 
-    {
-      target = _Varint(TAG, target);
-      switch(ENCODING_TYPE) 
+      //! Possible return values of 
+      enum class Result {
+          OK,
+          ERROR_BUFFER_TO_SMALL,
+      };
+      
+      //! The default constructor which sets the wire type and field number of this field.
+      Field(const WireType type, const uint32_t number) :
+          _wire_type(type),
+          _field_number(number)
       {
-        case EncodingType::VARINT:
-          target = _Varint(static_cast<VAR_UINT_TYPE>(_data), target);
-          break;
-        case EncodingType::ZIGZAG:
-          target = _Varint(_ZigZagEncode(_data), target);
-          break;
-        case EncodingType::FIXED:
-          // TODO
-          break;
-        case EncodingType::STRING:
-          // TODO
-          break;          
-        case EncodingType::BYTES:
-          // TODO
-          break;  
-        case EncodingType::MESSAGE:
-          // TODO
-          break;          
-        default:
-          break;
+
       }
-      return target;
-    }
 
+      //! The default destructor.
+      virtual ~Field() = default;
 
-    // ----------------- PRIVATE -----------------
+      //! Function to serialize this field.
+      /*!
+          The data this field holds will be serialized into an byte array.
 
-    //! The actaul data of this field.
-    TYPE _data;
+          \param buffer [out] The array of bytes into which the field will be serialized.
+          \param length [in]  The number of bytes in the buffer array.
 
+          \return An enum value indicating successful operation of this function or an error.
+      */
+      virtual Result serialize(uint8_t* buffer, uint32_t length) const = 0;
 
-    //! This function converts a given value int a varint formated data array.
-    /*!
-      \param[in] value  The data to be serialized.
-      \param[in] target Pointer to the first element of an array in which the data is to be serialized.
-      \warning There should be sufficient space in the array to store a varint32.
-      \return A pointer to the first byte after the data just serialized.
-      This code is copied and modified from google protobuf sources.
-    */
-    static constexpr uint8_t* _Varint(VAR_UINT_TYPE value, uint8_t* target) {
+      //! Function to deserialize this field.
+      /*!
+          From an array of date fill this field object with data.
 
-      constexpr VAR_UINT_TYPE MSB_BYTE = 0x0080;
-      constexpr uint8_t SHIFT_N_BITS = 7;
+          \param buffer [in]  The array of bytes into which the field will be serialized.
+          \param length [in]  The number of bytes in the buffer array.
 
-      while(value >= MSB_BYTE) {
-        *target = static_cast<uint8_t>(value | MSB_BYTE);
-        value >>= SHIFT_N_BITS;
-        ++target;
-      }
-      *target = static_cast<uint8_t>(value);
-      return target + 1;
-    }    
+          \return An enum value indicating successful operation of this function or an error.
+      */
+      virtual Result deserialize(const uint8_t* buffer, uint32_t length) = 0;
 
-    //! Encode a signed integer using the zig zag method
-    /*!
-      As specified the right-shift must be arithmetic, hence the cast is after the shift. The 
-      left shift must be unsigned because of overflow.
+      //! Clear the content of this field and set it to it's default state.
+      /*!
+          The defaults are to be set according to the Protobuf standard.
+      */
+      virtual void clear() = 0;
 
-      \param[in] n The signed value to be encoded.
-      \return The zig zag transformed value ready for serialization into the array.
-    */
-    static constexpr VAR_UINT_TYPE _ZigZagEncode(const VAR_INT_TYPE n) {
-      return ((static_cast<VAR_INT_TYPE>(n) << 1) ^ static_cast<VAR_INT_TYPE>(n >> 
-                                                      (std::numeric_limits<TYPE>::digits - 1)));
-    }
+      //! Calculate the size of this field as if it was serialized.
+      /*!
+          \return The number of bytes this field will takeup when serialized.
+      */
+      virtual uint32_t serialized_size() const = 0;
 
-    static constexpr uint8_t* _Fixed(VAR_UINT_TYPE value, uint8_t* target) 
-    {
-      // Write the data little endian to the array.
-      // TODO Define a little endian flag to support memcpy the data to the array.
+    protected:
 
-      uint8_t i = 0;
-      while((i*8) < std::numeric_limits<VAR_UINT_TYPE>::digits) 
+      //! The maximum number of bits the WireType will takeup.
+      /*!
+          The maximum value of a wire type is five. Three bits are thus required to endonce it.
+      */
+      static constexpr uint8_t WIRE_TYPE_BIT_SIZE = 3;
+
+      //! Create the tag of a field. 
+      /*!
+        This is the combination of the field number and wire type of the field. The field number is 
+        shifted to the left by three bits. This creates space to or the wire type of the designated 
+        field.
+      */
+      const uint32_t tag() const 
       {
-        target[i] = static_cast<uint8_t>((value >> (i*8)) & 0x00FF);
-        ++i;
+        return ((static_cast<uint32_t>(_field_number) << WIRE_TYPE_BIT_SIZE)
+                | static_cast<uint32_t>(_wire_type));
       }
-      return target + i;
-    }
 
-    static constexpr uint8_t* _Real(TYPE value, uint8_t* target)
-    {
-      // Cast the type to void and to an unsigned integer.
-      void* pVoid = static_cast<void*>(&value);
-      VAR_UINT_TYPE* fixed = static_cast<VAR_UINT_TYPE*>(pVoid);
-      return _Fixed(*fixed, target);
-    }
-};
+      //! Return the number of bytes the tag of this field will need.
+      /*!
+          The tag is encoded as a varint and anything below 127 will only take one byte.
+          \warning This is a short cut and large field numbers are not supported at this moment.
+      */
+      const uint8_t tag_size() const 
+      {
+        return (127 <= tag()) ? 1 : 2;
+      }
+
+      //! Obtain the wire type of this field.
+      const WireType wireType() const 
+      {
+        return _wire_type;
+      }
+
+      //! Obtain the field number of this field.
+      const uint32_t fieldNumber() const
+      {
+        return _field_number;
+      }
+
+
+      //! This function converts a given value int a varint formated data array.
+      /*!
+        \param[in] value  The data to be serialized.
+        \param[in] target Pointer to the first element of an array in which the data is to be serialized.
+        \warning There should be sufficient space in the array to store a varint32.
+        \return A pointer to the first byte after the data just serialized.
+        This code is copied and modified from google protobuf sources.
+      */
+      template<class VARINT_TYPE>
+      static constexpr uint8_t* _serialize_varint(VARINT_TYPE value, uint8_t* target) {
+        static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
+                                                            "unsigned types.");
+        constexpr VARINT_TYPE MSB_BYTE = 0x00000080;
+        constexpr uint8_t SHIFT_N_BITS = 7;
+
+        while (value >= MSB_BYTE) {
+          *target = static_cast<uint8_t>(value | MSB_BYTE);
+          value >>= SHIFT_N_BITS;
+          ++target;
+        }
+        *target = static_cast<uint8_t>(value);
+        return target + 1;
+      }
+
+    private:
+
+      //! The wire type of this field.
+      const WireType _wire_type;
+
+      //! The field number of this field.
+      const uint32_t _field_number;
+
+  };
 
 } // End of namespace EmbeddedProto
 
