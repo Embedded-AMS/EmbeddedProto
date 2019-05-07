@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits> 
 #include <type_traits>
+#include <MessageBufferInterface.h>
 
 namespace EmbeddedProto
 {
@@ -51,23 +52,21 @@ namespace EmbeddedProto
       /*!
           The data this field holds will be serialized into an byte array.
 
-          \param buffer [out] The array of bytes into which the field will be serialized.
-          \param length [in]  The number of bytes in the buffer array.
+          \param[in,out] buffer A reference to the buffer which can be used ot serialize the data.
 
           \return An enum value indicating successful operation of this function or an error.
       */
-      virtual Result serialize(uint8_t* buffer, uint32_t length) const = 0;
+      virtual Result serialize(MessageBufferInterface& buffer) const = 0;
 
       //! Function to deserialize this field.
       /*!
           From an array of date fill this field object with data.
-
-          \param buffer [in]  The array of bytes into which the field will be serialized.
-          \param length [in]  The number of bytes in the buffer array.
+          
+          \param[in,out] buffer A reference to the buffer which is used to deserialize the data.
 
           \return An enum value indicating successful operation of this function or an error.
       */
-      virtual Result deserialize(const uint8_t* buffer, uint32_t length) = 0;
+      virtual Result deserialize(MessageBufferInterface& buffer) = 0;
 
       //! Clear the content of this field and set it to it's default state.
       /*!
@@ -93,7 +92,7 @@ namespace EmbeddedProto
       /*!
           \see _serialize_varint() _deserialize_varint()
       */
-      static constexpr VARINT_TYPE VARINT_MSB_BYTE = 0x00000080;
+      static constexpr uint8_t VARINT_MSB_BYTE = 0x80;
 
       //! Definitation of the number of bits it takes to serialize a byte of a varint.
       /*!
@@ -102,7 +101,8 @@ namespace EmbeddedProto
       static constexpr uint8_t VARINT_SHIFT_N_BITS = 7;
 
       //! The maximum value which can be stored in a signle byte in base 128 encoding.
-      static constexpr uint8_t VARINT_MAX_SINGLE_BYTE = ~VARINT_MSB_BYTE;
+      static constexpr uint8_t VARINT_MAX_SINGLE_BYTE = 
+                                    static_cast<uint8_t>(~VARINT_MSB_BYTE);
 
       //! Create the tag of a field. 
       /*!
@@ -123,7 +123,7 @@ namespace EmbeddedProto
       */
       const uint8_t tag_size() const 
       {
-        return (VARINT_MAX_SINGLE_BYTE <= tag()) ? 1 : 2;
+        return VARINT_MAX_SINGLE_BYTE <= tag() ? 1 : 2;
       }
 
       //! Obtain the wire type of this field.
@@ -144,38 +144,58 @@ namespace EmbeddedProto
         This function only accepts unsigned integers.
 
         \param[in] value  The data to be serialized.
-        \param[in] target Pointer to the first element of an array in which the data is to be serialized.
-        \warning There should be sufficient space in the array to store a varint32.
-        \return A pointer to the first byte after the data just serialized.
+        \param[in,out] buffer The data buffer in which the varint is stored.
+        \return True when serilization succedded, false otherwise.
       */
       template<class VARINT_TYPE>
-      static constexpr uint8_t* _serialize_varint(VARINT_TYPE value, uint8_t* target) {
+      bool _serialize_varint(VARINT_TYPE value, MessageBufferInterface& buffer) const
+      {
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
-                                                            "unsigned types.");
-
-        while (value >= VARINT_MSB_BYTE) {
-          *target = static_cast<uint8_t>(value | MSB_BYTE);
+                                                            "unsigned integer types.");
+        bool result(true);
+        while((value >= VARINT_MSB_BYTE) && result)
+        {
+          result = buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
           value >>= VARINT_SHIFT_N_BITS;
-          ++target;
         }
-        *target = static_cast<uint8_t>(value);
-        return target + 1;
+
+        return result;
       }
 
       //! This function converts a given buffer into an integer value.
       /*!
         This function only accepts unsigned integers.
 
-        \param[in] value  The data to be serialized.
-        \param[in] target Pointer to the first element of an array in which the data is to be serialized.
-        \return A pointer to the first byte after the data just deserialized.
+        \param[in] value  Variable in which the deserialized unsigned integer is returned.
+        \param[in,out] buffer The data set from which to obtain the value.
+        \return True when deserialization succedded.
       */
       template<class VARINT_TYPE>
-      static constexpr uint8_t* _deserialize_varint(VARINT_TYPE value, uint8_t* target) {
+      bool _deserialize_varint(VARINT_TYPE& value, MessageBufferInterface& buffer) const
+      {
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
-                                                            "unsigned types.");
+                                                            "unsigned integer types.");
+        
+        VARINT_TYPE temp_value = 0;
+        uint8_t byte = 0;
+        bool result = buffer.pop(byte);
+        // Loop until the end of the encoded varint or until there is nomore data in the buffer.
+        for(uint8_t i = 0; (i < (std::numeric_limits<VARINT_TYPE>::digits / 8)) && result; ++i) 
+        {
+          temp_value += (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
+          if(!(byte & VARINT_MSB_BYTE)) 
+          {
+            // Continue
+            result = buffer.pop(byte);
+          }
+          else
+          {
+            // The varint is complete
+            break;
+          }
+        }
 
-
+        return result;
       }
 
     private:

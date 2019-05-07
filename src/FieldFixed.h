@@ -39,17 +39,17 @@ namespace EmbeddedProto
         ~FieldFixed() final = default;
 
         //! \see Field::serialize()
-        Result serialize(uint8_t* buffer, uint32_t length) const final
+        Result serialize(MessageBufferInterface& buffer) const final
         {
           Result result(Result::OK);
           // Only serialize if the dat does not equal the default and when the size in the buffer 
           // is sufficient.
           if(std::numeric_limits<DATA_TYPE>::epsilon() < (_data - DEFAULT_VALUE))
           {
-            if(serialized_size() <= length) 
+            if(serialized_size() <= buffer.get_max_size()) 
             {
-              buffer = _serialize_varint(tag(), buffer);
-              buffer = _serialize_fixed(_data, buffer);
+              _serialize_varint(tag(), buffer);
+              _serialize_fixed(static_cast<VAR_UINT_TYPE>(_data), buffer);
             }
             else
             {
@@ -61,7 +61,7 @@ namespace EmbeddedProto
         }
 
         //! \see Field::deserialize()
-        Result deserialize(const uint8_t* buffer, uint32_t length) final
+        Result deserialize(MessageBufferInterface& buffer) final
         {
           return Result::OK;
         }
@@ -80,18 +80,31 @@ namespace EmbeddedProto
 
       protected:
 
-        static constexpr uint8_t* _serialize_fixed(VAR_UINT_TYPE value, uint8_t* target) 
+        //! Serialize a single unsigned integer into the buffer using the fixed size method.
+        /*!
+            The fixed size method just pushes every byte into the buffer.
+
+            \param[in] value The variable to serialize.
+            \param[in,out] buffer The data buffer to which the variable is serialized.
+            \return True when serialization succedded.
+        */
+        bool _serialize_fixed(VAR_UINT_TYPE value, MessageBufferInterface& buffer) const
         {
           // Write the data little endian to the array.
           // TODO Define a little endian flag to support memcpy the data to the array.
 
-          uint8_t i = 0;
-          while((i*8) < std::numeric_limits<VAR_UINT_TYPE>::digits) 
+          bool result(true);
+          for(uint8_t i = 0; i < std::numeric_limits<VAR_UINT_TYPE>::digits; 
+              i += std::numeric_limits<uint8_t>::digits)  
           {
-            target[i] = static_cast<uint8_t>((value >> (i*8)) & 0x00FF);
-            ++i;
+            result = buffer.push(static_cast<uint8_t>((value >> i) & 0x00FF));
+            if(!result)
+            {
+              // No more space in the buffer.
+              break;
+            }
           }
-          return target + i;
+          return result;
         }
 
 
