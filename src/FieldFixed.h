@@ -64,10 +64,8 @@ namespace EmbeddedProto
         Result deserialize(MessageBufferInterface& buffer) final
         {
           // Check if there is enough data in the buffer for a fixed value.
-          bool result = serialized_size() <= buffer.get_max_size();
-          
-     
-
+          bool result = std::numeric_limits<VAR_UINT_TYPE>::digits <= buffer.get_max_size();
+          result = result && _deserialize_fixed(_data, buffer);
           return result ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
         }
 
@@ -80,8 +78,15 @@ namespace EmbeddedProto
         //! \see Field::serialized_size()
         uint32_t serialized_size() const final
         {
-          return tag_size() + std::numeric_limits<VAR_UINT_TYPE>::digits;
+          return tag_size() + serialized_data_size();
         }
+
+        //! \see Field::serialized_data_size()
+        uint32_t serialized_data_size() const final
+        {
+          return std::numeric_limits<VAR_UINT_TYPE>::digits / std::numeric_limits<uint8_t>::digits;
+        }
+
 
       protected:
 

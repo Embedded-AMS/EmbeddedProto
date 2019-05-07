@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits> 
 #include <type_traits>
+#include <math.h> 
 #include <MessageBufferInterface.h>
 
 namespace EmbeddedProto
@@ -48,7 +49,7 @@ namespace EmbeddedProto
       //! The default destructor.
       virtual ~Field() = default;
 
-      //! Function to serialize this field.
+      //! Function to serialize this field including the tag.
       /*!
           The data this field holds will be serialized into an byte array.
 
@@ -58,9 +59,21 @@ namespace EmbeddedProto
       */
       virtual Result serialize(MessageBufferInterface& buffer) const = 0;
 
-      //! Function to deserialize this field.
+      //! From the buffer desirialize a tag.
       /*!
-          From an array of date fill this field object with data.
+          This function returns the tag value, the combination of the field number and wire type.
+          \param[out] tag The variable in which the tag value is returned. 
+          \param[in,out] buffer The data buffer from which to deseriale the tag.
+          \return An enum value indicating successful operation of this function or an error.
+      */
+      static Result deserialize_tag(uint32_t& tag, MessageBufferInterface& buffer) 
+      {
+        return _deserialize_varint(tag, buffer) ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
+      }
+
+      //! Function to deserialize this field excluding the tag.
+      /*!
+          From an array of bytes fill this field object with data.
           
           \param[in,out] buffer A reference to the buffer which is used to deserialize the data.
 
@@ -74,11 +87,17 @@ namespace EmbeddedProto
       */
       virtual void clear() = 0;
 
-      //! Calculate the size of this field as if it was serialized.
+      //! Calculate the size of this field as if it was serialized, tag + data.
       /*!
-          \return The number of bytes this field will takeup when serialized.
+          \return The number of bytes this field will takeup in total when serialized.
       */
       virtual uint32_t serialized_size() const = 0;
+
+      //! Calculate the size of the data when serialized.
+      /*!
+          \return The number of bytes the data of this field will takeup when serialized.
+      */
+      virtual uint32_t serialized_data_size() const = 0;
 
     protected:
 
@@ -148,7 +167,7 @@ namespace EmbeddedProto
         \return True when serilization succedded, false otherwise.
       */
       template<class VARINT_TYPE>
-      bool _serialize_varint(VARINT_TYPE value, MessageBufferInterface& buffer) const
+      static bool _serialize_varint(VARINT_TYPE value, MessageBufferInterface& buffer)
       {
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
                                                             "unsigned integer types.");
@@ -171,7 +190,7 @@ namespace EmbeddedProto
         \return True when deserialization succedded.
       */
       template<class VARINT_TYPE>
-      bool _deserialize_varint(VARINT_TYPE& value, MessageBufferInterface& buffer) const
+      static bool _deserialize_varint(VARINT_TYPE& value, MessageBufferInterface& buffer)
       {
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
                                                             "unsigned integer types.");
