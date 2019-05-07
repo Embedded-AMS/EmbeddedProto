@@ -175,12 +175,18 @@ namespace EmbeddedProto
       {
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
                                                             "unsigned integer types.");
+
+        // Calculate how many bytes there are in a varint 128 base encoded number. This should 
+        // yeild 5 for a 32bit number and 10 for a 64bit number.
+        static constexpr uint8_t N_BYTES_IN_VARINT = static_cast<uint8_t>(std::ceil(
+                                                          std::numeric_limits<VARINT_TYPE>::digits 
+                                                        / static_cast<float>(VARINT_SHIFT_N_BITS)));
         
         VARINT_TYPE temp_value = 0;
         uint8_t byte = 0;
         bool result = buffer.pop(byte);
         // Loop until the end of the encoded varint or until there is nomore data in the buffer.
-        for(uint8_t i = 0; (i < (std::numeric_limits<VARINT_TYPE>::digits / 8)) && result; ++i) 
+        for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
         {
           temp_value |= (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
           if(!(byte & VARINT_MSB_BYTE)) 
