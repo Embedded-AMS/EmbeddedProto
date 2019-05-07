@@ -63,7 +63,12 @@ namespace EmbeddedProto
         //! \see Field::deserialize()
         Result deserialize(MessageBufferInterface& buffer) final
         {
-          return Result::OK;
+          // Check if there is enough data in the buffer for a fixed value.
+          bool result = serialized_size() <= buffer.get_max_size();
+          
+     
+
+          return result ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
         }
 
         //! \see Field::clear()
@@ -90,8 +95,8 @@ namespace EmbeddedProto
         */
         bool _serialize_fixed(VAR_UINT_TYPE value, MessageBufferInterface& buffer) const
         {
-          // Write the data little endian to the array.
-          // TODO Define a little endian flag to support memcpy the data to the array.
+          // Write the data little endian to the buffer.
+          // TODO Define a little endian flag to support memcpy the data to the buffer.
 
           bool result(true);
           for(uint8_t i = 0; i < std::numeric_limits<VAR_UINT_TYPE>::digits; 
@@ -104,6 +109,43 @@ namespace EmbeddedProto
               break;
             }
           }
+          return result;
+        }
+
+        //! Deserialize a fixed length value from the buffer into the given variable.
+        /*!
+            \param[out] value The variable in which the result is returned.
+            \param[in,out] buffer The buffer from which to deserialize the data.
+            \return True when deserialization succedded.
+        */
+        bool _deserialize_fixed(VAR_UINT_TYPE& value, MessageBufferInterface& buffer) const
+        {
+          // Read the data little endian to the buffer.
+          // TODO Define a little endian flag to support memcpy the data from the buffer.
+
+          VAR_UINT_TYPE temp_value = 0;
+          bool result(true);
+          uint8_t byte = 0;
+          for(uint8_t i = 0; i < std::numeric_limits<VAR_UINT_TYPE>::digits; 
+              i += std::numeric_limits<uint8_t>::digits)  
+          {
+            result = buffer.pop(byte);
+            if(result)
+            {
+              temp_value |= byte << i;
+            }
+            else
+            {
+              // End of buffer
+              break;
+            }
+          }
+
+          if(result)
+          {
+            value = temp_value;
+          }
+
           return result;
         }
 

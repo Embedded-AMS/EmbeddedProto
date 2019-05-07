@@ -123,6 +123,7 @@ namespace EmbeddedProto
       */
       const uint8_t tag_size() const 
       {
+        // TODO This is not very good code and will break with larger field numbers.
         return VARINT_MAX_SINGLE_BYTE <= tag() ? 1 : 2;
       }
 
@@ -137,7 +138,6 @@ namespace EmbeddedProto
       {
         return _field_number;
       }
-
 
       //! This function converts a given value int a varint formated data array.
       /*!
@@ -182,7 +182,7 @@ namespace EmbeddedProto
         // Loop until the end of the encoded varint or until there is nomore data in the buffer.
         for(uint8_t i = 0; (i < (std::numeric_limits<VARINT_TYPE>::digits / 8)) && result; ++i) 
         {
-          temp_value += (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
+          temp_value |= (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
           if(!(byte & VARINT_MSB_BYTE)) 
           {
             // Continue
@@ -193,6 +193,11 @@ namespace EmbeddedProto
             // The varint is complete
             break;
           }
+        }
+
+        if(result)
+        {
+          value = temp_value;
         }
 
         return result;
