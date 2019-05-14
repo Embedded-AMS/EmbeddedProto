@@ -12,8 +12,9 @@ file(GLOB src_files
     "build/EAMS/*cpp"
 )
 
-include_directories(test src build/EAMS)
-include_directories(external/googletest/googletest external/googletest/googletest/include)
+include_directories(test test/mock src build/EAMS)
+include_directories(external/googletest/googletest external/googletest/googletest/include
+                    external/googletest/googlemock external/googletest/googlemock/include)
 
 add_executable(test_EmbeddedProto ${src_files})
-target_link_libraries(test_EmbeddedProto gtest)
+target_link_libraries(test_EmbeddedProto gtest gmock)
