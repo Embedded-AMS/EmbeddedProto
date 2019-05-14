@@ -69,13 +69,16 @@ namespace EmbeddedProto
           Result result(Result::OK);
           // Only serialize if the dat does not equal the default and when the size in the buffer 
           // is sufficient.
-          if(std::numeric_limits<DATA_TYPE>::epsilon() < (_data - DEFAULT_VALUE))
+          // This if statement would be more comperhensive if we where using C++17 std::abs.
+          if(!(((DEFAULT_VALUE + std::numeric_limits<DATA_TYPE>::epsilon()) >= _data) &&
+               ((DEFAULT_VALUE - std::numeric_limits<DATA_TYPE>::epsilon()) <= _data)))
           {
             if(serialized_size() <= buffer.get_max_size()) 
             {
               _serialize_varint(tag(), buffer);
-              _serialize_fixed(static_cast<VAR_UINT_TYPE>(_data), buffer);
-            }
+              const void* pVoid = static_cast<const void*>(&_data);
+              const VAR_UINT_TYPE* pUInt = static_cast<const VAR_UINT_TYPE*>(pVoid);
+              _serialize_fixed(*pUInt, buffer);            }
             else
             {
               result = Result::ERROR_BUFFER_TO_SMALL;
@@ -93,7 +96,8 @@ namespace EmbeddedProto
           VAR_UINT_TYPE d;
           result = result && _deserialize_fixed(d, buffer);
           if(result) {
-            _data = static_cast<DATA_TYPE>(d);
+            void* pVoid = static_cast<void*>(&d);
+            _data = *(static_cast<DATA_TYPE*>(pVoid));
           }
           return result ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
         }

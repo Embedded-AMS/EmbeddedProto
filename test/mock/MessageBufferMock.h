@@ -20,7 +20,7 @@ namespace Mocks
       MOCK_CONST_METHOD0(get_max_size, uint32_t());
       
       MOCK_METHOD1(push, bool(uint8_t));
-      MOCK_METHOD2(push, bool(uint8_t*, uint32_t));
+      MOCK_METHOD2(push, bool(const uint8_t*, const uint32_t));
       
       MOCK_CONST_METHOD1(peak, bool(uint8_t&));
       MOCK_CONST_METHOD0(peak, uint8_t());
