@@ -172,11 +172,12 @@ namespace EmbeddedProto
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
                                                             "unsigned integer types.");
         bool result(true);
-        while((value >= VARINT_MSB_BYTE) && result)
+        do
         {
-          result = buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
+          result = buffer.push(static_cast<uint8_t>(value & VARINT_MAX_SINGLE_BYTE));
           value >>= VARINT_SHIFT_N_BITS;
         }
+        while((value >= VARINT_MSB_BYTE) && result);
 
         return result;
       }

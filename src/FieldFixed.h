@@ -19,24 +19,49 @@ namespace EmbeddedProto
         static_assert((WIRE_TYPE == WireType::FIXED64) || (WIRE_TYPE == WireType::FIXED32), 
                 "Invalid wire type supplied in template, only FIXEDXX types are allowed.");
 
-        //! This typedef will return a unsigned 32 or 64 value depending on the field type.
+        //! This typedef will return an unsigned 32 or 64 variable depending on the field type.
         typedef typename std::conditional<WIRE_TYPE == WireType::FIXED32, uint32_t, uint64_t>::type 
                                                                                   VAR_UINT_TYPE;
 
-        //! This typedef will return a signed 32 or 64 value depending on the field type.
+        //! This typedef will return a signed 32 or 64 variable depending on the field type.
         typedef typename std::conditional<WIRE_TYPE == WireType::FIXED32, int32_t, int64_t>::type 
                                                                                   VAR_INT_TYPE;
         
         //! The Protobuf default value for this type. Zero in this case.
         static constexpr DATA_TYPE DEFAULT_VALUE = static_cast<DATA_TYPE>(0);
 
+        //! Constructor which also sets the field id number of this field.
+        /*!
+            \param[in] The field id number as specified in the *.proto file.
+        */
         FieldFixed(const uint32_t number) :
-            Field(WIRE_TYPE, number)
+            Field(WIRE_TYPE, number),
+            _data(DEFAULT_VALUE)
         {
 
         }
 
+        //! The constructor is default as we do not have members with non standart memory allocation.
         ~FieldFixed() final = default;
+
+        //! Set the value of this field
+        void set(const DATA_TYPE& value)
+        {
+          _data = value;
+        }
+
+        //! Assignment opertor to set the data.
+        FieldFixed& operator=(const DATA_TYPE& value)
+        {
+          set(value);
+          return *this;
+        }
+
+        //! Obtain the value of this field.
+        const DATA_TYPE& get() const
+        {
+          return _data; 
+        }
 
         //! \see Field::serialize()
         Result serialize(MessageBufferInterface& buffer) const final
@@ -65,7 +90,11 @@ namespace EmbeddedProto
         {
           // Check if there is enough data in the buffer for a fixed value.
           bool result = std::numeric_limits<VAR_UINT_TYPE>::digits <= buffer.get_max_size();
-          result = result && _deserialize_fixed(_data, buffer);
+          VAR_UINT_TYPE d;
+          result = result && _deserialize_fixed(d, buffer);
+          if(result) {
+            _data = static_cast<DATA_TYPE>(d);
+          }
           return result ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
         }
 
@@ -157,6 +186,7 @@ namespace EmbeddedProto
 
       private:
 
+        //! The actual data.
         DATA_TYPE _data;
 
     };
