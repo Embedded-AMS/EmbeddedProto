@@ -7,13 +7,13 @@
 namespace EmbeddedProto
 {
 
-  namespace detail 
+  namespace Detail 
   {
     //! The field type with fixed length.
     template<WireType WIRE_TYPE, class DATA_TYPE>
     class FieldFixed : public Field
     {
-      public:
+      protected:
 
         //! Check if for a fixed field a valid wire type has been supplied.
         static_assert((WIRE_TYPE == WireType::FIXED64) || (WIRE_TYPE == WireType::FIXED32), 
@@ -29,6 +29,12 @@ namespace EmbeddedProto
         
         //! The Protobuf default value for this type. Zero in this case.
         static constexpr DATA_TYPE DEFAULT_VALUE = static_cast<DATA_TYPE>(0);
+
+        //! The number of bytes in this fixed field.
+        static constexpr uint32_t N_BYTES_IN_FIXED = std::numeric_limits<VAR_UINT_TYPE>::digits 
+                                                          / std::numeric_limits<uint8_t>::digits;
+
+      public:
 
         //! Constructor which also sets the field id number of this field.
         /*!
@@ -92,7 +98,7 @@ namespace EmbeddedProto
         Result deserialize(MessageBufferInterface& buffer) final
         {
           // Check if there is enough data in the buffer for a fixed value.
-          bool result = std::numeric_limits<VAR_UINT_TYPE>::digits <= buffer.get_max_size();
+          bool result = N_BYTES_IN_FIXED <= buffer.get_size();
           VAR_UINT_TYPE d;
           result = result && _deserialize_fixed(d, buffer);
           if(result) {
@@ -106,12 +112,6 @@ namespace EmbeddedProto
         void clear() final
         {
           _data = DEFAULT_VALUE;
-        }
-
-        //! \see Field::serialized_size()
-        uint32_t serialized_size() const final
-        {
-          return tag_size() + serialized_data_size();
         }
 
         //! \see Field::serialized_data_size()
@@ -203,13 +203,13 @@ namespace EmbeddedProto
     types.
     \{
   */
-  typedef detail::FieldFixed<WireType::FIXED64, uint64_t> fixed64;
-  typedef detail::FieldFixed<WireType::FIXED64, int64_t>  sfixed64;
-  typedef detail::FieldFixed<WireType::FIXED64, double>   double64;
+  typedef Detail::FieldFixed<WireType::FIXED64, uint64_t> fixed64;
+  typedef Detail::FieldFixed<WireType::FIXED64, int64_t>  sfixed64;
+  typedef Detail::FieldFixed<WireType::FIXED64, double>   double64;
 
-  typedef detail::FieldFixed<WireType::FIXED32, uint32_t> fixed32;
-  typedef detail::FieldFixed<WireType::FIXED32, int32_t>  sfixed32;
-  typedef detail::FieldFixed<WireType::FIXED32, float>    float32;
+  typedef Detail::FieldFixed<WireType::FIXED32, uint32_t> fixed32;
+  typedef Detail::FieldFixed<WireType::FIXED32, int32_t>  sfixed32;
+  typedef Detail::FieldFixed<WireType::FIXED32, float>    float32;
   /*! \} */
 
 } // End of namespace EmbeddedProto

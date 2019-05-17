@@ -80,7 +80,7 @@ namespace EmbeddedProto
           \param[out] byte When the buffer is not empty this variable will hold the oldest value.
           \return True when the buffer was not empty.
       */
-      virtual bool pop(uint8_t& byte) const = 0;
+      virtual bool pop(uint8_t& byte) = 0;
 
       //! Returns the oldest byte in the buffer and removes it from the buffer.
       /*!
