@@ -5,9 +5,12 @@
 #include <Field.h>
 #include <MessageBufferMock.h>
 
+
 using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
+using ::testing::SetArgReferee;
+using ::testing::DoAll;
 
 namespace test_EmbeddedAMS_Fields
 {
@@ -160,7 +163,7 @@ namespace test_EmbeddedAMS_Fields
 
   TEST_F(FieldFixedTest, serialize_max)
   {
-    // In this test we will test if the value one is serialize correctly for the fixed fields.
+    // In this test we will test if the maximum is serialize correctly for the fixed fields.
     InSequence s;
 
     Mocks::MessageBufferMock buffer;
@@ -213,7 +216,8 @@ namespace test_EmbeddedAMS_Fields
 
   TEST_F(FieldFixedTest, serialize_min)
   {
-    // In this test we will test if the value one is serialize correctly for the fixed fields.
+    // In this test we will test if the value minimum or lowest is serialize correctly for the fixed 
+    // fields.
     InSequence s;
 
     Mocks::MessageBufferMock buffer;
@@ -258,12 +262,65 @@ namespace test_EmbeddedAMS_Fields
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.serialize(buffer));
-/*
-    0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 
-    0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0xFF, 
 
-    0x2D, 0x00, 0x00, 0x00, 0x80, 
-    0x35, 0xFF, 0xFF, 0x7F, 0xFF
+  }
+
+
+  TEST_F(FieldFixedTest, deserialize_one)
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    ON_CALL(buffer, get_size()).WillByDefault(Return(9));
+
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+
+    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF0), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
+
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x25), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+
+    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.deserialize(buffer));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.deserialize(buffer));
+
+
+    EXPECT_EQ(1U, a.get());
+    EXPECT_EQ(1, b.get());
+    EXPECT_EQ(1.0, c.get());
+
+    EXPECT_EQ(1U, d.get());    
+    EXPECT_EQ(1, e.get());
+    EXPECT_EQ(1.0F, f.get());
+
+
+    /* 
+      0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+      0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+      0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 
+
+      0x25, 0x01, 0x00, 0x00, 0x00, 
+      0x2D, 0x01, 0x00, 0x00, 0x00, 
+      0x35, 0x00, 0x00, 0x80, 0x3F 
     */
   }
 

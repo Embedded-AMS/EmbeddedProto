@@ -63,13 +63,38 @@ namespace EmbeddedProto
         //! \see Field::serialize()
         Result serialize(MessageBufferInterface& buffer) const final
         {
-
+          Result result(Result::OK);
+          if(DEFAULT_VALUE != _data)
+          {
+            if(serialized_size() <= buffer.get_max_size()) 
+            {
+              _serialize_varint(tag(), buffer);
+              VAR_UINT_TYPE uint_data = static_cast<VAR_UINT_TYPE>(_data);
+              _serialize_varint(uint_data, buffer);
+            }
+            else
+            {
+              result = Result::ERROR_BUFFER_TO_SMALL;
+            }
+          }
+          return result;
         }
 
         //! \see Field::deserialize()
         Result deserialize(MessageBufferInterface& buffer) final
         {
-
+          Result result(Result::OK);
+          VAR_UINT_TYPE uint_data;
+          if(_deserialize_varint(uint_data, buffer))
+          {
+            _data = static_cast<DATA_TYPE>(uint_data);
+          }
+          else
+          {
+            // TODO create a better error for this case. May be an error from _deserialize_varint().
+            result = Result::ERROR_BUFFER_TO_SMALL;
+          }
+          return result;
         }
 
         //! \see Field::clear()
@@ -77,17 +102,18 @@ namespace EmbeddedProto
         {
           _data = DEFAULT_VALUE;
         }
-
-        //! \see Field::serialized_size()
-        uint32_t serialized_size() const final
-        {
-          return tag_size() + serialized_data_size();
-        }
-
+        
         //! \see Field::serialized_data_size()
         uint32_t serialized_data_size() const final
         {
-          return 
+          VAR_UINT_TYPE uint_value = static_cast<VAR_UINT_TYPE>(_data);
+          uint32_t n_bytes_required = uint_value / VARINT_MAX_SINGLE_BYTE;
+          // See if there is a remainder. If so add one.
+          if((n_bytes_required * VARINT_MAX_SINGLE_BYTE) != uint_value) 
+          {
+            ++n_bytes_required;
+          }
+          return n_bytes_required;
         }
 
       protected:
@@ -99,6 +125,18 @@ namespace EmbeddedProto
 
 
   } // End of namespace Detail
+
+  /*!
+    Actually define the types to beused in messages. These specify the template for different field 
+    types.
+    \{
+  */
+  typedef Detail::FieldVarInt<int32_t>  int32;
+  typedef Detail::FieldVarInt<int64_t>  int64;
+
+  typedef Detail::FieldVarInt<uint32_t> uint32;
+  typedef Detail::FieldVarInt<uint64_t> uint64;
+  /*! \} */
 
 
 } // End of namespace EmbeddedProto

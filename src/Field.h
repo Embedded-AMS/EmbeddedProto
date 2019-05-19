@@ -91,7 +91,7 @@ namespace EmbeddedProto
       /*!
           \return The number of bytes this field will takeup in total when serialized.
       */
-      virutal uint32_t serialized_size() const
+      virtual uint32_t serialized_size() const
       { 
         return tag_size() + serialized_data_size();
       }
