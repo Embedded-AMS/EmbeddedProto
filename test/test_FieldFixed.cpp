@@ -12,7 +12,7 @@ using ::testing::Return;
 using ::testing::SetArgReferee;
 using ::testing::DoAll;
 
-namespace test_EmbeddedAMS_Fields
+namespace test_EmbeddedAMS_FieldFixed
 {
 
   //! The test fixture class for the following tests.
@@ -121,38 +121,38 @@ namespace test_EmbeddedAMS_Fields
     e = 1;
     f = 1.0F;
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(7).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(7).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(6).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0xF0)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x3F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x25)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(3).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x2D)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(3).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x35)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x80)).Times(1).WillOnce(Return(true));
@@ -177,36 +177,36 @@ namespace test_EmbeddedAMS_Fields
     e = std::numeric_limits<int32_t>::max();
     f = std::numeric_limits<float>::max();
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(8).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(7).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(6).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0xEF)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x25)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(4).WillRepeatedly(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x2D)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(3).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x35)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(2).WillRepeatedly(Return(true));
@@ -234,13 +234,13 @@ namespace test_EmbeddedAMS_Fields
     //EXPECT_CALL(buffer, push(_)).Times(0);
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(7).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x80)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(9));
     EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(6).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0xEF)).Times(1).WillOnce(Return(true));
@@ -250,13 +250,13 @@ namespace test_EmbeddedAMS_Fields
     //EXPECT_CALL(buffer, push(_)).Times(0);
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x2D)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x00)).Times(3).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x80)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(5));
     EXPECT_CALL(buffer, push(0x35)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0xFF)).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));

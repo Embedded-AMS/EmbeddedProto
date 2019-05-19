@@ -138,15 +138,33 @@ namespace EmbeddedProto
                 | static_cast<uint32_t>(_wire_type));
       }
 
-      //! Return the number of bytes the tag of this field will need.
+      //! Calculate the number of bytes required to encode the given varint value.
       /*!
           The tag is encoded as a varint and anything below 127 will only take one byte.
           \warning This is a short cut and large field numbers are not supported at this moment.
+          This function only operates on unsigned values.
+          \param[in] value The value for which we would like to know the number of bytes.
+          \return Then required number of bytes to encode the value. 
       */
-      const uint8_t tag_size() const 
+      template<class VAR_UINT_TYPE>
+      const uint32_t serialized_size_varint(const VAR_UINT_TYPE& value) const
       {
-        // TODO This is not very good code and will break with larger field numbers.
-        return VARINT_MAX_SINGLE_BYTE <= tag() ? 1 : 2;
+          static_assert(std::is_unsigned<VAR_UINT_TYPE>::value, "Varint size calculation is only "
+                                                          " possible for unsigned integer types.");
+
+          uint32_t n_bytes_required = value / VARINT_MAX_SINGLE_BYTE;
+          // See if there is a remainder. If so add one.
+          if((n_bytes_required * VARINT_MAX_SINGLE_BYTE) != value) 
+          {
+            ++n_bytes_required;
+          }
+          return n_bytes_required;
+      }
+
+      //! Return the number of bytes the tag of this field will need.
+      const uint8_t tag_size() const
+      { 
+        return serialized_size_varint(tag());
       }
 
       //! Obtain the wire type of this field.

@@ -106,14 +106,7 @@ namespace EmbeddedProto
         //! \see Field::serialized_data_size()
         uint32_t serialized_data_size() const final
         {
-          VAR_UINT_TYPE uint_value = static_cast<VAR_UINT_TYPE>(_data);
-          uint32_t n_bytes_required = uint_value / VARINT_MAX_SINGLE_BYTE;
-          // See if there is a remainder. If so add one.
-          if((n_bytes_required * VARINT_MAX_SINGLE_BYTE) != uint_value) 
-          {
-            ++n_bytes_required;
-          }
-          return n_bytes_required;
+          return serialized_size_varint(static_cast<VAR_UINT_TYPE>(_data));
         }
 
       protected:

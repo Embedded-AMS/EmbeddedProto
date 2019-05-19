@@ -12,7 +12,7 @@ using ::testing::Return;
 using ::testing::SetArgReferee;
 using ::testing::DoAll;
 
-namespace test_EmbeddedAMS_Fields
+namespace test_EmbeddedAMS_FieldVarInt
 {
 
   //! The test fixture class for the following tests.
