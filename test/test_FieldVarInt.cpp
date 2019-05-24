@@ -104,22 +104,22 @@ namespace test_EmbeddedAMS_FieldVarInt
     d = 1U;
 
     EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(2));
-    EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
     EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(2));
-    EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
     EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(2));
-    EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x18)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
 
     EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(2));
-    EXPECT_CALL(buffer, push(0x25)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x20)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
 
@@ -139,27 +139,28 @@ namespace test_EmbeddedAMS_FieldVarInt
     c = std::numeric_limits<uint32_t>::max();
     d = std::numeric_limits<uint64_t>::max();
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
-    EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(8).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0xFF)).Times(4).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x07)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
     EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
-    EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(7).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0xFF)).Times(8).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
-    EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(6).WillRepeatedly(Return(true));
-    EXPECT_CALL(buffer, push(0xEF)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0x7F)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
+    EXPECT_CALL(buffer, push(0x18)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0xFF)).Times(4).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x0F)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
-    EXPECT_CALL(buffer, push(0x25)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(4).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(11));
+    EXPECT_CALL(buffer, push(0x20)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0xFF)).Times(9).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
   }
 
@@ -177,26 +178,23 @@ namespace test_EmbeddedAMS_FieldVarInt
     c = std::numeric_limits<uint32_t>::min();
     d = std::numeric_limits<uint64_t>::min();
 
-    //EXPECT_CALL(buffer, push(_)).Times(0);
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(11));
+    EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x80)).Times(4).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0xF8)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0xFF)).Times(4).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
-    EXPECT_CALL(buffer, push(0x11)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0x00)).Times(7).WillRepeatedly(Return(true));
-    EXPECT_CALL(buffer, push(0x80)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(11));
+    EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x80)).Times(9).WillRepeatedly(Return(true));
+    EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(10));
-    EXPECT_CALL(buffer, push(0x19)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(6).WillRepeatedly(Return(true));
-    EXPECT_CALL(buffer, push(0xEF)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0xFF)).Times(1).WillOnce(Return(true));
+
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
 
-    EXPECT_CALL(buffer, get_max_size()).WillOnce(Return(6));
-    EXPECT_CALL(buffer, push(0x2D)).Times(1).WillOnce(Return(true));
-    EXPECT_CALL(buffer, push(0x00)).Times(3).WillRepeatedly(Return(true));
-    EXPECT_CALL(buffer, push(0x80)).Times(1).WillOnce(Return(true));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
 
 
@@ -212,25 +210,12 @@ namespace test_EmbeddedAMS_FieldVarInt
     ON_CALL(buffer, get_size()).WillByDefault(Return(9));
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF0), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x25), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
 
-    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
 
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));

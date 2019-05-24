@@ -69,8 +69,16 @@ namespace EmbeddedProto
             if(serialized_size() <= buffer.get_max_size()) 
             {
               _serialize_varint(tag(), buffer);
-              VAR_UINT_TYPE uint_data = static_cast<VAR_UINT_TYPE>(_data);
-              _serialize_varint(uint_data, buffer);
+              if(0 < _data)
+              {
+                VAR_UINT_TYPE uint_data = static_cast<VAR_UINT_TYPE>(_data);
+                _serialize_varint(uint_data, buffer);
+              } 
+              else
+              {
+                uint64_t uint_data = static_cast<uint64_t>(_data);
+                _serialize_varint(uint_data, buffer);
+              }
             }
             else
             {
@@ -84,7 +92,7 @@ namespace EmbeddedProto
         Result deserialize(MessageBufferInterface& buffer) final
         {
           Result result(Result::OK);
-          VAR_UINT_TYPE uint_data;
+          uint64_t uint_data;
           if(_deserialize_varint(uint_data, buffer))
           {
             _data = static_cast<DATA_TYPE>(uint_data);

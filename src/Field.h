@@ -152,12 +152,14 @@ namespace EmbeddedProto
           static_assert(std::is_unsigned<VAR_UINT_TYPE>::value, "Varint size calculation is only "
                                                           " possible for unsigned integer types.");
 
-          uint32_t n_bytes_required = value / VARINT_MAX_SINGLE_BYTE;
-          // See if there is a remainder. If so add one.
-          if((n_bytes_required * VARINT_MAX_SINGLE_BYTE) != value) 
-          {
+          uint32_t n_bytes_required = 0;
+          VAR_UINT_TYPE v = value;
+
+          while(v > 0) {
+            v = v >> VARINT_SHIFT_N_BITS;
             ++n_bytes_required;
           }
+
           return n_bytes_required;
       }
 
@@ -193,12 +195,13 @@ namespace EmbeddedProto
         static_assert(std::is_unsigned<VARINT_TYPE>::value, "Varint encoding only possible for "
                                                             "unsigned integer types.");
         bool result(true);
-        do
+
+        while((value >= VARINT_MSB_BYTE) && result) 
         {
-          result = buffer.push(static_cast<uint8_t>(value & VARINT_MAX_SINGLE_BYTE));
+          result = buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
           value >>= VARINT_SHIFT_N_BITS;
         }
-        while((value >= VARINT_MSB_BYTE) && result);
+        result = buffer.push(static_cast<uint8_t>(value));
 
         return result;
       }
@@ -230,7 +233,7 @@ namespace EmbeddedProto
         for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
         {
           temp_value |= (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
-          if(!(byte & VARINT_MSB_BYTE)) 
+          if(byte & VARINT_MSB_BYTE) 
           {
             // Continue
             result = buffer.pop(byte);

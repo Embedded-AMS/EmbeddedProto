@@ -117,7 +117,7 @@ namespace EmbeddedProto
         //! \see Field::serialized_data_size()
         uint32_t serialized_data_size() const final
         {
-          return std::numeric_limits<VAR_UINT_TYPE>::digits / std::numeric_limits<uint8_t>::digits;
+          return N_BYTES_IN_FIXED;
         }
 
 
