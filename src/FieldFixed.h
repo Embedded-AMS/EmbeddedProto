@@ -73,7 +73,7 @@ namespace EmbeddedProto
         Result serialize(MessageBufferInterface& buffer) const final
         {
           Result result(Result::OK);
-          // Only serialize if the dat does not equal the default and when the size in the buffer 
+          // Only serialize if the data does not equal the default and when the size in the buffer 
           // is sufficient.
           // This if statement would be more comperhensive if we where using C++17 std::abs.
           if(!(((DEFAULT_VALUE + std::numeric_limits<DATA_TYPE>::epsilon()) >= _data) &&
