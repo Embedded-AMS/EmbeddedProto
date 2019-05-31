@@ -8,8 +8,6 @@
 using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
-using ::testing::SetArgReferee;
-using ::testing::DoAll;
 
 namespace test_EmbeddedAMS_FieldBool
 {

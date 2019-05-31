@@ -7,10 +7,10 @@
 namespace EmbeddedProto
 {
 
-
   namespace Detail 
   {
 
+    //! The field type for booleans.
     class FieldBool : public Field 
     {
       private:        
