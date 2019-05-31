@@ -276,42 +276,35 @@ namespace test_EmbeddedAMS_FieldFixed
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
     EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+    EXPECT_EQ(1U, a.get());
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
     EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF0), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x25), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-
-    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
-
-    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
-    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
-
-    EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
-    EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.deserialize(buffer));
-    EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.deserialize(buffer));
-
-
-    EXPECT_EQ(1U, a.get());
     EXPECT_EQ(1, b.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true))); 
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF0), Return(true)));   
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
     EXPECT_EQ(1.0, c.get());
 
-    EXPECT_EQ(1U, d.get());    
-    EXPECT_EQ(1, e.get());
-    EXPECT_EQ(1.0F, f.get());
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
+    EXPECT_EQ(1U, d.get());
 
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.deserialize(buffer));
+    EXPECT_EQ(1, e.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));    
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x3F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.deserialize(buffer));
+    EXPECT_EQ(1.0F, f.get());
 
     /* 
       0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 

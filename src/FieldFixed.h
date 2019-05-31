@@ -99,11 +99,12 @@ namespace EmbeddedProto
         {
           // Check if there is enough data in the buffer for a fixed value.
           bool result = N_BYTES_IN_FIXED <= buffer.get_size();
-          VAR_UINT_TYPE d;
+          VAR_UINT_TYPE d = 0;
           result = result && _deserialize_fixed(d, buffer);
           if(result) {
-            void* pVoid = static_cast<void*>(&d);
-            _data = *(static_cast<DATA_TYPE*>(pVoid));
+            const void* pVoid = static_cast<const void*>(&d);
+            const DATA_TYPE* pData = static_cast<const DATA_TYPE*>(pVoid);
+            _data = *pData;
           }
           return result ? Result::OK : Result::ERROR_BUFFER_TO_SMALL;
         }
@@ -170,7 +171,7 @@ namespace EmbeddedProto
             result = buffer.pop(byte);
             if(result)
             {
-              temp_value |= byte << i;
+              temp_value |= static_cast<VAR_UINT_TYPE>(byte) << i;
             }
             else
             {
