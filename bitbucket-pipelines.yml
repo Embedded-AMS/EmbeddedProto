@@ -8,9 +8,10 @@ pipelines:
           - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
+          - tree -a
           - ./build-wrapper-linux-x86/build-wrapper-linux-x86-32 --out-dir SonarQube-output make clean all
           - export SONAR_SCANNER_OPTS="-Xmx1024m"
-          - ./sonar-scanner-cli-3.3.0.1492-linux/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=492dba2b1a7da82eaea36308ce177f6033626bca -Dsonar.cfamily.build-wrapper-output=SonarQube-output
+          - ./sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=492dba2b1a7da82eaea36308ce177f6033626bca -Dsonar.cfamily.build-wrapper-output=SonarQube-output
           - ./build_test
                  
 definitions:
