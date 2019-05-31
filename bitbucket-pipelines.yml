@@ -8,7 +8,15 @@ pipelines:
           - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree protobuf-compiler cmake
           - which python3
           - git submodule update --recursive --init
-          - build_test.sh
+          - mkdir -p ./build/EAMS
+          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/simple_types.proto
+          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/nested_message.proto
+          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
+          - mkdir -p build/test
+          - cd build/test/
+          - cmake -DCMAKE_BUILD_TYPE=Debug ../../
+          - make
+          - cd ../..
           - source bitbucket-pipelines-dependencies.sh
           - cd ./build/test
           - ../../build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
