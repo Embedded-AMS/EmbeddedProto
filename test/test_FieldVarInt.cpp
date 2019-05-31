@@ -210,11 +210,8 @@ namespace test_EmbeddedAMS_FieldVarInt
     ON_CALL(buffer, get_size()).WillByDefault(Return(9));
 
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
 
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
