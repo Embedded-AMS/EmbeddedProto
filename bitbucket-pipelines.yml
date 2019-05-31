@@ -6,8 +6,6 @@ pipelines:
           - git-modules
         script:            
           - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree
-#          - export BITBUCKET_ACCESS_TOKEN=$(curl -s -X POST -u "$OAUTH_CLIENT_KEY:$OAUTH_CLIENT_SECRET" https://bitbucket.org/site/oauth2/access_token -d grant_type=client_credentials | jq ".access_token")
-#          - export BITBUCKET_PULL_REQUEST_ID=$(curl -s -XGET "https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_OWNER/$BITBUCKET_REPO_SLUG/pullrequests?pagelen=5&state=OPEN&access_token=$BITBUCKET_ACCESS_TOKEN" | jq ".values[] | select(.source.branch.name==\"$BITBUCKET_BRANCH\") | .id"
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
           - ./build-wrapper-linux-x86/build-wrapper-linux-x86-32 --out-dir SonarQube-output make clean all
