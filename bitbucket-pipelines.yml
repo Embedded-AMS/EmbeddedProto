@@ -6,6 +6,8 @@ pipelines:
           - git-modules
         script:            
           - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree protobuf-compiler cmake
+          - which protoc
+          - which python
           - git submodule update --recursive --init
           - ./build_test.sh
           - source bitbucket-pipelines-dependencies.sh
