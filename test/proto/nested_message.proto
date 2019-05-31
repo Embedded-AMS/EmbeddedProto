@@ -1,0 +1,16 @@
+
+// This file is used to test the wire formatter class.
+
+syntax = "proto3";
+
+message message_a {
+  int32 x   = 1;
+  float y   = 2;
+  sint64 z  = 3;
+}
+
+message message_b {
+  double a  = 1;
+  double b  = 2;
+  message_a msg_c = 3;
+}

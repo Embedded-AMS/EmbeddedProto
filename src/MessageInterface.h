@@ -4,6 +4,7 @@
 #define _MESSAGE_INTERFACE_H_
 
 #include <cstdint>
+#include <WireFormatter.h>
 
 namespace EmbeddedProto {
 
@@ -12,14 +13,11 @@ public:
     enum class Result {
         OK,
         ERROR_BUFFER_TO_SMALL,
-    }
-
-    //! This default constructor clears the message data into its default state.
-    MessageInterface() {
-        clear();
     };
 
-    ~MessageInterface() = default;
+    MessageInterface() = default;
+
+    virtual ~MessageInterface() = default;
 
     //! Function to serialize this message.
     /*!
