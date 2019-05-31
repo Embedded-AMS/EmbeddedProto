@@ -5,7 +5,7 @@ pipelines:
         caches:
           - git-modules
         script:            
-          - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree
+          - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree protobuf-compiler cmake
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
           - ./build_test
