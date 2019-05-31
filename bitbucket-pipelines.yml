@@ -7,8 +7,8 @@ pipelines:
         script:            
           - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree protobuf-compiler cmake
           - git submodule update --recursive --init
+          - ./build_test.sh
           - source bitbucket-pipelines-dependencies.sh
-          - ./build_test
           - cd ./build/test
           - ../../build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
           - cd -
