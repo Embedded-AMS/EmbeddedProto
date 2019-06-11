@@ -232,7 +232,7 @@ namespace EmbeddedProto
         // Loop until the end of the encoded varint or until there is nomore data in the buffer.
         for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
         {
-          temp_value |= (byte & ~VARINT_MSB_BYTE) << (i * VARINT_SHIFT_N_BITS);
+          temp_value |= static_cast<VARINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
           if(byte & VARINT_MSB_BYTE) 
           {
             // Continue
