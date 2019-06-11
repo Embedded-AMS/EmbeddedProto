@@ -37,6 +37,9 @@ namespace test_EmbeddedAMS_FieldBool
 
   TEST(FieldBoolTest, deserialize_buffer_to_small)
   {
+    // In this test we will test if the maximum is serialize correctly for the fixed fields.
+    InSequence s;
+        
     EmbeddedProto::boolean a(1);
     Mocks::MessageBufferMock buffer; 
     EXPECT_CALL(buffer, get_size()).WillOnce(Return(0));
@@ -46,6 +49,9 @@ namespace test_EmbeddedAMS_FieldBool
 
   TEST(FieldBoolTest, serialize_false)
   {
+    // In this test we will test if the maximum is serialize correctly for the fixed fields.
+    InSequence s;
+
     EmbeddedProto::boolean a(1);
     a = false;
     Mocks::MessageBufferMock buffer; 
@@ -57,6 +63,9 @@ namespace test_EmbeddedAMS_FieldBool
 
   TEST(FieldBoolTest, serialize_true)
   {
+    // In this test we will test if the maximum is serialize correctly for the fixed fields.
+    InSequence s;
+
     EmbeddedProto::boolean a(1);
     a = true;
     Mocks::MessageBufferMock buffer; 
@@ -68,6 +77,9 @@ namespace test_EmbeddedAMS_FieldBool
 
   TEST(FieldBoolTest, deserialize_true)
   {
+    // In this test we will test if the maximum is serialize correctly for the fixed fields.
+    InSequence s;
+
     EmbeddedProto::boolean a(1);
     Mocks::MessageBufferMock buffer; 
     EXPECT_CALL(buffer, get_size()).WillOnce(Return(1));
