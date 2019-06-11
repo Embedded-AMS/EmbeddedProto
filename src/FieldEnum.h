@@ -21,19 +21,20 @@ namespace EmbeddedProto
                                                       "classes as template parameter.");
 
         //! The actual type of integer used to store this enum underneeth the bonnit.
-        typedef INT_TYPE = std::underlying_type<ENUM_TYPE>::type;
+        typedef typename std::underlying_type<ENUM_TYPE>::type INT_TYPE;
 
         //! Initialize the enum always for its default value.
         /*!
             Protobuf dictates all enums should have their first item be equal to zero.
         */
-        static constexpr INT_TYPE DEFAULT_VALUE = 0;
+        static constexpr ENUM_TYPE DEFAULT_VALUE = static_cast<ENUM_TYPE>(0);
 
       public:
 
         //! This default constructor sets the 
-        FieldEnum() 
-          : _data(DEFAULT_VALUE)
+        FieldEnum(const uint32_t number) 
+          : Field(WireType::VARINT, number),
+            _data(DEFAULT_VALUE)
         {
 
         }
@@ -67,7 +68,7 @@ namespace EmbeddedProto
             if(serialized_size() <= buffer.get_max_size()) 
             {
               _serialize_varint(tag(), buffer);
-              _serialize_varint(static_cast<INT_TYPE>(_data));
+              _serialize_varint(static_cast<INT_TYPE>(_data), buffer);
             }
             else 
             {
@@ -82,9 +83,9 @@ namespace EmbeddedProto
         {
           Result result(Result::OK);
           uint64_t uint_data;
-          if(_deserialize_varint(uint_data, buffer))
+          if((0 < buffer.get_size()) && _deserialize_varint(uint_data, buffer))
           {
-            _data = static_cast<DATA_TYPE>(uint_data);
+            _data = static_cast<ENUM_TYPE>(uint_data);
           }
           else
           {
@@ -112,6 +113,10 @@ namespace EmbeddedProto
     };
 
   } // End of namespace detail
+
+  //! Short hand notation to access the Detail namespace for the FieldEnum class.   
+  template<class ENUM_TYPE>
+  using Enumeration = Detail::FieldEnum<ENUM_TYPE>;
 
 } // End of namespace EmbeddedProto
 
