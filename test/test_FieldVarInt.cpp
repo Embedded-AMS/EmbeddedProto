@@ -261,4 +261,28 @@ namespace test_EmbeddedAMS_FieldVarInt
 */
   }
 
+  TEST_F(FieldVarIntTest, deserialize_min)
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF8), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+
+    EXPECT_CALL(buffer, pop(_)).Times(9).WillRepeatedly(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+
+    EXPECT_EQ(std::numeric_limits<int32_t>::min(), a.get());
+    EXPECT_EQ(std::numeric_limits<int64_t>::min(), b.get());
+    EXPECT_EQ(std::numeric_limits<uint32_t>::min(), c.get());
+    EXPECT_EQ(std::numeric_limits<uint64_t>::min(), d.get());
+  }
+
 } // End of namespace test_EmbeddedAMS_Fields
