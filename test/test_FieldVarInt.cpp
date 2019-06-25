@@ -190,14 +190,10 @@ namespace test_EmbeddedAMS_FieldVarInt
     EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
     EXPECT_CALL(buffer, push(0x80)).Times(9).WillRepeatedly(Return(true));
     EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.serialize(buffer));
-
-
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.serialize(buffer));
-
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.serialize(buffer));
-
-
   }
 
 
@@ -219,23 +215,74 @@ namespace test_EmbeddedAMS_FieldVarInt
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
     EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
 
-
-    EXPECT_EQ(1U, a.get());
+    EXPECT_EQ(1, a.get());
     EXPECT_EQ(1, b.get());
-    EXPECT_EQ(1.0, c.get());
+    EXPECT_EQ(1U, c.get());
     EXPECT_EQ(1U, d.get());    
-
-
-    /* 
-      0x09, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-      0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-      0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 
-
-      0x25, 0x01, 0x00, 0x00, 0x00, 
-      0x2D, 0x01, 0x00, 0x00, 0x00, 
-      0x35, 0x00, 0x00, 0x80, 0x3F 
-    */
   }
 
+  TEST_F(FieldVarIntTest, deserialize_max)
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x07), Return(true)));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+
+    EXPECT_CALL(buffer, pop(_)).Times(8).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0F), Return(true)));
+    
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
+
+    EXPECT_CALL(buffer, pop(_)).Times(9).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
+
+
+    EXPECT_EQ(std::numeric_limits<int32_t>::max(), a.get());
+    EXPECT_EQ(std::numeric_limits<int64_t>::max(), b.get());
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), c.get());
+    EXPECT_EQ(std::numeric_limits<uint64_t>::max(), d.get());    
+
+/*
+    0xFF, 0xFF, 0xFF, 0xFF, 0x07, 
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 
+    0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01
+*/
+  }
+
+  TEST_F(FieldVarIntTest, deserialize_min)
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xF8), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+
+    EXPECT_CALL(buffer, pop(_)).Times(9).WillRepeatedly(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+    
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+
+    EXPECT_EQ(std::numeric_limits<int32_t>::min(), a.get());
+    EXPECT_EQ(std::numeric_limits<int64_t>::min(), b.get());
+    EXPECT_EQ(std::numeric_limits<uint32_t>::min(), c.get());
+    EXPECT_EQ(std::numeric_limits<uint64_t>::min(), d.get());
+  }
 
 } // End of namespace test_EmbeddedAMS_Fields

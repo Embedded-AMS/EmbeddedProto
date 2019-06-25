@@ -318,4 +318,93 @@ namespace test_EmbeddedAMS_FieldFixed
   }
 
 
+  TEST_F(FieldFixedTest, deserialize_max)
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    ON_CALL(buffer, get_size()).WillByDefault(Return(8));
+
+    EXPECT_CALL(buffer, pop(_)).Times(8).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, a.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<uint64_t>::max(), a.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<int64_t>::max(), b.get());
+    
+    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true))); 
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xEF), Return(true)));   
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<double>::max(), c.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(4).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, d.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), d.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<int32_t>::max(), e.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<float>::max(), f.get());
+
+    /*
+      0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
+      0x11, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 
+      0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F, 
+
+      0x25, 0xFF, 0xFF, 0xFF, 0xFF, 
+      0x2D, 0xFF, 0xFF, 0xFF, 0x7F, 
+      0x35, 0xFF, 0xFF, 0x7F, 0x7F
+    */
+  }
+
+  TEST_F(FieldFixedTest, deserialize_min) 
+  {
+    InSequence s;
+
+    Mocks::MessageBufferMock buffer;
+
+    ON_CALL(buffer, get_size()).WillByDefault(Return(8));
+
+    EXPECT_CALL(buffer, pop(_)).Times(7).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, b.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<int64_t>::min(), b.get());
+    
+    EXPECT_CALL(buffer, pop(_)).Times(6).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true))); 
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xEF), Return(true)));   
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, c.deserialize(buffer));
+    double dans = std::numeric_limits<double>::lowest();
+    EXPECT_EQ(dans, c.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(3).WillRepeatedly(DoAll(SetArgReferee<0>(0x00), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x80), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, e.deserialize(buffer));
+    EXPECT_EQ(std::numeric_limits<int32_t>::min(), e.get());
+
+    EXPECT_CALL(buffer, pop(_)).Times(2).WillRepeatedly(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x7F), Return(true)));
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0xFF), Return(true)));
+    EXPECT_EQ(EmbeddedProto::Field::Result::OK, f.deserialize(buffer));
+    float fans = std::numeric_limits<float>::lowest();
+    EXPECT_EQ(fans, f.get());
+
+    /*
+      b 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 
+      c 0x19, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0xFF, 
+
+      e 0x2D, 0x00, 0x00, 0x00, 0x80, 
+      f 0x35, 0xFF, 0xFF, 0x7F, 0xFF
+    */
+  }
+
 } // End of namespace test_EmbeddedAMS_Fields
