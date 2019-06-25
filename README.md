@@ -1,6 +1,6 @@
 
 ![alt text](https://embeddedams.nl/wp-content/uploads/2018/07/EmbeddedAMS_long.png "Embedded AMS Logo")
-Embedded AMS B.V. Amsterdam, www.EmbeddedAMS.nl, info@EmbeddedAMS.nl
+Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
 
 
 # Introduction
@@ -49,10 +49,10 @@ repeated | No support
 
 What is required to be able to generate the source files:
 1. Python 3.6
-1. Pip
-1. Protobuf 3.6.1
-1. CMake 3.10.2 (optional to build PC unit tests)
-1. Git if you do not have it already.
+2. Pip
+3. Protobuf 3.6.1
+4. CMake 3.10.2 (optional to build PC unit tests)
+5. Git if you do not have it already.
 
 Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule. If you intent to run the PC unit tests of EmbeddedProto it is suggested that you pull in the submodules as well. 
 
