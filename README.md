@@ -1,6 +1,7 @@
-Embedded AMS B.V. Amsterdam
-web: www.EmbeddedAMS.nl 
-info: info@EmbeddedAMS.nl
+
+![alt text](https://embeddedams.nl/wp-content/uploads/2018/07/EmbeddedAMS_long.png "Embedded AMS Logo")
+Embedded AMS B.V. Amsterdam, www.EmbeddedAMS.nl, info@EmbeddedAMS.nl
+
 
 # Introduction
 
