@@ -4,6 +4,7 @@ import os
 import jinja2
 
 from google.protobuf.compiler import plugin_pb2 as plugin
+from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto, EnumDescriptorProto
 
 # -----------------------------------------------------------------------------
 
@@ -26,12 +27,51 @@ def generate_enums(enums):
 
 
 class FieldTemplateParameters:
+    type_to_default_value = {FieldDescriptorProto.TYPE_DOUBLE:   "0.0f",
+                             FieldDescriptorProto.TYPE_FLOAT:    "0.0f",
+                             FieldDescriptorProto.TYPE_INT64:    "0",
+                             FieldDescriptorProto.TYPE_UINT64:   "U0",
+                             FieldDescriptorProto.TYPE_INT32:    "0",
+                             FieldDescriptorProto.TYPE_FIXED64:  "U0",
+                             FieldDescriptorProto.TYPE_FIXED32:  "U0",
+                             FieldDescriptorProto.TYPE_BOOL:     "false",
+                             FieldDescriptorProto.TYPE_STRING:   "TODO",
+                             FieldDescriptorProto.TYPE_MESSAGE:  "",
+                             FieldDescriptorProto.TYPE_BYTES:    "TODO",
+                             FieldDescriptorProto.TYPE_UINT32:   "U0",
+                             FieldDescriptorProto.TYPE_ENUM:     "0",
+                             FieldDescriptorProto.TYPE_SFIXED32: "0",
+                             FieldDescriptorProto.TYPE_SFIXED64: "0",
+                             FieldDescriptorProto.TYPE_SINT32:   "0",
+                             FieldDescriptorProto.TYPE_SINT64:   "0"}
+
+    type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "double",
+                        FieldDescriptorProto.TYPE_FLOAT:    "float",
+                        FieldDescriptorProto.TYPE_INT64:    "int64_t",
+                        FieldDescriptorProto.TYPE_UINT64:   "uint64_t",
+                        FieldDescriptorProto.TYPE_INT32:    "int32_t",
+                        FieldDescriptorProto.TYPE_FIXED64:  "uint64_t",
+                        FieldDescriptorProto.TYPE_FIXED32:  "uint32_t",
+                        FieldDescriptorProto.TYPE_BOOL:     "bool",
+                        FieldDescriptorProto.TYPE_STRING:   "TODO",
+                        FieldDescriptorProto.TYPE_BYTES:    "TODO",
+                        FieldDescriptorProto.TYPE_UINT32:   "uint32_t",
+                        FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
+                        FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
+                        FieldDescriptorProto.TYPE_SINT32:   "int32_t",
+                        FieldDescriptorProto.TYPE_SINT64:   "int32_t"}
+
     def __init__(self, field_proto):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
         self.variable_id_name = self.name + "_id"
-        self.default_value = 0
-        self.type = "some_type"
+        self.variable_id = field_proto.number
+        self.default_value = self.type_to_default_value[field_proto.type]
+
+        if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
+            self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
+        else:
+            self.type = self.type_to_cpp_type[field_proto.type]
         self.field_proto = field_proto
 
 # -----------------------------------------------------------------------------

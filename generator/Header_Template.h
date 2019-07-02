@@ -26,7 +26,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {%- endfor %}
 
     {% for field in msg.fields() %}
-    static const uint32_t {{field.variable_id_name}}
+    static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
     {% endfor %}
