@@ -10,4 +10,4 @@
 # --plugin= on the command line.
 
 
-./venv/bin/python protoc-gen-eams.py --protoc-plugin
+./venv/bin/python generator/protoc-gen-eams.py --protoc-plugin
