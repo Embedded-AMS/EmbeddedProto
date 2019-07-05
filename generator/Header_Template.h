@@ -19,7 +19,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
     };
 
-    ~{{ msg.name }}() = default;
+    ~{{ msg.name }}() override = default;
 
     {% for enum in msg.nested_enums() %}
     {{ enum_macro(enum) }}
@@ -27,31 +27,46 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
+    {% if field.of_type_message %}
+    void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
+    {% else %}
+    void clear_{{field.name}}() { {{field.variable_name}} = {{field.default_value}}; };
+    {% endif %}
     void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
-    {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
-    {% endfor %}
+    const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
+    {% if field.of_type_message %}
+    {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    {% endif %}
 
-    Result serialize(uint8_t* buffer, uint32_t length) const final
-    {
-    {% for field in single_fields %}
-      if({{field.default_value}} != {{field.variable_name}})
-      {
-        //buffer = ::EmbeddedProto::WireFormatter::{{field.serialize}}({{field.number}}, {{field.variable_name}}, buffer);
-      }
     {% endfor %}
-        return Result::OK;
+    bool serialize(::EmbeddedProto::Buffer& buffer) const final
+    {
+      {% for field in msg.fields() %}
+      {% if field.of_type_message %}
+      {{field.variable_name}}.serialize(buffer);
+      {% else %}
+      if(({{field.default_value}} != {{field.variable_name}}) && buffer.good())
+      {
+        serialize_tag({{field.variable_id_name}}, buffer);
+        serialize_field({{field.variable_name}}, buffer);
+      }
+      {% endif %}
+
+      {% endfor %}
+      return buffer.good();
     };
 
     Result deserialize(const uint8_t* buffer, uint32_t length) final
     {
-        return Result::OK;
+      return Result::OK;
     };
 
     void clear() final
     {
-
+      {% for field in msg.fields() %}
+      clear_{{field.name}}();
+      {% endfor %}
     }
-
 
   private:
 
@@ -66,18 +81,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <cstdint>
 {% if messages %}#include <MessageInterface.h>{% endif %}
 
-{%- if namespace %}
+{% if namespace %}
 namespace {{ namespace }}
 { {% endif %}
 
-{%- for enum in enums %}
+{% for enum in enums %}
 {{ enum_macro(enum) }}
-{%- endfor %}
-
-{%- for msg in messages %}
+{% endfor %}
+{% for msg in messages %}
 {{ msg_macro(msg) }}
-{%- endfor %}
-
+{% endfor %}
 {% if namespace %}
 } // End of namespace {{ namespace }}
 {% endif %}

@@ -67,11 +67,13 @@ class FieldTemplateParameters:
         self.variable_id_name = self.name + "_id"
         self.variable_id = field_proto.number
         self.default_value = self.type_to_default_value[field_proto.type]
+        self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
+
         self.field_proto = field_proto
 
 # -----------------------------------------------------------------------------
@@ -138,7 +140,7 @@ def main_plugin():
     request = plugin.CodeGeneratorRequest.FromString(data)
 
     # Write the requests to a file for easy debugging.
-    with open("../debug_request.bin", 'wb') as file:
+    with open("./debug_request.bin", 'wb') as file:
         file.write(request.SerializeToString())
 
     # Create response
