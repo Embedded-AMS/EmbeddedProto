@@ -106,7 +106,7 @@ def generate_code(request, respones):
     # Based upon the request from protoc generate
 
     template_loader = jinja2.FileSystemLoader(searchpath="./generator/")
-    template_env = jinja2.Environment(loader=template_loader)
+    template_env = jinja2.Environment(loader=template_loader, trim_blocks=True, lstrip_blocks=True)
     template_file = "Header_Template.h"
     template = template_env.get_template(template_file)
 
@@ -120,8 +120,7 @@ def generate_code(request, respones):
         enums_generator = generate_enums(proto_file.enum_type)
 
         try:
-            file_str = template.render(namespace=proto_file.package, messages=messages_generator, enums=enums_generator,
-                                       trim_blocks=True, lstrip_blocks=True)
+            file_str = template.render(namespace=proto_file.package, messages=messages_generator, enums=enums_generator)
         except Exception as e:
             print("Template renderer exception: " + str(e))
         else:

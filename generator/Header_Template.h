@@ -1,30 +1,30 @@
-{%- macro enum_macro(_enum) %}
+{% macro enum_macro(_enum) %}
 enum {{ _enum.name }}
 {
-  {%- for value in _enum.values() %}
+  {% for value in _enum.values() %}
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
-  {%- endfor %}
+  {% endfor %}
 }
-{% endmacro -%}
+{% endmacro %}
 
-{%- macro msg_macro(msg) %}
+{% macro msg_macro(msg) %}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
     {{ msg.name }}() :
-        {%- for field in msg.fields() %}
+        {% for field in msg.fields() %}
         {{field.variable_name}}({{field.default_value}}){{"," if not loop.last}}
-        {%- endfor %}
+        {% endfor %}
     {
 
     };
 
     ~{{ msg.name }}() = default;
 
-    {%- for enum in msg.nested_enums() %}
+    {% for enum in msg.nested_enums() %}
     {{ enum_macro(enum) }}
-    {%- endfor %}
 
+    {% endfor %}
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
@@ -55,11 +55,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
   private:
 
-    {% for field in msg.fields() -%}
+    {% for field in msg.fields() %}
     {{field.type}} {{field.variable_name}};
     {% endfor %}
 };
-{% endmacro -%}
+{% endmacro %}
 // This file is generated. Please do not edit!
 #pragma once
 
