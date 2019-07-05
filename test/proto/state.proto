@@ -22,4 +22,5 @@ message Velocity {
 message Object {
     Position pos = 1;
     Velocity vel = 2;
+    State state  = 3;
 }
