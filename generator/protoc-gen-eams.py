@@ -35,9 +35,9 @@ class FieldTemplateParameters:
                              FieldDescriptorProto.TYPE_FIXED64:  "U0",
                              FieldDescriptorProto.TYPE_FIXED32:  "U0",
                              FieldDescriptorProto.TYPE_BOOL:     "false",
-                             FieldDescriptorProto.TYPE_STRING:   "TODO",
+                             FieldDescriptorProto.TYPE_STRING:   "TODO",    # TODO
                              FieldDescriptorProto.TYPE_MESSAGE:  "",
-                             FieldDescriptorProto.TYPE_BYTES:    "TODO",
+                             FieldDescriptorProto.TYPE_BYTES:    "TODO",    # TODO
                              FieldDescriptorProto.TYPE_UINT32:   "U0",
                              FieldDescriptorProto.TYPE_ENUM:     "0",
                              FieldDescriptorProto.TYPE_SFIXED32: "0",
@@ -53,13 +53,31 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_FIXED64:  "uint64_t",
                         FieldDescriptorProto.TYPE_FIXED32:  "uint32_t",
                         FieldDescriptorProto.TYPE_BOOL:     "bool",
-                        FieldDescriptorProto.TYPE_STRING:   "TODO",
-                        FieldDescriptorProto.TYPE_BYTES:    "TODO",
+                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
                         FieldDescriptorProto.TYPE_UINT32:   "uint32_t",
                         FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
                         FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
                         FieldDescriptorProto.TYPE_SINT32:   "int32_t",
                         FieldDescriptorProto.TYPE_SINT64:   "int32_t"}
+
+    type_to_wire_type = {FieldDescriptorProto.TYPE_INT32:    "VARINT",
+                         FieldDescriptorProto.TYPE_INT64:    "VARINT",
+                         FieldDescriptorProto.TYPE_UINT32:   "VARINT",
+                         FieldDescriptorProto.TYPE_UINT64:   "VARINT",
+                         FieldDescriptorProto.TYPE_SINT32:   "VARINT",
+                         FieldDescriptorProto.TYPE_SINT64:   "VARINT",
+                         FieldDescriptorProto.TYPE_BOOL:     "VARINT",
+                         FieldDescriptorProto.TYPE_ENUM:     "VARINT",
+                         FieldDescriptorProto.TYPE_FIXED64:  "FIXED64",
+                         FieldDescriptorProto.TYPE_SFIXED64: "FIXED64",
+                         FieldDescriptorProto.TYPE_DOUBLE:   "FIXED64",
+                         FieldDescriptorProto.TYPE_STRING:   "LENGTH_DELIMITED",
+                         FieldDescriptorProto.TYPE_BYTES:    "LENGTH_DELIMITED",
+                         FieldDescriptorProto.TYPE_MESSAGE:  "LENGTH_DELIMITED",
+                         FieldDescriptorProto.TYPE_FIXED32:  "FIXED32",
+                         FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
+                         FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
     def __init__(self, field_proto):
         self.name = field_proto.name
@@ -68,6 +86,7 @@ class FieldTemplateParameters:
         self.variable_id = field_proto.number
         self.default_value = self.type_to_default_value[field_proto.type]
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
+        self.wire_type = self.type_to_wire_type[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
@@ -100,10 +119,6 @@ def generate_messages(message_types):
 # -----------------------------------------------------------------------------
 
 
-def proto_to_header_filename(proto_filename):
-    return os.path.splitext(proto_filename)[0] + ".h"
-
-
 def generate_code(request, respones):
     # Based upon the request from protoc generate
 
@@ -127,7 +142,7 @@ def generate_code(request, respones):
             print("Template renderer exception: " + str(e))
         else:
             f = respones.file.add()
-            f.name = proto_to_header_filename(proto_file.name)
+            f.name = os.path.splitext(proto_file.name)[0] + ".h"
             f.content = file_str
 
 

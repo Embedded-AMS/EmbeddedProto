@@ -47,6 +47,12 @@ public:
     */
     virtual void clear() = 0;
 
+    //! Calculate the size of this message when serialized.
+    /*!
+        \return The number of bytes this message will require once serialized.
+    */
+    virtual uint32_t serialized_size() const = 0;
+
 protected:
 
 

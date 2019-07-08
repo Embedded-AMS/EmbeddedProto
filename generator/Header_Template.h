@@ -43,11 +43,17 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {
       {% for field in msg.fields() %}
       {% if field.of_type_message %}
-      {{field.variable_name}}.serialize(buffer);
+      const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
+      if(0 < size_{{field.name}} && buffer.good())
+      {
+        serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
+        serialize_VARINT(size_{{field.name}}, buffer);
+        {{field.variable_name}}.serialize(buffer);
+      }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}) && buffer.good())
       {
-        serialize_tag({{field.variable_id_name}}, buffer);
+        serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
         serialize_field({{field.variable_name}}, buffer);
       }
       {% endif %}
@@ -56,9 +62,44 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       return buffer.good();
     };
 
-    Result deserialize(const uint8_t* buffer, uint32_t length) final
+    bool deserialize(::EmbeddedProto::Buffer& buffer) final
     {
-      return Result::OK;
+      bool result = True;
+      ::EmbeddedProto::WireType wire_type;
+      uint32_t id_number = 0;
+
+      while(result && buffer.good() && deserialize_tag(buffer, wire_type, id_number))
+      {
+        switch(id_number)
+        {
+          {% for field in msg.fields() %}
+          case {{field.variable_id_name}}:
+          {
+            if(::EmbeddedProto::WireType::{{field.wire_type}} == wire_type)
+            {
+              {% if field.of_type_message %}
+              uint32_t size;
+              result = deserialize_VARINT(buffer, size);
+              PartialBuffer<size> partial_buffer(buffer);
+              result = result && {{field.variable_name}}.deserialize(partial_buffer);
+              {% else %}
+              result = deserialized_size_{{field.wire_type}}(buffer, {{field.variable_name}});
+              {% endif %}
+            }
+            else
+            {
+              // TODO Error wire type does not match field.
+              result = false;
+            }
+            break;
+          }
+
+          {% endfor %}
+          default:
+            break;
+        }
+      }
+      return result;
     };
 
     void clear() final
@@ -66,6 +107,19 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% for field in msg.fields() %}
       clear_{{field.name}}();
       {% endfor %}
+    }
+
+    uint32_t serialized_size() const final
+    {
+      uint32_t size = 0;
+      {% for field in msg.fields() %}
+      {% if field.of_type_message %}
+      size += {{field.variable_name}}.serialized_size();
+      {% else %}
+      size += serialized_size_{{field.wire_type}}({{field.variable_name}});
+      {% endif %}
+      {% endfor %}
+      return size;
     }
 
   private:
