@@ -28,47 +28,49 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     {% if field.of_type_message %}
-    void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
+    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
     {% else %}
-    void clear_{{field.name}}() { {{field.variable_name}} = {{field.default_value}}; };
+    inline void clear_{{field.name}}() { {{field.variable_name}} = {{field.default_value}}; };
     {% endif %}
-    void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
-    const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
+    inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
+    inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
     {% if field.of_type_message %}
-    {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
     {% endif %}
 
     {% endfor %}
-    bool serialize(::EmbeddedProto::Buffer& buffer) const final
+    bool serialize(::EmbeddedProto::MessageBufferInterface& buffer) const final
     {
+      bool result = true;
+
       {% for field in msg.fields() %}
       {% if field.of_type_message %}
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      if(0 < size_{{field.name}} && buffer.good())
+      if(0 < size_{{field.name}} && (size_{{field.name}} < buffer.get_available_size()) && result)
       {
-        serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
-        serialize_VARINT(size_{{field.name}}, buffer);
-        {{field.variable_name}}.serialize(buffer);
+        result = serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
+        result = result && serialize_VARINT(size_{{field.name}}, buffer);
+        result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
-      if(({{field.default_value}} != {{field.variable_name}}) && buffer.good())
+      if(({{field.default_value}} != {{field.variable_name}}) && result)
       {
-        serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
-        serialize_field({{field.variable_name}}, buffer);
+        result = serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
+        result = result && serialize_field({{field.variable_name}}, buffer);
       }
       {% endif %}
 
       {% endfor %}
-      return buffer.good();
+      return result;
     };
 
-    bool deserialize(::EmbeddedProto::Buffer& buffer) final
+    bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) final
     {
       bool result = True;
       ::EmbeddedProto::WireType wire_type;
       uint32_t id_number = 0;
 
-      while(result && buffer.good() && deserialize_tag(buffer, wire_type, id_number))
+      while(result && deserialize_tag(buffer, wire_type, id_number))
       {
         switch(id_number)
         {
@@ -80,7 +82,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               {% if field.of_type_message %}
               uint32_t size;
               result = deserialize_VARINT(buffer, size);
-              PartialBuffer<size> partial_buffer(buffer);
+              PartialMessageBufferInterface<size> partial_buffer(buffer);
               result = result && {{field.variable_name}}.deserialize(partial_buffer);
               {% else %}
               result = deserialized_size_{{field.wire_type}}(buffer, {{field.variable_name}});

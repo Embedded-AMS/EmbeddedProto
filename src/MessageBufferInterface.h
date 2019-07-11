@@ -27,6 +27,9 @@ namespace EmbeddedProto
       //! Obtain the total number of bytes which can at most be stored in the buffer.
       virtual uint32_t get_max_size() const = 0;
 
+      //! Obtain the total number of bytes still available in the buffer.
+      virtual uint32_t get_available_size() const = 0;
+
       //! Push a single byte into the buffer.
       /*!
           \param[in] byte The data to append after previously added data in the buffer.
