@@ -3,6 +3,7 @@
 #define _WIRE_FORMATTER_H_
 
 #include <cstdint>
+#include "MessageBufferInterface.h"
 
 namespace EmbeddedProto 
 {
@@ -25,88 +26,88 @@ namespace EmbeddedProto
          @brief Write fields, including tags to the given array
          @{
       **/
-      static constexpr uint8_t* WriteInt(uint32_t field_number, int32_t value, uint8_t* target)
-      {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return IntNoTag(value, target);
+      static bool WriteInt(uint32_t field_number, int32_t value, MessageBufferInterface& buffer)
+      {        
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && IntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteInt(uint32_t field_number, int64_t value, uint8_t* target)
+      static bool WriteInt(uint32_t field_number, int64_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return IntNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && IntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteUInt(uint32_t field_number, uint32_t value, uint8_t* target)
+      static bool WriteUInt(uint32_t field_number, uint32_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return UIntNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && UIntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteUInt(uint32_t field_number, uint64_t value, uint8_t* target)
+      static bool WriteUInt(uint32_t field_number, uint64_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return UIntNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && UIntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSInt(uint32_t field_number, int32_t value, uint8_t* target)
+      static bool WriteSInt(uint32_t field_number, int32_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return SIntNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SIntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSInt(uint32_t field_number, int64_t value, uint8_t* target)
+      static bool WriteSInt(uint32_t field_number, int64_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return SIntNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SIntNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFixed(uint32_t field_number, uint32_t value, uint8_t* target)
+      static bool WriteFixed(uint32_t field_number, uint32_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return FixedNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && FixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFixed(uint32_t field_number, uint64_t value, uint8_t* target)
+      static bool WriteFixed(uint32_t field_number, uint64_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return FixedNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && FixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSFixed(uint32_t field_number, int32_t value, uint8_t* target)
+      static bool WriteSFixed(uint32_t field_number, int32_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return SFixedNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && SFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSFixed(uint32_t field_number, int64_t value, uint8_t* target)
+      static bool WriteSFixed(uint32_t field_number, int64_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return SFixedNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && SFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFloat(uint32_t field_number, float value, uint8_t* target)
+      static bool WriteFloat(uint32_t field_number, float value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return FloatNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && FloatNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteDouble(uint32_t field_number, double value, uint8_t* target)
+      static bool WriteDouble(uint32_t field_number, double value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return DoubleNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && DoubleNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteBool(uint32_t field_number, bool value, uint8_t* target)
+      static bool WriteBool(uint32_t field_number, bool value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return BoolNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer)
+               && BoolNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteEnum(uint32_t field_number, uint32_t value, uint8_t* target)
+      static bool WriteEnum(uint32_t field_number, uint32_t value, MessageBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return EnumNoTag(value, target);
+        return WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), buffer) 
+               && EnumNoTag(value, buffer);
       }
 
 
@@ -117,35 +118,31 @@ namespace EmbeddedProto
       //! This function converts a given value int a varint formated data array.
       /*!
         \param[in] value  The data to be serialized.
-        \param[in] target Pointer to the first element of an array in which the data is to be serialized.
+        \param[in] buffer Pointer to the first element of an array in which the data is to be serialized.
         \warning There should be sufficient space in the array to store a varint32.
         \return A pointer to the first byte after the data just serialized.
         This code is copied and modified from google protobuf sources.
       */
-      static constexpr uint8_t* WriteVarint32ToArray(uint32_t value, uint8_t* target) {
+      static bool WriteVarint32ToArray(uint32_t value, MessageBufferInterface& buffer) {
         constexpr uint32_t MSB_BYTE = 0x00000080;
         constexpr uint8_t SHIFT_N_BITS = 7;
 
         while (value >= MSB_BYTE) {
-          *target = static_cast<uint8_t>(value | MSB_BYTE);
+          buffer.push(static_cast<uint8_t>(value | MSB_BYTE));
           value >>= SHIFT_N_BITS;
-          ++target;
         }
-        *target = static_cast<uint8_t>(value);
-        return target + 1;
+        return buffer.push(static_cast<uint8_t>(value));
       }
 
-      static constexpr uint8_t* WriteVarint64ToArray(uint64_t value, uint8_t* target) {
+      static bool WriteVarint64ToArray(uint64_t value, MessageBufferInterface& buffer) {
         constexpr uint64_t MSB_BYTE = 0x0000000000000080;
         constexpr uint8_t SHIFT_N_BITS = 7;
-
+        
         while (value >= MSB_BYTE) {
-          *target = static_cast<uint8_t>(value | MSB_BYTE);
+          buffer.push(static_cast<uint8_t>(value | MSB_BYTE));
           value >>= SHIFT_N_BITS;
-          ++target;
         }
-        *target = static_cast<uint8_t>(value);
-        return target + 1;
+        return buffer.push(static_cast<uint8_t>(value));
       }
 
       //! Encode a signed 32 bit integer using the zig zag method
@@ -187,97 +184,94 @@ namespace EmbeddedProto
          @brief Write fields, without tags the given array.
          @{
       **/
-      static constexpr uint8_t* IntNoTag(int32_t value, uint8_t* target) 
+      static bool IntNoTag(int32_t value, MessageBufferInterface& buffer) 
       {
-        return WriteVarint32ToArray(static_cast<uint32_t>(value), target);
+        return WriteVarint32ToArray(static_cast<uint32_t>(value), buffer);
       }
 
-      static constexpr uint8_t* IntNoTag(int64_t value, uint8_t* target)
+      static bool IntNoTag(int64_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint64ToArray(static_cast<uint64_t>(value), target);
+        return WriteVarint64ToArray(static_cast<uint64_t>(value), buffer);
       }
 
-      static constexpr uint8_t* UIntNoTag(uint32_t value, uint8_t* target)
+      static bool UIntNoTag(uint32_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint32ToArray(value, target);
+        return WriteVarint32ToArray(value, buffer);
       }
 
-      static constexpr uint8_t* UIntNoTag(uint64_t value, uint8_t* target)
+      static bool UIntNoTag(uint64_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint64ToArray(value, target);
+        return WriteVarint64ToArray(value, buffer);
       }
 
-      static constexpr uint8_t* SIntNoTag(int32_t value, uint8_t* target)
+      static bool SIntNoTag(int32_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint32ToArray(ZigZagEncode(value), target);
+        return WriteVarint32ToArray(ZigZagEncode(value), buffer);
       }
 
-      static constexpr uint8_t* SIntNoTag(int64_t value, uint8_t* target)
+      static bool SIntNoTag(int64_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint64ToArray(ZigZagEncode(value), target);
+        return WriteVarint64ToArray(ZigZagEncode(value), buffer);
       };
 
-      static constexpr uint8_t* FixedNoTag(uint32_t value, uint8_t* target) 
+      static bool FixedNoTag(uint32_t value, MessageBufferInterface& buffer) 
       {
         // Write the data little endian to the array.
         // TODO Define a little endian flag to support memcpy the data to the array.
-        target[0] = static_cast<uint8_t>(value & 0x000000FF);
-        target[1] = static_cast<uint8_t>((value >> 8) & 0x000000FF);
-        target[2] = static_cast<uint8_t>((value >> 16) & 0x000000FF);
-        target[3] = static_cast<uint8_t>((value >> 24) & 0x000000FF);
-        return target + 4;
+        buffer.push(static_cast<uint8_t>(value & 0x000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 8) & 0x000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 16) & 0x000000FF));
+        return buffer.push(static_cast<uint8_t>((value >> 24) & 0x000000FF));
       }
 
-      static constexpr uint8_t* FixedNoTag(uint64_t value, uint8_t* target)
+      static bool FixedNoTag(uint64_t value, MessageBufferInterface& buffer)
       {
         // Write the data little endian to the array.
         // TODO Define a little endian flag to support memcpy the data to the array.
-        target[0] = static_cast<uint8_t>(value & 0x00000000000000FF);
-        target[1] = static_cast<uint8_t>((value >> 8) & 0x00000000000000FF);
-        target[2] = static_cast<uint8_t>((value >> 16) & 0x00000000000000FF);
-        target[3] = static_cast<uint8_t>((value >> 24) & 0x00000000000000FF);
-        target[4] = static_cast<uint8_t>((value >> 32) & 0x00000000000000FF);
-        target[5] = static_cast<uint8_t>((value >> 40) & 0x00000000000000FF);
-        target[6] = static_cast<uint8_t>((value >> 48) & 0x00000000000000FF);
-        target[7] = static_cast<uint8_t>((value >> 56) & 0x00000000000000FF);
-        return target + 8;
+        buffer.push(static_cast<uint8_t>(value & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 8) & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 16) & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 24) & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 32) & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 40) & 0x00000000000000FF));
+        buffer.push(static_cast<uint8_t>((value >> 48) & 0x00000000000000FF));
+        return buffer.push(static_cast<uint8_t>((value >> 56) & 0x00000000000000FF));
       }
 
-      static constexpr uint8_t* SFixedNoTag(int32_t value, uint8_t* target)
+      static bool SFixedNoTag(int32_t value, MessageBufferInterface& buffer)
       {
-        return FixedNoTag(static_cast<uint32_t>(value), target);
+        return FixedNoTag(static_cast<uint32_t>(value), buffer);
       }
 
-      static constexpr uint8_t* SFixedNoTag(int64_t value, uint8_t* target)
+      static bool SFixedNoTag(int64_t value, MessageBufferInterface& buffer)
       {
-        return FixedNoTag(static_cast<uint64_t>(value), target);
+        return FixedNoTag(static_cast<uint64_t>(value), buffer);
       }
 
-      static constexpr uint8_t* FloatNoTag(float value, uint8_t* target)
+      static bool FloatNoTag(float value, MessageBufferInterface& buffer)
       {
         // Cast the type to void and to a 32 fixed number
         void* pVoid = static_cast<void*>(&value);
         uint32_t* fixed = static_cast<uint32_t*>(pVoid);
-        return FixedNoTag(*fixed, target);
+        return FixedNoTag(*fixed, buffer);
       }
 
-      static constexpr uint8_t* DoubleNoTag(double value, uint8_t* target)
+      static bool DoubleNoTag(double value, MessageBufferInterface& buffer)
       {
         // Cast the type to void and to a 64 fixed number
         void* pVoid = static_cast<void*>(&value);
         uint64_t* fixed = static_cast<uint64_t*>(pVoid);
-        return FixedNoTag(*fixed, target);
+        return FixedNoTag(*fixed, buffer);
       }
 
-      static constexpr uint8_t* BoolNoTag(bool value, uint8_t* target)
+      static bool BoolNoTag(bool value, MessageBufferInterface& buffer)
       {
-        *target = value ? 0x01 : 0x00;
-        return target + 1;
+        return buffer.push(value ? 0x01 : 0x00);;
       }
 
-      static constexpr uint8_t* EnumNoTag(uint32_t value, uint8_t* target)
+      static bool EnumNoTag(uint32_t value, MessageBufferInterface& buffer)
       {
-        return WriteVarint32ToArray(value, target);
+        return WriteVarint32ToArray(value, buffer);
       }
       /** @} **/
 

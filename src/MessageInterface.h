@@ -23,23 +23,21 @@ public:
     /*!
         The data this message holds will be serialized into an byte array.
 
-        \param buffer [out] The array of bytes into which the message will be serialized.
-        \param length [in]  The number of bytes in the buffer array.
+        \param buffer [in]  The memory in which the serialized message is stored.
 
-        \return An enum value indicating successful operation of this function or an error.
+        \return True when every was successfull. 
     */
-    virtual Result serialize(uint8_t* buffer, uint32_t length) const = 0;
+    virtual bool serialize(::EmbeddedProto::MessageBufferInterface& buffer) const = 0;
 
     //! Function to deserialize this message.
     /*!
         From an array of date fill this message object with data.
 
-        \param buffer [in]  The array of bytes into which the message will be serialized.
-        \param length [in]  The number of bytes in the buffer array.
+        \param buffer [in]  The memory in which the serialized message is stored.
 
-        \return An enum value indicating successful operation of this function or an error.
+        \return True when every was successfull. 
     */
-    virtual Result deserialize(const uint8_t* buffer, uint32_t length) = 0;
+    virtual bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) = 0;
 
     //! Clear the content of this message and set it to it's default state.
     /*!

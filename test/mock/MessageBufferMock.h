@@ -30,6 +30,8 @@ namespace Mocks
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
+
+      MOCK_CONST_METHOD0(get_available_size, uint32_t());
   };
 
 } // End of namespace Mocks

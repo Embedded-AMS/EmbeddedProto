@@ -30,15 +30,15 @@ class FieldTemplateParameters:
     type_to_default_value = {FieldDescriptorProto.TYPE_DOUBLE:   "0.0f",
                              FieldDescriptorProto.TYPE_FLOAT:    "0.0f",
                              FieldDescriptorProto.TYPE_INT64:    "0",
-                             FieldDescriptorProto.TYPE_UINT64:   "U0",
+                             FieldDescriptorProto.TYPE_UINT64:   "0U",
                              FieldDescriptorProto.TYPE_INT32:    "0",
-                             FieldDescriptorProto.TYPE_FIXED64:  "U0",
-                             FieldDescriptorProto.TYPE_FIXED32:  "U0",
+                             FieldDescriptorProto.TYPE_FIXED64:  "0U",
+                             FieldDescriptorProto.TYPE_FIXED32:  "0U",
                              FieldDescriptorProto.TYPE_BOOL:     "false",
                              FieldDescriptorProto.TYPE_STRING:   "TODO",    # TODO
                              FieldDescriptorProto.TYPE_MESSAGE:  "",
                              FieldDescriptorProto.TYPE_BYTES:    "TODO",    # TODO
-                             FieldDescriptorProto.TYPE_UINT32:   "U0",
+                             FieldDescriptorProto.TYPE_UINT32:   "0U",
                              FieldDescriptorProto.TYPE_ENUM:     "0",
                              FieldDescriptorProto.TYPE_SFIXED32: "0",
                              FieldDescriptorProto.TYPE_SFIXED64: "0",
@@ -79,6 +79,40 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
+    type_to_ser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "WriteDouble",
+                        FieldDescriptorProto.TYPE_FLOAT:    "WriteFloat",
+                        FieldDescriptorProto.TYPE_INT64:    "WriteInt",
+                        FieldDescriptorProto.TYPE_UINT64:   "WriteUInt",
+                        FieldDescriptorProto.TYPE_INT32:    "WriteInt",
+                        FieldDescriptorProto.TYPE_FIXED64:  "WriteFixed",
+                        FieldDescriptorProto.TYPE_FIXED32:  "WriteFixed",
+                        FieldDescriptorProto.TYPE_BOOL:     "WriteBool",
+                        FieldDescriptorProto.TYPE_ENUM:     "WriteEnum",
+                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_UINT32:   "WriteUInt",
+                        FieldDescriptorProto.TYPE_SFIXED32: "WriteSFixed",
+                        FieldDescriptorProto.TYPE_SFIXED64: "WriteSFixed",
+                        FieldDescriptorProto.TYPE_SINT32:   "WriteSInt",
+                        FieldDescriptorProto.TYPE_SINT64:   "WriteSInt"}
+
+    type_to_deser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "ReadDouble",
+                          FieldDescriptorProto.TYPE_FLOAT:    "ReadFloat",
+                          FieldDescriptorProto.TYPE_INT64:    "ReadInt",
+                          FieldDescriptorProto.TYPE_UINT64:   "ReadUInt",
+                          FieldDescriptorProto.TYPE_INT32:    "ReadInt",
+                          FieldDescriptorProto.TYPE_FIXED64:  "ReadFixed",
+                          FieldDescriptorProto.TYPE_FIXED32:  "ReadFixed",
+                          FieldDescriptorProto.TYPE_BOOL:     "ReadBool",
+                          FieldDescriptorProto.TYPE_ENUM:     "ReadEnum",
+                          FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                          FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
+                          FieldDescriptorProto.TYPE_UINT32:   "ReadUInt",
+                          FieldDescriptorProto.TYPE_SFIXED32: "ReadSFixed",
+                          FieldDescriptorProto.TYPE_SFIXED64: "ReadSFixed",
+                          FieldDescriptorProto.TYPE_SINT32:   "ReadSInt",
+                          FieldDescriptorProto.TYPE_SINT64:   "ReadSInt"}
+
     def __init__(self, field_proto):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
@@ -87,6 +121,8 @@ class FieldTemplateParameters:
         self.default_value = self.type_to_default_value[field_proto.type]
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
+        self.serialization_func = self.type_to_ser_func[field_proto.type]
+        self.deserialization_func = self.type_to_deser_func[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]

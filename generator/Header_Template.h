@@ -48,15 +48,14 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
       if(0 < size_{{field.name}} && (size_{{field.name}} < buffer.get_available_size()) && result)
       {
-        result = serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
-        result = result && serialize_VARINT(size_{{field.name}}, buffer);
+        result = ::EmbeddedProto::WireFormatter::WriteVarint32ToArray({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}}, buffer);
+        result = result && ::EmbeddedProto::WireFormatter::UIntNoTag(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}) && result)
       {
-        result = serialize_tag({{field.variable_id_name}}, ::EmbeddedProto::WireType::{{field.wire_type}}, buffer);
-        result = result && serialize_field({{field.variable_name}}, buffer);
+        result = ::EmbeddedProto::WireFormatter::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
       }
       {% endif %}
 
@@ -66,18 +65,18 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
     bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) final
     {
-      bool result = True;
-      ::EmbeddedProto::WireType wire_type;
+      bool result = true;
+      ::EmbeddedProto::WireFormatter::WireType wire_type;
       uint32_t id_number = 0;
 
-      while(result && deserialize_tag(buffer, wire_type, id_number))
+      while(result && ::EmbeddedProto::WireFormatter::ReadTag(buffer, wire_type, id_number))
       {
         switch(id_number)
         {
           {% for field in msg.fields() %}
           case {{field.variable_id_name}}:
           {
-            if(::EmbeddedProto::WireType::{{field.wire_type}} == wire_type)
+            if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
             {
               {% if field.of_type_message %}
               uint32_t size;
@@ -85,7 +84,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               PartialMessageBufferInterface<size> partial_buffer(buffer);
               result = result && {{field.variable_name}}.deserialize(partial_buffer);
               {% else %}
-              result = deserialized_size_{{field.wire_type}}(buffer, {{field.variable_name}});
+              result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
             }
             else
@@ -135,7 +134,10 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #pragma once
 
 #include <cstdint>
-{% if messages %}#include <MessageInterface.h>{% endif %}
+{% if messages %}
+#include <MessageInterface.h>
+#include <WireFormatter.h>
+{% endif %}
 
 {% if namespace %}
 namespace {{ namespace }}
