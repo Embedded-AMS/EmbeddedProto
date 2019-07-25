@@ -3,6 +3,8 @@
 #define _WIRE_FORMATTER_H_
 
 #include <cstdint>
+#include <math.h> 
+
 #include "MessageBufferInterface.h"
 
 namespace EmbeddedProto 
@@ -10,6 +12,13 @@ namespace EmbeddedProto
 
   class WireFormatter 
   {
+
+      //! Definitation of the number of bits it takes to serialize a byte of a varint.
+      static constexpr uint8_t VARINT_SHIFT_N_BITS = 7;
+
+      //! Definition of a mask inidicating the most significat bit used in varint encoding.
+      static constexpr uint8_t VARINT_MSB_BYTE = 0x80;
+
     public:
       //! Definitions of the different encoding types used in protobuf.
       enum class WireType 
@@ -124,23 +133,19 @@ namespace EmbeddedProto
         This code is copied and modified from google protobuf sources.
       */
       static bool WriteVarint32ToArray(uint32_t value, MessageBufferInterface& buffer) {
-        constexpr uint32_t MSB_BYTE = 0x00000080;
-        constexpr uint8_t SHIFT_N_BITS = 7;
 
-        while (value >= MSB_BYTE) {
-          buffer.push(static_cast<uint8_t>(value | MSB_BYTE));
-          value >>= SHIFT_N_BITS;
+        while (value >= VARINT_MSB_BYTE) {
+          buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
+          value >>= VARINT_SHIFT_N_BITS;
         }
         return buffer.push(static_cast<uint8_t>(value));
       }
 
       static bool WriteVarint64ToArray(uint64_t value, MessageBufferInterface& buffer) {
-        constexpr uint64_t MSB_BYTE = 0x0000000000000080;
-        constexpr uint8_t SHIFT_N_BITS = 7;
         
-        while (value >= MSB_BYTE) {
-          buffer.push(static_cast<uint8_t>(value | MSB_BYTE));
-          value >>= SHIFT_N_BITS;
+        while (value >= VARINT_MSB_BYTE) {
+          buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
+          value >>= VARINT_SHIFT_N_BITS;
         }
         return buffer.push(static_cast<uint8_t>(value));
       }
@@ -274,6 +279,182 @@ namespace EmbeddedProto
         return WriteVarint32ToArray(value, buffer);
       }
       /** @} **/
+
+
+      static bool ReadTag(MessageBufferInterface& buffer, WireType& type, uint32_t& id) 
+      {
+        return false;
+      }
+
+      template<class UINT_TYPE>
+      static bool ReadUInt(MessageBufferInterface& buffer, UINT_TYPE& value) 
+      {
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to ReadUInt.");
+        
+        // Calculate how many bytes there are in a varint 128 base encoded number. This should 
+        // yeild 5 for a 32bit number and 10 for a 64bit number.
+        static constexpr uint8_t N_BYTES_IN_VARINT = static_cast<uint8_t>(std::ceil(
+                                                          std::numeric_limits<UINT_TYPE>::digits 
+                                                        / static_cast<float>(VARINT_SHIFT_N_BITS)));
+        
+        UINT_TYPE temp_value = 0;
+        uint8_t byte = 0;
+        bool result = buffer.pop(byte);
+        // Loop until the end of the encoded varint or until there is nomore data in the buffer.
+        for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
+        {
+          temp_value |= static_cast<UINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
+          if(byte & VARINT_MSB_BYTE) 
+          {
+            // Continue
+            result = buffer.pop(byte);
+          }
+          else
+          {
+            // The varint is complete
+            break;
+          }
+        }
+
+        if(result)
+        {
+          value = temp_value;
+        }
+
+        return result;
+      }
+
+      template<class INT_TYPE>
+      static bool ReadInt(MessageBufferInterface& buffer, INT_TYPE& value) 
+      {
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ReadInt.");
+        
+        // TODO
+        return false;
+      }
+
+      template<class INT_TYPE>
+      static bool ReadSInt(MessageBufferInterface& buffer, INT_TYPE& value) 
+      {
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ReadSInt.");
+        
+        // TODO
+        return false;
+      }
+
+      template<class TYPE>
+      static bool ReadFixed(MessageBufferInterface& buffer, TYPE& value) 
+      {
+        static_assert(std::is_same<TYPE, uint32_t>::value || 
+                      std::is_same<TYPE, uint64_t>::value, "Wrong type passed to ReadFixed.");
+
+          // Read the data little endian to the buffer.
+          // TODO Define a little endian flag to support memcpy the data from the buffer.
+
+          TYPE temp_value = 0;
+          bool result(true);
+          uint8_t byte = 0;
+          for(uint8_t i = 0; (i < std::numeric_limits<TYPE>::digits) && result; 
+              i += std::numeric_limits<uint8_t>::digits)  
+          {
+            result = buffer.pop(byte);
+            if(result)
+            {
+              temp_value |= (static_cast<TYPE>(byte) << i);
+            }
+          }
+
+          if(result)
+          {
+            value = temp_value;
+          }
+
+          return result;
+      }
+
+      template<class STYPE>
+      static bool ReadSFixed(MessageBufferInterface& buffer, STYPE& value) 
+      {
+        static_assert(std::is_same<STYPE, int32_t>::value || 
+                      std::is_same<STYPE, int64_t>::value, "Wrong type passed to ReadSFixed.");
+
+        std::make_unsigned<STYPE> temp_unsigned_value = 0;
+        bool result = ReadFixed(buffer, temp_unsigned_value);
+        if(result) {
+          value = static_cast<STYPE>(temp_unsigned_value);
+        }
+
+        return result;
+      }
+
+      static bool ReadFloat(MessageBufferInterface& buffer, float& value) 
+      {
+        uint32_t temp_value = 0;
+        bool result = ReadFixed(buffer, temp_value);
+        if(result) {
+          // Cast from unsigned int to a float.
+          const void* pVoid = static_cast<const void*>(&temp_value);
+          const float* pFloat = static_cast<const float*>(pVoid);
+          value = *pFloat;
+        }
+        return result;
+      }
+
+      static bool ReadDouble(MessageBufferInterface& buffer, double& value) 
+      {
+        uint64_t temp_value = 0;
+        bool result = ReadFixed(buffer, temp_value);
+        if(result) {
+          // Cast from unsigned int to a double.
+          const void* pVoid = static_cast<const void*>(&temp_value);
+          const double* pDouble = static_cast<const double*>(pVoid);
+          value = *pDouble;
+        }
+        return result;
+      }
+
+      static bool ReadBool(MessageBufferInterface& buffer, bool& value) 
+      {
+        uint8_t byte;
+        bool result = buffer.pop(byte);
+        if(result) {
+          value = static_cast<bool>(byte);
+        }
+        return result;
+      }
+
+      template<class ENUM_TYPE>
+      static bool ReadEnum(MessageBufferInterface& buffer, ENUM_TYPE& value) 
+      {
+        static_assert(std::is_enum<ENUM_TYPE>::value, "No enum given to ReadEnum parameter value.");
+        uint64_t temp_value;
+        bool result = ReadUInt(buffer, temp_value);
+        if(result) {
+          value = static_cast<ENUM_TYPE>(temp_value);
+        }
+        return result;
+      }
+
+      template<class UINT_VALUE>
+      static constexpr uint32_t serialized_size_VARINT(const UINT_VALUE& value)
+      {
+        return 10;
+      }
+
+      template<class INT_VALUE>
+      static constexpr uint32_t serialized_size_FIXED32(const INT_VALUE& value)
+      {
+        return 4;
+      }
+
+      template<class INT_VALUE>
+      static constexpr uint32_t serialized_size_FIXED64(const INT_VALUE& value)
+      {
+        return 8;
+      }
 
   };
 

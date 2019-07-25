@@ -117,7 +117,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% if field.of_type_message %}
       size += {{field.variable_name}}.serialized_size();
       {% else %}
-      size += serialized_size_{{field.wire_type}}({{field.variable_name}});
+      size += ::EmbeddedProto::WireFormatter::serialized_size_{{field.wire_type}}({{field.variable_name}});
       {% endif %}
       {% endfor %}
       return size;
