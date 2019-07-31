@@ -27,8 +27,8 @@ def generate_enums(enums):
 
 
 class FieldTemplateParameters:
-    type_to_default_value = {FieldDescriptorProto.TYPE_DOUBLE:   "0.0f",
-                             FieldDescriptorProto.TYPE_FLOAT:    "0.0f",
+    type_to_default_value = {FieldDescriptorProto.TYPE_DOUBLE:   "0.0",
+                             FieldDescriptorProto.TYPE_FLOAT:    "0.0",
                              FieldDescriptorProto.TYPE_INT64:    "0",
                              FieldDescriptorProto.TYPE_UINT64:   "0U",
                              FieldDescriptorProto.TYPE_INT32:    "0",
@@ -118,7 +118,7 @@ class FieldTemplateParameters:
         self.variable_name = self.name + "_"
         self.variable_id_name = self.name + "_id"
         self.variable_id = field_proto.number
-        self.default_value = self.type_to_default_value[field_proto.type]
+
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
         self.serialization_func = self.type_to_ser_func[field_proto.type]
@@ -128,6 +128,11 @@ class FieldTemplateParameters:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
+
+        if FieldDescriptorProto.TYPE_ENUM == field_proto.type:
+            self.default_value = "static_cast<" + self.type + ">(0)"
+        else:
+            self.default_value = self.type_to_default_value[field_proto.type]
 
         self.field_proto = field_proto
 
