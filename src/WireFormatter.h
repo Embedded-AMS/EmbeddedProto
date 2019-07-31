@@ -174,6 +174,11 @@ namespace EmbeddedProto
         return (static_cast<uint64_t>(n) << 1) ^ static_cast<uint64_t>(n >> 63);
       }
 
+      template<class RET_TYPE>
+      static constexpr RET_TYPE ZigZagDecode(const uint64_t n) {
+        return static_cast<RET_TYPE>((n >> 1) | ((n & 0x01) << 63));
+      }
+
       //! Create the tag of a field. 
       /*!
         This is the combination of the field number and wire type of the field. The field number is 
@@ -281,11 +286,6 @@ namespace EmbeddedProto
       /** @} **/
 
 
-      static bool ReadTag(MessageBufferInterface& buffer, WireType& type, uint32_t& id) 
-      {
-        return false;
-      }
-
       template<class UINT_TYPE>
       static bool ReadUInt(MessageBufferInterface& buffer, UINT_TYPE& value) 
       {
@@ -325,14 +325,30 @@ namespace EmbeddedProto
         return result;
       }
 
+      static bool ReadTag(MessageBufferInterface& buffer, WireType& type, uint32_t& id) 
+      {
+        uint32_t temp_value;
+        bool result = ReadUInt(buffer, temp_value);
+        if(result) {
+          type = static_cast<WireType>(temp_value &  0x07);
+          id = (temp_value >> 3);
+        }
+        return result;
+      }
+
       template<class INT_TYPE>
       static bool ReadInt(MessageBufferInterface& buffer, INT_TYPE& value) 
       {
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ReadInt.");
         
-        // TODO
-        return false;
+        uint64_t uint_value;
+        bool result = ReadUInt(buffer, uint_value);
+        if(result) 
+        {
+          value = static_cast<INT_TYPE>(uint_value);
+        }
+        return result;
       }
 
       template<class INT_TYPE>
@@ -341,8 +357,13 @@ namespace EmbeddedProto
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ReadSInt.");
         
-        // TODO
-        return false;
+        uint64_t uint_value;
+        bool result = ReadUInt(buffer, uint_value);
+        if(result) 
+        {
+          value = ZigZagDecode<INT_TYPE>(uint_value);
+        }
+        return result;
       }
 
       template<class TYPE>
@@ -438,10 +459,21 @@ namespace EmbeddedProto
         return result;
       }
 
-      template<class UINT_VALUE>
-      static constexpr uint32_t serialized_size_VARINT(const UINT_VALUE& value)
+      template<class UINT_TYPE>
+      static constexpr uint32_t serialized_size_VARINT(const UINT_TYPE& value)
       {
-        return 10;
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, 
+                      "Wrong type passed to serialized_size_VARINT.");
+
+        UINT_TYPE temp_value = value;
+        uint8_t size = 0;
+        while (temp_value >= VARINT_MSB_BYTE) {
+          value >>= VARINT_SHIFT_N_BITS;
+          ++size;
+        }
+
+        return size;
       }
 
       template<class INT_VALUE>
