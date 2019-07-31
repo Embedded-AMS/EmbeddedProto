@@ -4,7 +4,7 @@ enum {{ _enum.name }}
   {% for value in _enum.values() %}
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
   {% endfor %}
-}
+};
 {% endmacro %}
 
 {% macro msg_macro(msg) %}
