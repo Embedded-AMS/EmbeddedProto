@@ -112,15 +112,9 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
     uint32_t serialized_size() const final
     {
-      uint32_t size = 0;
-      {% for field in msg.fields() %}
-      {% if field.of_type_message %}
-      size += {{field.variable_name}}.serialized_size();
-      {% else %}
-      size += ::EmbeddedProto::WireFormatter::serialized_size_{{field.wire_type}}({{field.variable_name}});
-      {% endif %}
-      {% endfor %}
-      return size;
+      ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+      this->serialize(calcBuffer);
+      return calcBuffer.get_size();
     }
 
   private:
@@ -137,6 +131,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {% if messages %}
 #include <MessageInterface.h>
 #include <WireFormatter.h>
+#include <MessageSizeCalculator.h>
 {% endif %}
 
 {% if namespace %}
