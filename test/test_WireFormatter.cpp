@@ -3,11 +3,17 @@
 #include "gtest/gtest.h"
 
 #include <WireFormatter.h>
+#include <MessageBufferMock.h>
+
 #include <cstdint>    
 #include <limits> 
 
 // EAMS message definitions
 #include <simple_types.h>
+
+using ::testing::_;
+using ::testing::InSequence;
+using ::testing::Return;
 
 namespace test_EmbeddedAMS_WireFormatter 
 {
@@ -39,56 +45,61 @@ TEST(WireFormatter, MakeTag)
 
 TEST(WireFormatter, WriteVarint32ToArray) 
 {
+  InSequence s;
 
-  // There are five bytes required to encode a 32bit value, take one extra for checking the return 
-  // values.
-  uint8_t target[6]; 
+  Mocks::MessageBufferMock buffer;
+  EXPECT_CALL(buffer, push(_,_)).Times(0);
 
-  EXPECT_EQ(&target[1], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(0, target));
-  EXPECT_EQ(0, target[0]);
 
-  EXPECT_EQ(&target[1], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(1, target));
-  EXPECT_EQ(1, target[0]);
+  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
+  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(1, buffer));
 
   // Edge case of the first byte.
-  EXPECT_EQ(&target[1], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(127, target));
-  EXPECT_EQ(127, target[0]);
+  EXPECT_CALL(buffer, push(127)).Times(1).WillOnce(Return(true));
+  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(127, buffer));
 
   // Just over the first byte.
-  EXPECT_EQ(&target[2], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(128, target));
-  EXPECT_EQ(128, target[0]);
-  EXPECT_EQ(1, target[1]);
+  EXPECT_CALL(buffer, push(128)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
+  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(128, buffer));
 
   // Full first byte.
-  EXPECT_EQ(&target[2], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(255, target));
-  EXPECT_EQ(255, target[0]);
-  EXPECT_EQ(1, target[1]);
+  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
+  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(255, buffer));
 
   // Fast forward to the largest possible number.
-  EXPECT_EQ(&target[5], ::EmbeddedProto::WireFormatter::WriteVarint32ToArray(std::numeric_limits<uint32_t>::max(), target));
-  EXPECT_EQ(255, target[0]);
-  EXPECT_EQ(255, target[1]);
-  EXPECT_EQ(255, target[2]);
-  EXPECT_EQ(255, target[3]);
-  EXPECT_EQ(15, target[4]);
+  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(15)).Times(1).WillOnce(Return(true));
+  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(std::numeric_limits<uint32_t>::max(), buffer));
 
 }
 
 TEST(WireFormatter, SimpleTypes_zero) 
 {
-  // Using a protobuf message and the google protobuf implementation test is serialization is 
-  // correct.
-  ::Test_Simple_Types msg;
+  InSequence s;
 
-  uint8_t buffer[10];
-  msg.serialize(buffer, 10);
+  // See if an empty message results in no data been pushed.
+  ::Test_Simple_Types msg;
+  Mocks::MessageBufferMock buffer;
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_,_)).Times(0);
+
+  EXPECT_TRUE(msg.serialize(buffer));
 }
+
 
 TEST(WireFormatter, SimpleTypes_one) 
 {
+  InSequence s;
+  
   // Using a protobuf message and the google protobuf implementation test is serialization is 
   // correct.
   ::Test_Simple_Types msg;
+  Mocks::MessageBufferMock buffer;
 
   msg.set_a_int32(1);   
   msg.set_a_int64(1);     
@@ -97,6 +108,7 @@ TEST(WireFormatter, SimpleTypes_one)
   msg.set_a_sint32(1);
   msg.set_a_sint64(1);
   msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
   msg.set_a_fixed64(1);
   msg.set_a_sfixed64(1);
   msg.set_a_double(1.0);
@@ -104,21 +116,13 @@ TEST(WireFormatter, SimpleTypes_one)
   msg.set_a_sfixed32(1); 
   msg.set_a_float(1.0F);
 
-  uint8_t buffer[100] = {0};
-  msg.serialize(buffer, 100);
-
-  uint8_t expected[] = {0x08, 0x01, 0x10, 0x01, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x30, 0x02, 0x38, 0x01, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x51, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 0x65, 0x01, 0x00, 0x00, 0x00, 0x6D, 0x01, 0x00, 0x00, 0x00, 0x75, 0x00, 0x00, 0x80, 0x3F};
-  uint8_t l = sizeof(expected);
-
-  // Check the serialized data
-  for(uint8_t i = 0; i < l; ++i) {
-    EXPECT_EQ(expected[i], buffer[i]);
+  uint8_t expected[] = {0x08, 0x01, 0x10, 0x01, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x30, 0x02, 0x38, 0x01, 0x40, 0x01, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x51, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 0x65, 0x01, 0x00, 0x00, 0x00, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x75, 0x00, 0x00, 0x80, 0x3f, 
+};
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  // Check no additional data is generated.
-  for(uint8_t i = l; i < 100; ++i) {
-    EXPECT_EQ(0, buffer[i]);
-  }
+  EXPECT_TRUE(msg.serialize(buffer));
 }
 
 TEST(WireFormatter, SimpleTypes_max) 

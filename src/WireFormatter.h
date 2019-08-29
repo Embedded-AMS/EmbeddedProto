@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <math.h> 
+#include <type_traits>
 
 #include "MessageBufferInterface.h"
 
@@ -402,7 +403,8 @@ namespace EmbeddedProto
         static_assert(std::is_same<STYPE, int32_t>::value || 
                       std::is_same<STYPE, int64_t>::value, "Wrong type passed to ReadSFixed.");
 
-        std::make_unsigned<STYPE> temp_unsigned_value = 0;
+        typedef typename std::make_unsigned<STYPE>::type USTYPE;
+        USTYPE temp_unsigned_value = 0;
         bool result = ReadFixed(buffer, temp_unsigned_value);
         if(result) {
           value = static_cast<STYPE>(temp_unsigned_value);
@@ -469,11 +471,25 @@ namespace EmbeddedProto
         UINT_TYPE temp_value = value;
         uint8_t size = 0;
         while (temp_value >= VARINT_MSB_BYTE) {
-          value >>= VARINT_SHIFT_N_BITS;
+          temp_value >>= VARINT_SHIFT_N_BITS;
           ++size;
         }
 
         return size;
+      }
+
+      static constexpr uint32_t serialized_size_BOOL(const bool& value)
+      {
+        return value ? 1 : 0;
+      }
+
+      template<class ENUM_TYPE>
+      static constexpr uint32_t serialized_size_ENUM(const ENUM_TYPE& value)
+      {
+        static_assert(std::is_enum<ENUM_TYPE>::value, "Wrong type passed to serialized_size_ENUM");
+        typedef typename std::underlying_type<ENUM_TYPE>::type INT_TYPE;
+        INT_TYPE temp = static_cast<INT_TYPE>(value);
+        return serialized_size_VARINT(temp);
       }
 
       template<class INT_VALUE>
