@@ -59,7 +59,7 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
                         FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
                         FieldDescriptorProto.TYPE_SINT32:   "int32_t",
-                        FieldDescriptorProto.TYPE_SINT64:   "int32_t"}
+                        FieldDescriptorProto.TYPE_SINT64:   "int64_t"}
 
     type_to_wire_type = {FieldDescriptorProto.TYPE_INT32:    "VARINT",
                          FieldDescriptorProto.TYPE_INT64:    "VARINT",
