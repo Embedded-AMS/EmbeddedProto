@@ -173,4 +173,45 @@ TEST(WireFormatter, SimpleTypes_max)
 
 }
 
+TEST(WireFormatter, SimpleTypes_min) 
+{
+  InSequence s;
+  
+  // Using a protobuf message and the google protobuf implementation test is serialization is 
+  // correct.
+  ::Test_Simple_Types msg;
+  Mocks::MessageBufferMock buffer;
+
+  msg.set_a_int32(std::numeric_limits<int32_t>::min());   
+  msg.set_a_int64(std::numeric_limits<int64_t>::min());     
+  msg.set_a_uint32(std::numeric_limits<uint32_t>::min());    
+  msg.set_a_uint64(std::numeric_limits<uint64_t>::min());
+  msg.set_a_sint32(std::numeric_limits<int32_t>::min());
+  msg.set_a_sint64(std::numeric_limits<int64_t>::min());
+  msg.set_a_bool(false);
+  msg.set_a_enum(Test_Enum::ZERO);
+  msg.set_a_fixed64(std::numeric_limits<uint64_t>::min());
+  msg.set_a_sfixed64(std::numeric_limits<int64_t>::min());
+  msg.set_a_double(std::numeric_limits<double>::lowest());
+  msg.set_a_fixed32(std::numeric_limits<uint32_t>::min());
+  msg.set_a_sfixed32(std::numeric_limits<int32_t>::min()); 
+  msg.set_a_float(std::numeric_limits<float>::lowest());
+
+  uint8_t expected[] = {0x08, 0x80, 0x80, 0x80, 0x80, 0x08,
+                        0x10, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01,
+                        0x28, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 
+                        0x30, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
+                        0x51, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 
+                        0x59, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0xFF, 
+                        0x6D, 0x00, 0x00, 0x00, 0x80, 
+                        0x75, 0xFF, 0xFF, 0x7F, 0xFF};
+  
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  
+  EXPECT_TRUE(msg.serialize(buffer));
+
+}
+
 } // End of namespace test_EmbeddedAMS_WireFormatter
