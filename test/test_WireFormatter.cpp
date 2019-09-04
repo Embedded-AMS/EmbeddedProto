@@ -131,7 +131,7 @@ TEST(WireFormatter, SimpleTypes_serialize_one)
                         0x65, 0x01, 0x00, 0x00, 0x00, 
                         0x6d, 0x01, 0x00, 0x00, 0x00, 
                         0x75, 0x00, 0x00, 0x80, 0x3f};
-                        
+
   for(auto e : expected) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
@@ -225,6 +225,31 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   }
   
   EXPECT_TRUE(msg.serialize(buffer));
+}
+
+TEST(WireFormatter, SimpleTypes_deserialize_zero) 
+{
+  InSequence s;
+  Mocks::MessageBufferMock buffer;
+  ::Test_Simple_Types msg;
+
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(0, msg.get_a_int32());   
+  EXPECT_EQ(0, msg.get_a_int64());     
+  EXPECT_EQ(0U, msg.get_a_uint32());    
+  EXPECT_EQ(0U, msg.get_a_uint64());
+  EXPECT_EQ(0, msg.get_a_sint32());
+  EXPECT_EQ(0, msg.get_a_sint64());
+  EXPECT_EQ(false, msg.get_a_bool());
+  EXPECT_EQ(Test_Enum::ZERO, msg.get_a_enum());
+  EXPECT_EQ(0U, msg.get_a_fixed64());
+  EXPECT_EQ(0, msg.get_a_sfixed64());
+  EXPECT_EQ(0.0, msg.get_a_double());
+  EXPECT_EQ(0U, msg.get_a_fixed32());
+  EXPECT_EQ(0, msg.get_a_sfixed32()); 
+  EXPECT_EQ(0.0F, msg.get_a_float());
 }
 
 TEST(WireFormatter, SimpleTypes_deserialize_one) 
