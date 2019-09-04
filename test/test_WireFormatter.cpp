@@ -14,6 +14,7 @@
 using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
+using ::testing::SetArgReferee;
 
 namespace test_EmbeddedAMS_WireFormatter 
 {
@@ -224,7 +225,53 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   }
   
   EXPECT_TRUE(msg.serialize(buffer));
+}
 
+TEST(WireFormatter, SimpleTypes_deserialize_one) 
+{
+  InSequence s;
+  Mocks::MessageBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(58));
+
+  ::Test_Simple_Types msg;
+
+  uint8_t referee[] = { 0x08, 0x01, 
+                        0x10, 0x01, 
+                        0x18, 0x01, 
+                        0x20, 0x01, 
+                        0x28, 0x02, 
+                        0x30, 0x02, 
+                        0x38, 0x01, 
+                        0x40, 0x01, 
+                        0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                        0x51, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                        0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 
+                        0x65, 0x01, 0x00, 0x00, 0x00, 
+                        0x6d, 0x01, 0x00, 0x00, 0x00, 
+                        0x75, 0x00, 0x00, 0x80, 0x3f};
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_a_int32());   
+  EXPECT_EQ(1, msg.get_a_int64());     
+  EXPECT_EQ(1U, msg.get_a_uint32());    
+  EXPECT_EQ(1U, msg.get_a_uint64());
+  EXPECT_EQ(1, msg.get_a_sint32());
+  EXPECT_EQ(1, msg.get_a_sint64());
+  EXPECT_EQ(true, msg.get_a_bool());
+  EXPECT_EQ(Test_Enum::ONE, msg.get_a_enum());
+  EXPECT_EQ(1U, msg.get_a_fixed64());
+  EXPECT_EQ(1, msg.get_a_sfixed64());
+  EXPECT_EQ(1.0, msg.get_a_double());
+  EXPECT_EQ(1U, msg.get_a_fixed32());
+  EXPECT_EQ(1, msg.get_a_sfixed32()); 
+  EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
 } // End of namespace test_EmbeddedAMS_WireFormatter
