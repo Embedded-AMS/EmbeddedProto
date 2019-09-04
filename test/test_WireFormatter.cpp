@@ -92,7 +92,7 @@ TEST(WireFormatter, SimpleTypes_zero)
 }
 
 
-TEST(WireFormatter, SimpleTypes_one) 
+TEST(WireFormatter, SimpleTypes_serialize_one) 
 {
   InSequence s;
   
@@ -125,7 +125,7 @@ TEST(WireFormatter, SimpleTypes_one)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
-TEST(WireFormatter, SimpleTypes_max) 
+TEST(WireFormatter, SimpleTypes_serialize_max) 
 {
   InSequence s;
   
@@ -173,7 +173,7 @@ TEST(WireFormatter, SimpleTypes_max)
 
 }
 
-TEST(WireFormatter, SimpleTypes_min) 
+TEST(WireFormatter, SimpleTypes_serialize_min) 
 {
   InSequence s;
   
