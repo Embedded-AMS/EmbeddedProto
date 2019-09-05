@@ -163,7 +163,7 @@ namespace EmbeddedProto
         return (static_cast<uint32_t>(n) << 1) ^ static_cast<uint32_t>(n >> 31);
       }
 
-      //! Encode a signed 32 bit integer using the zig zag method
+      //! Encode a signed 64 bit integer using the zig zag method
       /*!
         As specified the right-shift must be arithmetic, hence the cast is after the shift. The 
         left shift must be unsigned because of overflow.
@@ -175,9 +175,22 @@ namespace EmbeddedProto
         return (static_cast<uint64_t>(n) << 1) ^ static_cast<uint64_t>(n >> 63);
       }
 
-      template<class RET_TYPE>
-      static constexpr RET_TYPE ZigZagDecode(const uint64_t n) {
-        return static_cast<RET_TYPE>((n >> 1) | ((n & 0x01) << 63));
+      //! Decode a signed integer using the zig zag method
+      /*!
+          \param[in] n The value encoded in zig zag to be deencoded.
+          \return The decoded signed value.
+
+          This function is suitable for 32 and 64 bit.
+      */
+      template<class UINT_TYPE>
+      static constexpr auto ZigZagDecode(const UINT_TYPE n) 
+      {
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to ZigZagDecode.");
+
+        typedef typename std::make_signed<UINT_TYPE>::type INT_TYPE;
+
+        return static_cast<INT_TYPE>((n >> 1) ^ (~(n & 1) + 1));
       }
 
       //! Create the tag of a field. 
@@ -362,7 +375,7 @@ namespace EmbeddedProto
         bool result = ReadUInt(buffer, uint_value);
         if(result) 
         {
-          value = ZigZagDecode<INT_TYPE>(uint_value);
+          value = ZigZagDecode(uint_value);
         }
         return result;
       }
