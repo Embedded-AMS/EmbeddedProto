@@ -227,6 +227,29 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
+TEST(WireFormatter, SimpleTypes_serialize_smalest_real) 
+{
+  InSequence s;
+  
+  // Using a protobuf message and the google protobuf implementation test is serialization is 
+  // correct.
+  ::Test_Simple_Types msg;
+  Mocks::MessageBufferMock buffer;
+
+  msg.set_a_double(std::numeric_limits<double>::min());
+  msg.set_a_float(std::numeric_limits<float>::min());
+
+
+  uint8_t expected[] = {0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 
+                        0x75, 0x00, 0x00, 0x80, 0x00 };
+  
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  
+  EXPECT_TRUE(msg.serialize(buffer));
+}
+
 TEST(WireFormatter, SimpleTypes_deserialize_zero) 
 {
   InSequence s;
@@ -385,6 +408,27 @@ TEST(WireFormatter, SimpleTypes_deserialize_min)
   EXPECT_EQ(std::numeric_limits<uint32_t>::min(),  msg.get_a_fixed32());
   EXPECT_EQ(std::numeric_limits<int32_t>::min(),   msg.get_a_sfixed32()); 
   EXPECT_EQ(std::numeric_limits<float>::lowest(),  msg.get_a_float());
+}
+
+TEST(WireFormatter, SimpleTypes_deserialize_smalest_real) 
+{
+  InSequence s;
+  
+  ::Test_Simple_Types msg;
+  Mocks::MessageBufferMock buffer;
+
+  uint8_t referee[] = {0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 
+                       0x75, 0x00, 0x00, 0x80, 0x00 };
+  
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+  
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(std::numeric_limits<double>::min(), msg.get_a_double());
+  EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());
 }
 
 } // End of namespace test_EmbeddedAMS_WireFormatter
