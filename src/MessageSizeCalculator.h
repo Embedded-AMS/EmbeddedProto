@@ -11,8 +11,8 @@ namespace EmbeddedProto
   //! This class is used in a message to calculate the current serialized size.
   /*!
       To calculate the size of a message given the current data a dummy serialization is performed.
-      This class mimics the buffer in which the data is stored. In stead of storing it, only the 
-      size is incremented for the bytes pushed.
+      This class mimics the buffer in which the data is stored. Instead of storing it, only the 
+      size is incremented for the bytes pushed. No actual data is pushed into a buffer.
 
       \see MessageInterface::serialized_size()  
   */
@@ -38,13 +38,13 @@ namespace EmbeddedProto
         return size_; 
       }
 
-      //! To continue serialization return the maximum number that fits in a 32bit int.
+      //! To continue serialization return the maximum number that fits in a 32bit unsigned int.
       uint32_t get_max_size() const override 
       { 
         return std::numeric_limits<uint32_t>::max(); 
       }
 
-      //! To continue serialization return the maximum number that fits in a 32bit int.
+      //! To continue serialization return the maximum number that fits in a 32bit unsigned int.
       uint32_t get_available_size() const override 
       { 
         return std::numeric_limits<uint32_t>::max(); 
@@ -71,11 +71,11 @@ namespace EmbeddedProto
 
     private:
 
-      //! Not required functions for the calculator
+      //! Not required functions for the calculator.1
       /*!
         The following functions are not required by the serialize functions. They are made private 
-        to explicitly not use them. All paramters are void casted delibertely, default return 
-        value is false 
+        to explicitly not use them. All parameters are void casted delibertely, default return 
+        value is false.
         @{
       */
       bool peak(uint8_t& byte) const override { (void)byte; return false; }
