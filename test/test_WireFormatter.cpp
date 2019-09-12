@@ -19,66 +19,6 @@ using ::testing::SetArgReferee;
 namespace test_EmbeddedAMS_WireFormatter 
 {
 
-TEST(WireFormatter, MakeTag)
-{
-  // Varints
-  EXPECT_EQ(0x0000, ::EmbeddedProto::WireFormatter::MakeTag(0, ::EmbeddedProto::WireFormatter::WireType::VARINT));
-  EXPECT_EQ(0x0008, ::EmbeddedProto::WireFormatter::MakeTag(1, ::EmbeddedProto::WireFormatter::WireType::VARINT));
-  EXPECT_EQ(0x07F8, ::EmbeddedProto::WireFormatter::MakeTag(255, ::EmbeddedProto::WireFormatter::WireType::VARINT));
-
-  // Doubles
-  EXPECT_EQ(0x0001, ::EmbeddedProto::WireFormatter::MakeTag(0, ::EmbeddedProto::WireFormatter::WireType::FIXED64));
-  EXPECT_EQ(0x0009, ::EmbeddedProto::WireFormatter::MakeTag(1, ::EmbeddedProto::WireFormatter::WireType::FIXED64));
-  EXPECT_EQ(0x07F9, ::EmbeddedProto::WireFormatter::MakeTag(255, ::EmbeddedProto::WireFormatter::WireType::FIXED64));
-
-  // Repeated fields
-  EXPECT_EQ(0x0002, ::EmbeddedProto::WireFormatter::MakeTag(0, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED));
-  EXPECT_EQ(0x000A, ::EmbeddedProto::WireFormatter::MakeTag(1, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED));
-  EXPECT_EQ(0x07FA, ::EmbeddedProto::WireFormatter::MakeTag(255, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED));
-
-  // Skip the depricated group type.
-
-  // Floats
-  EXPECT_EQ(0x0005, ::EmbeddedProto::WireFormatter::MakeTag(0, ::EmbeddedProto::WireFormatter::WireType::FIXED32));
-  EXPECT_EQ(0x000D, ::EmbeddedProto::WireFormatter::MakeTag(1, ::EmbeddedProto::WireFormatter::WireType::FIXED32));
-  EXPECT_EQ(0x07FD, ::EmbeddedProto::WireFormatter::MakeTag(255, ::EmbeddedProto::WireFormatter::WireType::FIXED32));
-}
-
-TEST(WireFormatter, WriteVarint32ToArray) 
-{
-  InSequence s;
-
-  Mocks::MessageBufferMock buffer;
-  EXPECT_CALL(buffer, push(_,_)).Times(0);
-
-
-  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(1, buffer));
-
-  // Edge case of the first byte.
-  EXPECT_CALL(buffer, push(127)).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(127, buffer));
-
-  // Just over the first byte.
-  EXPECT_CALL(buffer, push(128)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(128, buffer));
-
-  // Full first byte.
-  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(1)).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(255, buffer));
-
-  // Fast forward to the largest possible number.
-  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(255)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(15)).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(::EmbeddedProto::WireFormatter::WriteVarint32ToArray(std::numeric_limits<uint32_t>::max(), buffer));
-
-}
-
 TEST(WireFormatter, SimpleTypes_zero) 
 {
   InSequence s;
@@ -90,6 +30,8 @@ TEST(WireFormatter, SimpleTypes_zero)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
 
   EXPECT_TRUE(msg.serialize(buffer));
+
+  EXPECT_EQ(0, msg.serialized_size());
 }
 
 
@@ -137,6 +79,8 @@ TEST(WireFormatter, SimpleTypes_serialize_one)
   }
 
   EXPECT_TRUE(msg.serialize(buffer));
+
+  EXPECT_EQ(58, msg.serialized_size());
 }
 
 TEST(WireFormatter, SimpleTypes_serialize_max) 
@@ -184,7 +128,7 @@ TEST(WireFormatter, SimpleTypes_serialize_max)
   }
 
   EXPECT_TRUE(msg.serialize(buffer));
-
+  EXPECT_EQ(100, msg.serialized_size());
 }
 
 TEST(WireFormatter, SimpleTypes_serialize_min) 
@@ -225,6 +169,7 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   }
   
   EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(62, msg.serialized_size());
 }
 
 TEST(WireFormatter, SimpleTypes_serialize_smalest_real) 
@@ -248,6 +193,7 @@ TEST(WireFormatter, SimpleTypes_serialize_smalest_real)
   }
   
   EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(14, msg.serialized_size());
 }
 
 TEST(WireFormatter, SimpleTypes_deserialize_zero) 
