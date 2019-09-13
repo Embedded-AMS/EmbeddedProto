@@ -69,7 +69,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       ::EmbeddedProto::WireFormatter::WireType wire_type;
       uint32_t id_number = 0;
 
-      while(result && ::EmbeddedProto::WireFormatter::ReadTag(buffer, wire_type, id_number))
+      while(result && ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number))
       {
         switch(id_number)
         {
