@@ -46,7 +46,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% for field in msg.fields() %}
       {% if field.of_type_message %}
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      if(0 < size_{{field.name}} && (size_{{field.name}} < buffer.get_available_size()) && result)
+      if((0 < size_{{field.name}}) && (size_{{field.name}} <= buffer.get_available_size()) && result)
       {
         result = ::EmbeddedProto::WireFormatter::WriteVarint32ToArray({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}}, buffer);
         result = result && ::EmbeddedProto::WireFormatter::UIntNoTag(size_{{field.name}}, buffer);
