@@ -114,11 +114,24 @@ namespace EmbeddedProto
         @{
       **/
 
+      //! Read from the buffer the next wiretype and field id. 
+      /*!
+          \param[in] buffer The data source from which to read the type and id.
+          \param[out] type This parameter returns the wiretype of the next field in the data buffer.
+          \param[out] id This parameter returns the next field id.
+          \return True when deserializing the type and id succeded.  
+      */
       static bool DeserializeTag(MessageBufferInterface& buffer, WireType& type, uint32_t& id) 
       {
         uint32_t temp_value;
-        bool result = DeserializeVarint(buffer, temp_value);
-        if(result) {
+        
+        // Read the next varint considerted to be a tag. Next check the validity of the wire type.
+        bool result = DeserializeVarint(buffer, temp_value) && 
+                      ((temp_value &  0x07) <= static_cast<uint32_t>(WireType::FIXED32));
+        
+        // If reading the tag succedded and the wire type is a valid one
+        if(result) 
+        {
           type = static_cast<WireType>(temp_value &  0x07);
           id = (temp_value >> 3);
         }
