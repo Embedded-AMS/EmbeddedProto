@@ -121,8 +121,9 @@ class FieldTemplateParameters:
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
-        self.serialization_func = self.type_to_ser_func[field_proto.type]
-        self.deserialization_func = self.type_to_deser_func[field_proto.type]
+        if not self.of_type_message:
+            self.serialization_func = self.type_to_ser_func[field_proto.type]
+            self.deserialization_func = self.type_to_deser_func[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
@@ -179,6 +180,16 @@ def generate_code(request, respones):
 
         try:
             file_str = template.render(namespace=proto_file.package, messages=messages_generator, enums=enums_generator)
+        except jinja2.TemplateError as e:
+            print("TemplateError exception: " + str(e))
+        except jinja2.UndefinedError as e:
+            print("UndefinedError exception: " + str(e))
+        except jinja2.TemplateSyntaxError as e:
+            print("TemplateSyntaxError exception: " + str(e))
+        except jinja2.TemplateRuntimeError as e:
+            print("TemplateRuntimeError exception: " + str(e))
+        except jinja2.TemplateAssertionError as e:
+            print("TemplateAssertionError exception: " + str(e))
         except Exception as e:
             print("Template renderer exception: " + str(e))
         else:
