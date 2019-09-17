@@ -16,10 +16,10 @@ using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 
-namespace test_EmbeddedAMS_WireFormatter 
+namespace test_EmbeddedAMS_SimpleTypes 
 {
 
-TEST(WireFormatter, SimpleTypes_zero) 
+TEST(SimpleTypes, zero) 
 {
   InSequence s;
 
@@ -35,7 +35,7 @@ TEST(WireFormatter, SimpleTypes_zero)
 }
 
 
-TEST(WireFormatter, SimpleTypes_serialize_one) 
+TEST(SimpleTypes, serialize_one) 
 {
   InSequence s;
   
@@ -83,7 +83,7 @@ TEST(WireFormatter, SimpleTypes_serialize_one)
   EXPECT_EQ(58, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_max) 
+TEST(SimpleTypes, serialize_max) 
 {
   InSequence s;
   
@@ -131,7 +131,7 @@ TEST(WireFormatter, SimpleTypes_serialize_max)
   EXPECT_EQ(100, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_min) 
+TEST(SimpleTypes, serialize_min) 
 {
   InSequence s;
   
@@ -172,7 +172,7 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   EXPECT_EQ(62, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_smalest_real) 
+TEST(SimpleTypes, serialize_smalest_real) 
 {
   InSequence s;
   
@@ -196,7 +196,7 @@ TEST(WireFormatter, SimpleTypes_serialize_smalest_real)
   EXPECT_EQ(14, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_zero) 
+TEST(SimpleTypes, deserialize_zero) 
 {
   InSequence s;
   Mocks::MessageBufferMock buffer;
@@ -221,7 +221,7 @@ TEST(WireFormatter, SimpleTypes_deserialize_zero)
   EXPECT_EQ(0.0F, msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_one) 
+TEST(SimpleTypes, deserialize_one) 
 {
   InSequence s;
   Mocks::MessageBufferMock buffer;
@@ -268,7 +268,7 @@ TEST(WireFormatter, SimpleTypes_deserialize_one)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_max) 
+TEST(SimpleTypes, deserialize_max) 
 {
   InSequence s;
   Mocks::MessageBufferMock buffer;
@@ -315,7 +315,7 @@ TEST(WireFormatter, SimpleTypes_deserialize_max)
   EXPECT_EQ(std::numeric_limits<float>::max(),    msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_min) 
+TEST(SimpleTypes, deserialize_min) 
 {
   InSequence s;
   Mocks::MessageBufferMock buffer;
@@ -356,7 +356,7 @@ TEST(WireFormatter, SimpleTypes_deserialize_min)
   EXPECT_EQ(std::numeric_limits<float>::lowest(),  msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_smalest_real) 
+TEST(SimpleTypes, deserialize_smalest_real) 
 {
   InSequence s;
   
@@ -377,4 +377,4 @@ TEST(WireFormatter, SimpleTypes_deserialize_smalest_real)
   EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());
 }
 
-} // End of namespace test_EmbeddedAMS_WireFormatter
+} // End of namespace test_EmbeddedAMS_SimpleTypes
