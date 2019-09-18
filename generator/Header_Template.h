@@ -46,10 +46,12 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% for field in msg.fields() %}
       {% if field.of_type_message %}
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      if((0 < size_{{field.name}}) && (size_{{field.name}} <= buffer.get_available_size()) && result)
+      result = (size_{{field.name}} <= buffer.get_available_size());
+      if(result && (0 < size_{{field.name}}))
       {
-        result = ::EmbeddedProto::WireFormatter::WriteVarint32ToArray({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}}, buffer);
-        result = result && ::EmbeddedProto::WireFormatter::UIntNoTag(size_{{field.name}}, buffer);
+        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}});
+        result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+        result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
@@ -80,9 +82,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
             {
               {% if field.of_type_message %}
               uint32_t size;
-              result = deserialize_VARINT(buffer, size);
-              PartialMessageBufferInterface<size> partial_buffer(buffer);
-              result = result && {{field.variable_name}}.deserialize(partial_buffer);
+              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+              result = result && {{field.variable_name}}.deserialize(buffer);
               {% else %}
               result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}

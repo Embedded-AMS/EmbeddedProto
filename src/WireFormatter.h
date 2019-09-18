@@ -274,7 +274,6 @@ namespace EmbeddedProto
 
       /** @} **/
 
-    private:
 
       //! This function converts a given value unsigned integer to a varint formated data buffer.
       /*!

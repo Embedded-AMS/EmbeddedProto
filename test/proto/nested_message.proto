@@ -12,8 +12,8 @@ message message_a
 
 message message_b 
 {
-  double a  = 1;
-  double b  = 2;
-  message_a msg_c = 3;
+  double u  = 1;
+  double v  = 2;
+  message_a nested_a = 3;
 }
 
