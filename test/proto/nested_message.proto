@@ -17,3 +17,7 @@ message message_b
   message_a nested_a = 3;
 }
 
+message message_c 
+{
+  message_b nested_b = 1;
+}
