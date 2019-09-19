@@ -13,8 +13,8 @@ message message_a
 message message_b 
 {
   double u  = 1;
-  double v  = 2;
-  message_a nested_a = 3;
+  message_a nested_a = 2;
+  int32 v   = 3;
 }
 
 message message_c 
