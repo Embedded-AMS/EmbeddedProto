@@ -83,7 +83,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               {% if field.of_type_message %}
               uint32_t size;
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-              result = result && {{field.variable_name}}.deserialize(buffer);
+              ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+              result = result && {{field.variable_name}}.deserialize(bufferSection);
               {% else %}
               result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
@@ -133,6 +134,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <MessageInterface.h>
 #include <WireFormatter.h>
 #include <MessageSizeCalculator.h>
+#include <ReadBufferSection.h>
 {% endif %}
 
 {% if namespace %}

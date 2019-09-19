@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
 add_subdirectory(external/googletest)
 
 file(GLOB src_files
+    "src/*.cpp"
     "test/*.cpp"
     "build/EAMS/*cpp"
 )
