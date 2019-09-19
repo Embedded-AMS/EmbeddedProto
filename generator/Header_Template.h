@@ -39,7 +39,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endif %}
 
     {% endfor %}
-    bool serialize(::EmbeddedProto::MessageBufferInterface& buffer) const final
+    bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
       bool result = true;
 
@@ -65,7 +65,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       return result;
     };
 
-    bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) final
+    bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
     {
       bool result = true;
       ::EmbeddedProto::WireFormatter::WireType wire_type;

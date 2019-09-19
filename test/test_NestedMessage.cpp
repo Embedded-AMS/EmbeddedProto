@@ -3,7 +3,8 @@
 #include "gtest/gtest.h"
 
 #include <WireFormatter.h>
-#include <MessageBufferMock.h>
+#include <ReadBufferMock.h>
+#include <WriteBufferMock.h>
 
 #include <cstdint>    
 #include <limits> 
@@ -24,7 +25,7 @@ TEST(NestedMessage, serialize_zero)
   // Test if a unset message results in zero bytes in the buffer.
 
   ::message_b msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
@@ -39,7 +40,7 @@ TEST(NestedMessage, serialize_one)
   InSequence s;
 
   ::message_b msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
 
   // Test if a nested message can be serialized with values set to one.
   msg.set_u(1.0F);
