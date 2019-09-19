@@ -39,17 +39,19 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endif %}
 
     {% endfor %}
-    bool serialize(::EmbeddedProto::MessageBufferInterface& buffer) const final
+    bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
       bool result = true;
 
       {% for field in msg.fields() %}
       {% if field.of_type_message %}
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      if(0 < size_{{field.name}} && (size_{{field.name}} < buffer.get_available_size()) && result)
+      result = (size_{{field.name}} <= buffer.get_available_size());
+      if(result && (0 < size_{{field.name}}))
       {
-        result = ::EmbeddedProto::WireFormatter::WriteVarint32ToArray({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}}, buffer);
-        result = result && ::EmbeddedProto::WireFormatter::UIntNoTag(size_{{field.name}}, buffer);
+        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}});
+        result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+        result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
@@ -63,7 +65,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       return result;
     };
 
-    bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) final
+    bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
     {
       bool result = true;
       ::EmbeddedProto::WireFormatter::WireType wire_type;
@@ -80,9 +82,9 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
             {
               {% if field.of_type_message %}
               uint32_t size;
-              result = deserialize_VARINT(buffer, size);
-              PartialMessageBufferInterface<size> partial_buffer(buffer);
-              result = result && {{field.variable_name}}.deserialize(partial_buffer);
+              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+              ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+              result = result && {{field.variable_name}}.deserialize(bufferSection);
               {% else %}
               result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
@@ -132,6 +134,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <MessageInterface.h>
 #include <WireFormatter.h>
 #include <MessageSizeCalculator.h>
+#include <ReadBufferSection.h>
 {% endif %}
 
 {% if namespace %}

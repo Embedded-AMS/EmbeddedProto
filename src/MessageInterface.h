@@ -27,17 +27,17 @@ public:
 
         \return True when every was successfull. 
     */
-    virtual bool serialize(::EmbeddedProto::MessageBufferInterface& buffer) const = 0;
+    virtual bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const = 0;
 
     //! Function to deserialize this message.
     /*!
         From an array of date fill this message object with data.
 
-        \param buffer [in]  The memory in which the serialized message is stored.
+        \param buffer [in]  The memory from which the message is obtained.
 
         \return True when every was successfull. 
     */
-    virtual bool deserialize(::EmbeddedProto::MessageBufferInterface& buffer) = 0;
+    virtual bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) = 0;
 
     //! Clear the content of this message and set it to it's default state.
     /*!

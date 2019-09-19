@@ -6,7 +6,8 @@
 #include <math.h> 
 #include <type_traits>
 
-#include "MessageBufferInterface.h"
+#include "WriteBufferInterface.h"
+#include "ReadBufferInterface.h"
 
 namespace EmbeddedProto 
 {
@@ -38,7 +39,7 @@ namespace EmbeddedProto
          @{
       **/
       template<class INT_TYPE>
-      static bool SerializeInt(uint32_t field_number, INT_TYPE value, MessageBufferInterface& buffer)
+      static bool SerializeInt(uint32_t field_number, INT_TYPE value, WriteBufferInterface& buffer)
       {        
         typedef typename std::make_unsigned<INT_TYPE>::type UINT_TYPE;
         return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
@@ -46,62 +47,62 @@ namespace EmbeddedProto
       }
 
       template<class UINT_TYPE>
-      static bool SerializeUInt(uint32_t field_number, UINT_TYPE value, MessageBufferInterface& buffer)
+      static bool SerializeUInt(uint32_t field_number, UINT_TYPE value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
                && SerializeVarint(value, buffer);
       }
 
       template<class INT_TYPE>
-      static bool SerializeSInt(uint32_t field_number, INT_TYPE value, MessageBufferInterface& buffer)
+      static bool SerializeSInt(uint32_t field_number, INT_TYPE value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
                && SerializeVarint(ZigZagEncode(value), buffer);
       }
       
-      static bool SerializeFixed(uint32_t field_number, uint32_t value, MessageBufferInterface& buffer)
+      static bool SerializeFixed(uint32_t field_number, uint32_t value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
                && SerialzieFixedNoTag(value, buffer);
       }
 
-      static bool SerializeFixed(uint32_t field_number, uint64_t value, MessageBufferInterface& buffer)
+      static bool SerializeFixed(uint32_t field_number, uint64_t value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
                && SerialzieFixedNoTag(value, buffer);
       }
 
-      static bool SerializeSFixed(uint32_t field_number, int32_t value, MessageBufferInterface& buffer)
+      static bool SerializeSFixed(uint32_t field_number, int32_t value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
                && SerialzieSFixedNoTag(value, buffer);
       }
 
-      static bool SerializeSFixed(uint32_t field_number, int64_t value, MessageBufferInterface& buffer)
+      static bool SerializeSFixed(uint32_t field_number, int64_t value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
                && SerialzieSFixedNoTag(value, buffer);
       }
 
-      static bool SerializeFloat(uint32_t field_number, float value, MessageBufferInterface& buffer)
+      static bool SerializeFloat(uint32_t field_number, float value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
                && SerialzieFloatNoTag(value, buffer);
       }
 
-      static bool SerializeDouble(uint32_t field_number, double value, MessageBufferInterface& buffer)
+      static bool SerializeDouble(uint32_t field_number, double value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
                && SerialzieDoubleNoTag(value, buffer);
       }
 
-      static bool SerializeBool(uint32_t field_number, bool value, MessageBufferInterface& buffer)
+      static bool SerializeBool(uint32_t field_number, bool value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer)
                && buffer.push(value ? 0x01 : 0x00);
       }
 
-      static bool SerializeEnum(uint32_t field_number, uint32_t value, MessageBufferInterface& buffer)
+      static bool SerializeEnum(uint32_t field_number, uint32_t value, WriteBufferInterface& buffer)
       {
         return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
                && SerializeVarint(value, buffer);
@@ -114,11 +115,24 @@ namespace EmbeddedProto
         @{
       **/
 
-      static bool DeserializeTag(MessageBufferInterface& buffer, WireType& type, uint32_t& id) 
+      //! Read from the buffer the next wiretype and field id. 
+      /*!
+          \param[in] buffer The data source from which to read the type and id.
+          \param[out] type This parameter returns the wiretype of the next field in the data buffer.
+          \param[out] id This parameter returns the next field id.
+          \return True when deserializing the type and id succeded.  
+      */
+      static bool DeserializeTag(ReadBufferInterface& buffer, WireType& type, uint32_t& id) 
       {
         uint32_t temp_value;
-        bool result = DeserializeVarint(buffer, temp_value);
-        if(result) {
+        
+        // Read the next varint considerted to be a tag. Next check the validity of the wire type.
+        bool result = DeserializeVarint(buffer, temp_value) && 
+                      ((temp_value &  0x07) <= static_cast<uint32_t>(WireType::FIXED32));
+        
+        // If reading the tag succedded and the wire type is a valid one
+        if(result) 
+        {
           type = static_cast<WireType>(temp_value &  0x07);
           id = (temp_value >> 3);
         }
@@ -126,7 +140,7 @@ namespace EmbeddedProto
       }
 
       template<class UINT_TYPE>
-      static bool DeserializeUInt(MessageBufferInterface& buffer, UINT_TYPE& value) 
+      static bool DeserializeUInt(ReadBufferInterface& buffer, UINT_TYPE& value) 
       {
         static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
                       std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to DeserializeUInt.");
@@ -135,7 +149,7 @@ namespace EmbeddedProto
       }
 
       template<class INT_TYPE>
-      static bool DeserializeInt(MessageBufferInterface& buffer, INT_TYPE& value) 
+      static bool DeserializeInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeInt.");
@@ -150,7 +164,7 @@ namespace EmbeddedProto
       }
 
       template<class INT_TYPE>
-      static bool DeserializeSInt(MessageBufferInterface& buffer, INT_TYPE& value) 
+      static bool DeserializeSInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeSInt.");
@@ -165,7 +179,7 @@ namespace EmbeddedProto
       }
 
       template<class TYPE>
-      static bool DeserializeFixed(MessageBufferInterface& buffer, TYPE& value) 
+      static bool DeserializeFixed(ReadBufferInterface& buffer, TYPE& value) 
       {
         static_assert(std::is_same<TYPE, uint32_t>::value || 
                       std::is_same<TYPE, uint64_t>::value, "Wrong type passed to DeserializeFixed.");
@@ -195,7 +209,7 @@ namespace EmbeddedProto
       }
 
       template<class STYPE>
-      static bool DeserializeSFixed(MessageBufferInterface& buffer, STYPE& value) 
+      static bool DeserializeSFixed(ReadBufferInterface& buffer, STYPE& value) 
       {
         static_assert(std::is_same<STYPE, int32_t>::value || 
                       std::is_same<STYPE, int64_t>::value, "Wrong type passed to DeserializeSFixed.");
@@ -210,7 +224,7 @@ namespace EmbeddedProto
         return result;
       }
 
-      static bool DeserializeFloat(MessageBufferInterface& buffer, float& value) 
+      static bool DeserializeFloat(ReadBufferInterface& buffer, float& value) 
       {
         uint32_t temp_value = 0;
         bool result = DeserializeFixed(buffer, temp_value);
@@ -223,7 +237,7 @@ namespace EmbeddedProto
         return result;
       }
 
-      static bool DeserializeDouble(MessageBufferInterface& buffer, double& value) 
+      static bool DeserializeDouble(ReadBufferInterface& buffer, double& value) 
       {
         uint64_t temp_value = 0;
         bool result = DeserializeFixed(buffer, temp_value);
@@ -236,7 +250,7 @@ namespace EmbeddedProto
         return result;
       }
 
-      static bool DeserializeBool(MessageBufferInterface& buffer, bool& value) 
+      static bool DeserializeBool(ReadBufferInterface& buffer, bool& value) 
       {
         uint8_t byte;
         bool result = buffer.pop(byte);
@@ -247,7 +261,7 @@ namespace EmbeddedProto
       }
 
       template<class ENUM_TYPE>
-      static bool DeserializeEnum(MessageBufferInterface& buffer, ENUM_TYPE& value) 
+      static bool DeserializeEnum(ReadBufferInterface& buffer, ENUM_TYPE& value) 
       {
         static_assert(std::is_enum<ENUM_TYPE>::value, "No enum given to DeserializeEnum parameter value.");
         uint64_t temp_value;
@@ -261,7 +275,6 @@ namespace EmbeddedProto
 
       /** @} **/
 
-    private:
 
       //! This function converts a given value unsigned integer to a varint formated data buffer.
       /*!
@@ -270,7 +283,7 @@ namespace EmbeddedProto
         \return True when it was possible to store the variable in the buffer.
       */
       template<class UINT_TYPE>
-      static bool SerializeVarint(UINT_TYPE value, MessageBufferInterface& buffer) 
+      static bool SerializeVarint(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
         static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
                       std::is_same<UINT_TYPE, uint64_t>::value, 
@@ -290,7 +303,7 @@ namespace EmbeddedProto
         \return True when it was possible to desrialize a varint from the buffer.
       */
       template<class UINT_TYPE>
-      static bool DeserializeVarint(MessageBufferInterface& buffer, UINT_TYPE& value) 
+      static bool DeserializeVarint(ReadBufferInterface& buffer, UINT_TYPE& value) 
       {
         static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
                       std::is_same<UINT_TYPE, uint64_t>::value, 
@@ -387,7 +400,7 @@ namespace EmbeddedProto
 
       //! Serialize an unsigned fixed lenth field without the tag.
       template<class UINT_TYPE>
-      static bool SerialzieFixedNoTag(UINT_TYPE value, MessageBufferInterface& buffer) 
+      static bool SerialzieFixedNoTag(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
         static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
                       std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerialzieFixedNoTag.");
@@ -407,7 +420,7 @@ namespace EmbeddedProto
 
       //! Srialzie a signed fixed length field without the tag.
       template<class INT_TYPE>
-      static bool SerialzieSFixedNoTag(INT_TYPE value, MessageBufferInterface& buffer)
+      static bool SerialzieSFixedNoTag(INT_TYPE value, WriteBufferInterface& buffer)
       {
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to SerialzieSFixedNoTag.");
@@ -418,7 +431,7 @@ namespace EmbeddedProto
       }
 
       //! Serialize a 32bit real value without tag.
-      static bool SerialzieFloatNoTag(float value, MessageBufferInterface& buffer)
+      static bool SerialzieFloatNoTag(float value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 32 fixed number
         void* pVoid = static_cast<void*>(&value);
@@ -427,7 +440,7 @@ namespace EmbeddedProto
       }
 
       //! SErialize a 64bit real value without tag.
-      static bool SerialzieDoubleNoTag(double value, MessageBufferInterface& buffer)
+      static bool SerialzieDoubleNoTag(double value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 64 fixed number
         void* pVoid = static_cast<void*>(&value);

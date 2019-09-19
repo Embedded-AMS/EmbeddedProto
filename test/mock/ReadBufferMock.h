@@ -1,26 +1,21 @@
 
 
-#ifndef _MESSAGE_BUFFER_MOCK_H_
-#define _MESSAGE_BUFFER_MOCK_H_
+#ifndef _READ_BUFFER_MOCK_H_
+#define _READ_BUFFER_MOCK_H_
 
 #include <gmock/gmock.h>
 
-#include <MessageBufferInterface.h>
+#include <ReadBufferInterface.h>
 
 namespace Mocks
 {
 
-  class MessageBufferMock : public EmbeddedProto::MessageBufferInterface
+  class ReadBufferMock : public EmbeddedProto::ReadBufferInterface
   {
     public:
 
-      MOCK_METHOD0(clear, void());
-
       MOCK_CONST_METHOD0(get_size, uint32_t());
       MOCK_CONST_METHOD0(get_max_size, uint32_t());
-      
-      MOCK_METHOD1(push, bool(uint8_t));
-      MOCK_METHOD2(push, bool(const uint8_t*, const uint32_t));
       
       MOCK_CONST_METHOD1(peak, bool(uint8_t&));
       MOCK_CONST_METHOD0(peak, uint8_t());
@@ -30,10 +25,8 @@ namespace Mocks
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
-
-      MOCK_CONST_METHOD0(get_available_size, uint32_t());
   };
 
 } // End of namespace Mocks
 
-#endif // End of _MESSAGE_BUFFER_MOCK_H_
+#endif // End of _READ_BUFFER_MOCK_H_

@@ -2,7 +2,7 @@
 #ifndef _MESSAGE_SIZE_CALCULATOR_H_
 #define _MESSAGE_SIZE_CALCULATOR_H_
 
-#include "MessageBufferInterface.h"
+#include "WriteBufferInterface.h"
 
 #include <limits> 
 
@@ -16,7 +16,7 @@ namespace EmbeddedProto
 
       \see MessageInterface::serialized_size()  
   */
-  class MessageSizeCalculator : public MessageBufferInterface
+  class MessageSizeCalculator : public WriteBufferInterface
   {
     public:
       MessageSizeCalculator()
@@ -70,21 +70,6 @@ namespace EmbeddedProto
 
 
     private:
-
-      //! Not required functions for the calculator.1
-      /*!
-        The following functions are not required by the serialize functions. They are made private 
-        to explicitly not use them. All parameters are void casted delibertely, default return 
-        value is false.
-        @{
-      */
-      bool peak(uint8_t& byte) const override { (void)byte; return false; }
-      uint8_t peak() const override { return 0; }
-      void advance() override {}
-      void advance(const uint32_t N) override { (void)N; };
-      bool pop(uint8_t& byte) override { return false; }
-      uint8_t pop() override { return 0; }
-      /*! @} */
 
       //! The calculated size of the buffer.
       uint32_t size_;

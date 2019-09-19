@@ -3,7 +3,8 @@
 #include "gtest/gtest.h"
 
 #include <WireFormatter.h>
-#include <MessageBufferMock.h>
+#include <ReadBufferMock.h>
+#include <WriteBufferMock.h>
 
 #include <cstdint>    
 #include <limits> 
@@ -16,16 +17,16 @@ using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 
-namespace test_EmbeddedAMS_WireFormatter 
+namespace test_EmbeddedAMS_SimpleTypes 
 {
 
-TEST(WireFormatter, SimpleTypes_zero) 
+TEST(SimpleTypes, zero) 
 {
   InSequence s;
 
   // See if an empty message results in no data been pushed.
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
 
@@ -35,14 +36,14 @@ TEST(WireFormatter, SimpleTypes_zero)
 }
 
 
-TEST(WireFormatter, SimpleTypes_serialize_one) 
+TEST(SimpleTypes, serialize_one) 
 {
   InSequence s;
   
   // Using a protobuf message and the google protobuf implementation test is serialization is 
   // correct.
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
 
   msg.set_a_int32(1);   
   msg.set_a_int64(1);     
@@ -83,14 +84,14 @@ TEST(WireFormatter, SimpleTypes_serialize_one)
   EXPECT_EQ(58, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_max) 
+TEST(SimpleTypes, serialize_max) 
 {
   InSequence s;
   
   // Using a protobuf message and the google protobuf implementation test is serialization is 
   // correct.
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
 
   msg.set_a_int32(std::numeric_limits<int32_t>::max());   
   msg.set_a_int64(std::numeric_limits<int64_t>::max());     
@@ -108,8 +109,8 @@ TEST(WireFormatter, SimpleTypes_serialize_max)
   msg.set_a_float(std::numeric_limits<float>::max());
 
 
-  uint8_t expected[] = {0x08, 0xFF, 0xFF, 0xFF, 0xFF, 
-                        0x07, 0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
+  uint8_t expected[] = {0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, 
+                        0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
                         0x7F, 0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 
                         0x20, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 
                         0x28, 0xFE, 0xFF, 0xFF, 0xFF, 0x0F, 
@@ -131,14 +132,14 @@ TEST(WireFormatter, SimpleTypes_serialize_max)
   EXPECT_EQ(100, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_min) 
+TEST(SimpleTypes, serialize_min) 
 {
   InSequence s;
   
   // Using a protobuf message and the google protobuf implementation test is serialization is 
   // correct.
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
 
   msg.set_a_int32(std::numeric_limits<int32_t>::min());   
   msg.set_a_int64(std::numeric_limits<int64_t>::min());     
@@ -172,14 +173,14 @@ TEST(WireFormatter, SimpleTypes_serialize_min)
   EXPECT_EQ(62, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_serialize_smalest_real) 
+TEST(SimpleTypes, serialize_smalest_real) 
 {
   InSequence s;
   
   // Using a protobuf message and the google protobuf implementation test is serialization is 
   // correct.
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::WriteBufferMock buffer;
 
   msg.set_a_double(std::numeric_limits<double>::min());
   msg.set_a_float(std::numeric_limits<float>::min());
@@ -196,10 +197,10 @@ TEST(WireFormatter, SimpleTypes_serialize_smalest_real)
   EXPECT_EQ(14, msg.serialized_size());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_zero) 
+TEST(SimpleTypes, deserialize_zero) 
 {
   InSequence s;
-  Mocks::MessageBufferMock buffer;
+  Mocks::ReadBufferMock buffer;
   ::Test_Simple_Types msg;
 
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
@@ -221,10 +222,10 @@ TEST(WireFormatter, SimpleTypes_deserialize_zero)
   EXPECT_EQ(0.0F, msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_one) 
+TEST(SimpleTypes, deserialize_one) 
 {
   InSequence s;
-  Mocks::MessageBufferMock buffer;
+  Mocks::ReadBufferMock buffer;
   
   ON_CALL(buffer, get_size()).WillByDefault(Return(58));
 
@@ -268,10 +269,10 @@ TEST(WireFormatter, SimpleTypes_deserialize_one)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_max) 
+TEST(SimpleTypes, deserialize_max) 
 {
   InSequence s;
-  Mocks::MessageBufferMock buffer;
+  Mocks::ReadBufferMock buffer;
   
   ON_CALL(buffer, get_size()).WillByDefault(Return(58));
 
@@ -315,10 +316,10 @@ TEST(WireFormatter, SimpleTypes_deserialize_max)
   EXPECT_EQ(std::numeric_limits<float>::max(),    msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_min) 
+TEST(SimpleTypes, deserialize_min) 
 {
   InSequence s;
-  Mocks::MessageBufferMock buffer;
+  Mocks::ReadBufferMock buffer;
   
   ON_CALL(buffer, get_size()).WillByDefault(Return(58));
 
@@ -356,12 +357,12 @@ TEST(WireFormatter, SimpleTypes_deserialize_min)
   EXPECT_EQ(std::numeric_limits<float>::lowest(),  msg.get_a_float());
 }
 
-TEST(WireFormatter, SimpleTypes_deserialize_smalest_real) 
+TEST(SimpleTypes, deserialize_smalest_real) 
 {
   InSequence s;
   
   ::Test_Simple_Types msg;
-  Mocks::MessageBufferMock buffer;
+  Mocks::ReadBufferMock buffer;
 
   uint8_t referee[] = {0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 
                        0x75, 0x00, 0x00, 0x80, 0x00 };
@@ -377,4 +378,4 @@ TEST(WireFormatter, SimpleTypes_deserialize_smalest_real)
   EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());
 }
 
-} // End of namespace test_EmbeddedAMS_WireFormatter
+} // End of namespace test_EmbeddedAMS_SimpleTypes
