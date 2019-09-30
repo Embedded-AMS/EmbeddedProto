@@ -11,14 +11,7 @@ enum {{ _enum.name }}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ msg.name }}() :
-        {% for field in msg.fields() %}
-        {{field.variable_name}}({{field.default_value}}){{"," if not loop.last}}
-        {% endfor %}
-    {
-
-    };
-
+    {{ msg.name }}() = default;
     ~{{ msg.name }}() override = default;
 
     {% for enum in msg.nested_enums() %}
@@ -30,7 +23,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% if field.of_type_message %}
     inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
     {% else %}
-    inline void clear_{{field.name}}() { {{field.variable_name}} = {{field.default_value}}; };
+    inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); };
     {% endif %}
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
@@ -55,7 +48,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
-      if(({{field.default_value}} != {{field.variable_name}}) && result)
+      if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
       {
         result = ::EmbeddedProto::WireFormatter::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
       }
@@ -133,6 +126,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {% if messages %}
 #include <MessageInterface.h>
 #include <WireFormatter.h>
+#include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
 {% endif %}

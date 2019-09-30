@@ -45,21 +45,21 @@ class FieldTemplateParameters:
                              FieldDescriptorProto.TYPE_SINT32:   "0",
                              FieldDescriptorProto.TYPE_SINT64:   "0"}
 
-    type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "double",
-                        FieldDescriptorProto.TYPE_FLOAT:    "float",
-                        FieldDescriptorProto.TYPE_INT64:    "int64_t",
-                        FieldDescriptorProto.TYPE_UINT64:   "uint64_t",
-                        FieldDescriptorProto.TYPE_INT32:    "int32_t",
-                        FieldDescriptorProto.TYPE_FIXED64:  "uint64_t",
-                        FieldDescriptorProto.TYPE_FIXED32:  "uint32_t",
+    type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "EmbeddedProto::doublefixed",
+                        FieldDescriptorProto.TYPE_FLOAT:    "EmbeddedProto::floatfixed",
+                        FieldDescriptorProto.TYPE_INT64:    "EmbeddedProto::int64",
+                        FieldDescriptorProto.TYPE_UINT64:   "EmbeddedProto::uint64",
+                        FieldDescriptorProto.TYPE_INT32:    "EmbeddedProto::int32",
+                        FieldDescriptorProto.TYPE_FIXED64:  "EmbeddedProto::fixed64",
+                        FieldDescriptorProto.TYPE_FIXED32:  "EmbeddedProto::fixed32",
                         FieldDescriptorProto.TYPE_BOOL:     "bool",
                         FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
                         FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_UINT32:   "uint32_t",
-                        FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
-                        FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
-                        FieldDescriptorProto.TYPE_SINT32:   "int32_t",
-                        FieldDescriptorProto.TYPE_SINT64:   "int64_t"}
+                        FieldDescriptorProto.TYPE_UINT32:   "EmbeddedProto::uint32",
+                        FieldDescriptorProto.TYPE_SFIXED32: "EmbeddedProto::sfixed32",
+                        FieldDescriptorProto.TYPE_SFIXED64: "EmbeddedProto::sfixed64",
+                        FieldDescriptorProto.TYPE_SINT32:   "EmbeddedProto::sint32",
+                        FieldDescriptorProto.TYPE_SINT64:   "EmbeddedProto::sint64"}
 
     type_to_wire_type = {FieldDescriptorProto.TYPE_INT32:    "VARINT",
                          FieldDescriptorProto.TYPE_INT64:    "VARINT",
