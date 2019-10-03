@@ -52,7 +52,7 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_INT32:    "EmbeddedProto::int32",
                         FieldDescriptorProto.TYPE_FIXED64:  "EmbeddedProto::fixed64",
                         FieldDescriptorProto.TYPE_FIXED32:  "EmbeddedProto::fixed32",
-                        FieldDescriptorProto.TYPE_BOOL:     "bool",
+                        FieldDescriptorProto.TYPE_BOOL:     "EmbeddedProto::boolean",
                         FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
                         FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
                         FieldDescriptorProto.TYPE_UINT32:   "EmbeddedProto::uint32",
@@ -79,39 +79,39 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
-    type_to_ser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "SerializeDouble",
-                        FieldDescriptorProto.TYPE_FLOAT:    "SerializeFloat",
-                        FieldDescriptorProto.TYPE_INT64:    "SerializeInt",
-                        FieldDescriptorProto.TYPE_UINT64:   "SerializeUInt",
-                        FieldDescriptorProto.TYPE_INT32:    "SerializeInt",
-                        FieldDescriptorProto.TYPE_FIXED64:  "SerializeFixed",
-                        FieldDescriptorProto.TYPE_FIXED32:  "SerializeFixed",
-                        FieldDescriptorProto.TYPE_BOOL:     "SerializeBool",
-                        FieldDescriptorProto.TYPE_ENUM:     "SerializeEnum",
+    type_to_ser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "serialize",
+                        FieldDescriptorProto.TYPE_FLOAT:    "serialize",
+                        FieldDescriptorProto.TYPE_INT64:    "serialize",
+                        FieldDescriptorProto.TYPE_UINT64:   "serialize",
+                        FieldDescriptorProto.TYPE_INT32:    "serialize",
+                        FieldDescriptorProto.TYPE_FIXED64:  "serialize",
+                        FieldDescriptorProto.TYPE_FIXED32:  "serialize",
+                        FieldDescriptorProto.TYPE_BOOL:     "serialize",
+                        FieldDescriptorProto.TYPE_ENUM:     "serialize",
                         FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
                         FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_UINT32:   "SerializeUInt",
-                        FieldDescriptorProto.TYPE_SFIXED32: "SerializeSFixed",
-                        FieldDescriptorProto.TYPE_SFIXED64: "SerializeSFixed",
-                        FieldDescriptorProto.TYPE_SINT32:   "SerializeSInt",
-                        FieldDescriptorProto.TYPE_SINT64:   "SerializeSInt"}
+                        FieldDescriptorProto.TYPE_UINT32:   "serialize",
+                        FieldDescriptorProto.TYPE_SFIXED32: "serialize",
+                        FieldDescriptorProto.TYPE_SFIXED64: "serialize",
+                        FieldDescriptorProto.TYPE_SINT32:   "serialize",
+                        FieldDescriptorProto.TYPE_SINT64:   "serialize"}
 
-    type_to_deser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "DeserializeDouble",
-                          FieldDescriptorProto.TYPE_FLOAT:    "DeserializeFloat",
-                          FieldDescriptorProto.TYPE_INT64:    "DeserializeInt",
-                          FieldDescriptorProto.TYPE_UINT64:   "DeserializeUInt",
-                          FieldDescriptorProto.TYPE_INT32:    "DeserializeInt",
-                          FieldDescriptorProto.TYPE_FIXED64:  "DeserializeFixed",
-                          FieldDescriptorProto.TYPE_FIXED32:  "DeserializeFixed",
-                          FieldDescriptorProto.TYPE_BOOL:     "DeserializeBool",
-                          FieldDescriptorProto.TYPE_ENUM:     "DeserializeEnum",
+    type_to_deser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "deserialize",
+                          FieldDescriptorProto.TYPE_FLOAT:    "deserialize",
+                          FieldDescriptorProto.TYPE_INT64:    "deserialize",
+                          FieldDescriptorProto.TYPE_UINT64:   "deserialize",
+                          FieldDescriptorProto.TYPE_INT32:    "deserialize",
+                          FieldDescriptorProto.TYPE_FIXED64:  "deserialize",
+                          FieldDescriptorProto.TYPE_FIXED32:  "deserialize",
+                          FieldDescriptorProto.TYPE_BOOL:     "deserialize",
+                          FieldDescriptorProto.TYPE_ENUM:     "deserialize",
                           FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
                           FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                          FieldDescriptorProto.TYPE_UINT32:   "DeserializeUInt",
-                          FieldDescriptorProto.TYPE_SFIXED32: "DeserializeSFixed",
-                          FieldDescriptorProto.TYPE_SFIXED64: "DeserializeSFixed",
-                          FieldDescriptorProto.TYPE_SINT32:   "DeserializeSInt",
-                          FieldDescriptorProto.TYPE_SINT64:   "DeserializeSInt"}
+                          FieldDescriptorProto.TYPE_UINT32:   "deserialize",
+                          FieldDescriptorProto.TYPE_SFIXED32: "deserialize",
+                          FieldDescriptorProto.TYPE_SFIXED64: "deserialize",
+                          FieldDescriptorProto.TYPE_SINT32:   "deserialize",
+                          FieldDescriptorProto.TYPE_SINT64:   "deserialize"}
 
     def __init__(self, field_proto):
         self.name = field_proto.name

@@ -5,6 +5,7 @@ enum {{ _enum.name }}
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
   {% endfor %}
 };
+
 {% endmacro %}
 
 {% macro msg_macro(msg) %}
@@ -21,14 +22,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     {% if field.of_type_message %}
-    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
-    {% else %}
-    inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); };
-    {% endif %}
+    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
+    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
-    {% if field.of_type_message %}
     inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    {% else %}
+    inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
+    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
+    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
+    inline const {{field.type}}::FIELD_TYPE& get_{{field.name}}() const { return {{field.variable_name}}.get(); }
     {% endif %}
 
     {% endfor %}
@@ -50,7 +53,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
       {
-        result = ::EmbeddedProto::WireFormatter::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
+        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
       }
       {% endif %}
 
@@ -79,7 +82,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
               result = result && {{field.variable_name}}.deserialize(bufferSection);
               {% else %}
-              result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
+              result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
             }
             else
