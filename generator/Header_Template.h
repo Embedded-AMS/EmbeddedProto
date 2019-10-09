@@ -27,11 +27,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
     inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    {% elif field.of_type_enum %}
+    inline void clear_{{field.name}}() { {{field.variable_name}} = static_cast<{{field.type}}>({{field.default_value}}); }
+    inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
+    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
+    inline {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
     {% else %}
     inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
-    inline const {{field.type}}::FIELD_TYPE& get_{{field.name}}() const { return {{field.variable_name}}.get(); }
+    inline {{field.type}}::FIELD_TYPE get_{{field.name}}() const { return {{field.variable_name}}.get(); }
     {% endif %}
 
     {% endfor %}
@@ -49,6 +54,13 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
         result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
+      }
+      {% elif field.of_type_enum %}
+      if(({{field.default_value}} != {{field.variable_name}}) && result)
+      {
+        EmbeddedProto::uint32 value;
+        value.set(static_cast<uint32_t>({{field.variable_name}}));
+        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
@@ -81,6 +93,13 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
               result = result && {{field.variable_name}}.deserialize(bufferSection);
+              {% elif field.of_type_enum %}
+              uint32_t value;
+              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
+              if(result)
+              {
+                {{field.variable_name}} = static_cast<{{field.type}}>(value);
+              }
               {% else %}
               result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}

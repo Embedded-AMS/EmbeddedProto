@@ -130,7 +130,8 @@ class FieldTemplateParameters:
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
 
-        if FieldDescriptorProto.TYPE_ENUM == field_proto.type:
+        self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
+        if self.of_type_enum:
             self.default_value = "static_cast<" + self.type + ">(0)"
         else:
             self.default_value = self.type_to_default_value[field_proto.type]
