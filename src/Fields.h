@@ -68,6 +68,20 @@ namespace EmbeddedProto
   bool serialize(uint32_t field_number, const floatfixed& x, WriteBufferInterface& buffer);
   bool serialize(uint32_t field_number, const doublefixed& x, WriteBufferInterface& buffer);
 
+  bool serialize(const int32& x, WriteBufferInterface& buffer);
+  bool serialize(const int64& x, WriteBufferInterface& buffer);
+  bool serialize(const uint32& x, WriteBufferInterface& buffer);
+  bool serialize(const uint64& x, WriteBufferInterface& buffer);
+  bool serialize(const sint32& x, WriteBufferInterface& buffer);
+  bool serialize(const sint64& x, WriteBufferInterface& buffer);
+  bool serialize(const boolean x, WriteBufferInterface& buffer);
+  bool serialize(const fixed32& x, WriteBufferInterface& buffer);
+  bool serialize(const fixed64& x, WriteBufferInterface& buffer);
+  bool serialize(const sfixed32& x, WriteBufferInterface& buffer); 
+  bool serialize(const sfixed64& x, WriteBufferInterface& buffer);
+  bool serialize(const floatfixed& x, WriteBufferInterface& buffer);
+  bool serialize(const doublefixed& x, WriteBufferInterface& buffer);
+
   bool deserialize(ReadBufferInterface& buffer, int32& x); 
   bool deserialize(ReadBufferInterface& buffer, int64& x); 
   bool deserialize(ReadBufferInterface& buffer, uint32& x);
