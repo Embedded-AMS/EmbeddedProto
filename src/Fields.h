@@ -39,100 +39,48 @@ namespace EmbeddedProto
       TYPE value_;
   };
 
-  class int32 : public FieldTemplate<int32_t> { };      
-  class int64 : public FieldTemplate<int64_t> { };      
-  class uint32 : public FieldTemplate<uint32_t> { };    
-  class uint64 : public FieldTemplate<uint64_t> { };    
-  class sint32 : public FieldTemplate<int32_t> { };    
-  class sint64 : public FieldTemplate<int64_t> { };    
-  class boolean : public FieldTemplate<bool> { };
+  class int32 : public FieldTemplate<int32_t> { public: int32() : FieldTemplate<int32_t>(0) {}; };     
+  class int64 : public FieldTemplate<int64_t> { public: int64() : FieldTemplate<int64_t>(0) {}; };
+  class uint32 : public FieldTemplate<uint32_t> { public: uint32() : FieldTemplate<uint32_t>(0) {}; };
+  class uint64 : public FieldTemplate<uint64_t> { public: uint64() : FieldTemplate<uint64_t>(0) {}; };
+  class sint32 : public FieldTemplate<int32_t> { public: sint32() : FieldTemplate<int32_t>(0) {}; };
+  class sint64 : public FieldTemplate<int64_t> { public: sint64() : FieldTemplate<int64_t>(0) {}; };
+  class boolean : public FieldTemplate<bool> { public: boolean() : FieldTemplate<bool>(false) {}; };
   // TODO enum
-  class fixed32 : public FieldTemplate<uint32_t> { };   
-  class fixed64 : public FieldTemplate<uint64_t> { };   
-  class sfixed32 : public FieldTemplate<int32_t> { };   
-  class sfixed64 : public FieldTemplate<int64_t> { };   
-  class floatfixed : public FieldTemplate<float> { };   
-  class doublefixed : public FieldTemplate<double> { }; 
+  class fixed32 : public FieldTemplate<uint32_t> { public: fixed32() : FieldTemplate<uint32_t>(0) {}; };
+  class fixed64 : public FieldTemplate<uint64_t> { public: fixed64() : FieldTemplate<uint64_t>(0) {}; };
+  class sfixed32 : public FieldTemplate<int32_t> { public: sfixed32() : FieldTemplate<int32_t>(0) {}; };
+  class sfixed64 : public FieldTemplate<int64_t> { public: sfixed64() : FieldTemplate<int64_t>(0) {}; };
+  class floatfixed : public FieldTemplate<float> { public: floatfixed() : FieldTemplate<float>(0.0) {}; };
+  class doublefixed : public FieldTemplate<double> { public: doublefixed() : FieldTemplate<double>(0.0) {}; };
 
-  bool serialize(uint32_t field_number, const int32& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeInt(field_number, x.get(), buffer); }
+  bool serialize(uint32_t field_number, const int32& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const int64& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const uint32& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const uint64& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const sint32& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const sint64& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const boolean x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const fixed32& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const fixed64& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const sfixed32& x, WriteBufferInterface& buffer); 
+  bool serialize(uint32_t field_number, const sfixed64& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const floatfixed& x, WriteBufferInterface& buffer);
+  bool serialize(uint32_t field_number, const doublefixed& x, WriteBufferInterface& buffer);
 
-  bool serialize(uint32_t field_number, const int64& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeInt(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const uint32& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeUInt(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const uint64& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeUInt(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const sint32& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeSInt(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const sint64& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeSInt(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const boolean x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeBool(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const fixed32& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeFixed(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const fixed64& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeFixed(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const sfixed32& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeSFixed(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const sfixed64& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeSFixed(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const floatfixed& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeFloat(field_number, x.get(), buffer); }
-
-  bool serialize(uint32_t field_number, const doublefixed& x, WriteBufferInterface& buffer) 
-  { return WireFormatter::SerializeDouble(field_number, x.get(), buffer); }
-
-
-
-  bool deserialize(ReadBufferInterface& buffer, int32& x) 
-  { return WireFormatter::DeserializeInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, int64& x) 
-  { return WireFormatter::DeserializeInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, uint32& x) 
-  { return WireFormatter::DeserializeUInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, uint64& x) 
-  { return WireFormatter::DeserializeUInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, sint32& x) 
-  { return WireFormatter::DeserializeSInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, sint64& x) 
-  { return WireFormatter::DeserializeSInt(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, boolean& x) 
-  { return WireFormatter::DeserializeBool(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, fixed32& x) 
-  { return WireFormatter::DeserializeFixed(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, fixed64& x) 
-  { return WireFormatter::DeserializeFixed(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, sfixed32& x) 
-  { return WireFormatter::DeserializeSFixed(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, sfixed64& x) 
-  { return WireFormatter::DeserializeSFixed(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, floatfixed& x) 
-  { return WireFormatter::DeserializeFloat(buffer, x.get()); }
-
-  bool deserialize(ReadBufferInterface& buffer, doublefixed& x) 
-  { return WireFormatter::DeserializeDouble(buffer, x.get()); }
+  bool deserialize(ReadBufferInterface& buffer, int32& x); 
+  bool deserialize(ReadBufferInterface& buffer, int64& x); 
+  bool deserialize(ReadBufferInterface& buffer, uint32& x);
+  bool deserialize(ReadBufferInterface& buffer, uint64& x);
+  bool deserialize(ReadBufferInterface& buffer, sint32& x);
+  bool deserialize(ReadBufferInterface& buffer, sint64& x);
+  bool deserialize(ReadBufferInterface& buffer, boolean& x);
+  bool deserialize(ReadBufferInterface& buffer, fixed32& x);
+  bool deserialize(ReadBufferInterface& buffer, fixed64& x);
+  bool deserialize(ReadBufferInterface& buffer, sfixed32& x);
+  bool deserialize(ReadBufferInterface& buffer, sfixed64& x);
+  bool deserialize(ReadBufferInterface& buffer, floatfixed& x);
+  bool deserialize(ReadBufferInterface& buffer, doublefixed& x);
 
 } // End of namespace EmbeddedProto.
 #endif

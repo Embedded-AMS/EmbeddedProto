@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <math.h> 
 #include <type_traits>
+#include <limits>
 
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"

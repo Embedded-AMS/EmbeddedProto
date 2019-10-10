@@ -12,7 +12,17 @@ enum {{ _enum.name }}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ msg.name }}() = default;
+    {{ msg.name }}() :
+    {% for field in msg.fields() %}
+        {% if field.of_type_enum %}
+        {{field.variable_name}}({{field.default_value}}){{"," if not loop.last}}
+        {% else %}
+        {{field.variable_name}}(){{"," if not loop.last}}
+        {% endif %}
+    {% endfor %}
+    {
+
+    };
     ~{{ msg.name }}() override = default;
 
     {% for enum in msg.nested_enums() %}
