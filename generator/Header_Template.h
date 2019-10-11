@@ -5,6 +5,7 @@ enum {{ _enum.name }}
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
   {% endfor %}
 };
+
 {% endmacro %}
 
 {% macro msg_macro(msg) %}
@@ -12,13 +13,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
     {{ msg.name }}() :
-        {% for field in msg.fields() %}
+    {% for field in msg.fields() %}
+        {% if field.of_type_enum %}
         {{field.variable_name}}({{field.default_value}}){{"," if not loop.last}}
-        {% endfor %}
+        {% else %}
+        {{field.variable_name}}(){{"," if not loop.last}}
+        {% endif %}
+    {% endfor %}
     {
 
     };
-
     ~{{ msg.name }}() override = default;
 
     {% for enum in msg.nested_enums() %}
@@ -28,14 +32,21 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     {% if field.of_type_message %}
-    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); };
-    {% else %}
-    inline void clear_{{field.name}}() { {{field.variable_name}} = {{field.default_value}}; };
-    {% endif %}
+    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
+    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
-    {% if field.of_type_message %}
     inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    {% elif field.of_type_enum %}
+    inline void clear_{{field.name}}() { {{field.variable_name}} = static_cast<{{field.type}}>({{field.default_value}}); }
+    inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
+    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
+    inline {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
+    {% else %}
+    inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
+    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
+    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
+    inline {{field.type}}::FIELD_TYPE get_{{field.name}}() const { return {{field.variable_name}}.get(); }
     {% endif %}
 
     {% endfor %}
@@ -54,10 +65,17 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
       }
-      {% else %}
+      {% elif field.of_type_enum %}
       if(({{field.default_value}} != {{field.variable_name}}) && result)
       {
-        result = ::EmbeddedProto::WireFormatter::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
+        EmbeddedProto::uint32 value;
+        value.set(static_cast<uint32_t>({{field.variable_name}}));
+        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
+      }
+      {% else %}
+      if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
+      {
+        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
       }
       {% endif %}
 
@@ -85,8 +103,15 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
               result = result && {{field.variable_name}}.deserialize(bufferSection);
+              {% elif field.of_type_enum %}
+              uint32_t value;
+              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
+              if(result)
+              {
+                {{field.variable_name}} = static_cast<{{field.type}}>(value);
+              }
               {% else %}
-              result = ::EmbeddedProto::WireFormatter::{{field.deserialization_func}}(buffer, {{field.variable_name}});
+              result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
             }
             else
@@ -133,6 +158,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {% if messages %}
 #include <MessageInterface.h>
 #include <WireFormatter.h>
+#include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
 {% endif %}
