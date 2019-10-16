@@ -32,17 +32,28 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
     {% if field.of_type_message %}
+    inline const {{field.type}}& {{field.name}}() const { return {{field.variable_name}}; }
     inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
     inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
     {% elif field.of_type_enum %}
+    inline {{field.type}} {{field.name}}() const { return {{field.variable_name}}; }
     inline void clear_{{field.name}}() { {{field.variable_name}} = static_cast<{{field.type}}>({{field.default_value}}); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
+    {% elif field.is_repeated_field %}
+    inline const {{field.type}}& {{field.name}}(uint32_t index) const { return {{field.variable_name}}[index]; }
+    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
+    inline void set_{{field.name}}(uint32_t index, const {{field.type}}& value) { {{field.variable_name}}.set(index, value); }
+    inline void set_{{field.name}}(uint32_t index, const {{field.type}}&& value) { {{field.variable_name}}.set(index, value); }
+    inline void add_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}}.add(value); }
+    inline const {{field.repeated_type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
+    inline {{field.repeated_type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
     {% else %}
+    inline {{field.type}}::FIELD_TYPE {{field.name}}() const { return {{field.variable_name}}.get(); }
     inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
@@ -147,7 +158,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
   private:
 
     {% for field in msg.fields() %}
+    {% if field.is_repeated_field %}
+    {{field.repeated_type}} {{field.variable_name}};
+    {% else %}
     {{field.type}} {{field.variable_name}};
+    {% endif %}
     {% endfor %}
 };
 {% endmacro %}
@@ -161,6 +176,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
+#include <DynamicArray.h>
 {% endif %}
 
 {% if namespace %}

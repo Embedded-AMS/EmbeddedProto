@@ -4,6 +4,7 @@
 mkdir -p ./build/EAMS
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/simple_types.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/nested_message.proto
+protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
 
 # For validation and testing generate the same message using python
 mkdir -p ./build/python

@@ -136,6 +136,10 @@ class FieldTemplateParameters:
         else:
             self.default_value = self.type_to_default_value[field_proto.type]
 
+        self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
+        if self.is_repeated_field:
+            self.repeated_type = "DynamicArraySize<" + self.type + ", " + self.variable_name + "SIZE>"
+
         self.field_proto = field_proto
 
 # -----------------------------------------------------------------------------
