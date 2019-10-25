@@ -1,9 +1,9 @@
 #ifndef _FIELDS_H_
 #define _FIELDS_H_
 
-#include "WireFormatter.h"
-#include "WriteBufferInterface.h"
-#include "ReadBufferInterface.h"
+#include <WireFormatter.h>
+#include <WriteBufferInterface.h>
+#include <ReadBufferInterface.h>
 
 namespace EmbeddedProto 
 {
