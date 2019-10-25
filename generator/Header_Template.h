@@ -89,9 +89,14 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
       }
       {% elif field.is_repeated_field %}
-      if(0 != {{field.variable_name}}.get_length() && result)
+      const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
+      result = (size_{{field.name}} <= buffer.get_available_size());
+      if(result && (0 < size_{{field.name}}))
       {
-        // TODO
+        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}});
+        result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+        result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
+        result = result && {{field.variable_name}}.serialize(buffer);
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
@@ -120,6 +125,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
             if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
             {
               {% if field.of_type_message %}
+              uint32_t size;
+              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+              ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+              result = result && {{field.variable_name}}.deserialize(bufferSection);
+              {% elif field.is_repeated_field %}
               uint32_t size;
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);

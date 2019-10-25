@@ -5,6 +5,9 @@
 #include <cstring>
 #include <algorithm>    // std::min
 
+#include <Fields.h>
+#include <MessageSizeCalculator.h>
+
 namespace EmbeddedProto
 {
 
@@ -84,6 +87,52 @@ namespace EmbeddedProto
 
       //! Remove all data in the array and set it to the default value.
       virtual void clear() = 0;
+
+      //! Function to serialize this array.
+      /*!
+          The data this array holds will be serialized into the buffer.
+          \param buffer [in]  The memory in which the serialized array is stored.
+          \return True when every was successfull. 
+      */
+      bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const
+      {
+        bool result = true;
+        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+        {
+          result = ::EmbeddedProto::serialize(this->get(i), buffer);
+        }
+        return result;
+      }
+
+      //! Function to deserialize this array.
+      /*!
+          From a buffer of data fill this array with data.
+          \param buffer [in]  The memory from which the message is obtained.
+          \return True when every was successfull. 
+      */
+      bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer)
+      {
+        this->clear();
+        DATA_TYPE x;
+        bool result = true;
+        while(result && ::EmbeddedProto::deserialize(buffer, x)) 
+        {
+          result = this->add(x);
+        }
+        return result;
+      }
+
+      //! Calculate the size of this message when serialized.
+      /*!
+          \return The number of bytes this message will require once serialized.
+      */
+      uint32_t serialized_size() const 
+      {
+        ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+        this->serialize(calcBuffer);
+        return calcBuffer.get_size();
+      }
+
   };
 
   //! A template class that actually holds some data.
@@ -92,7 +141,7 @@ namespace EmbeddedProto
     class using this type of object.
   */
   template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class RepeatedFieldSize : RepeatedField<DATA_TYPE>
+  class RepeatedFieldSize : public RepeatedField<DATA_TYPE>
   { 
       static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
 

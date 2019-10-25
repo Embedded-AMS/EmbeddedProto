@@ -31,7 +31,7 @@ public:
 
     //! Function to deserialize this message.
     /*!
-        From an array of date fill this message object with data.
+        From an array of data fill this message object with data.
 
         \param buffer [in]  The memory from which the message is obtained.
 
