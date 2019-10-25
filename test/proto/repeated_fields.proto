@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-message message_a 
+message repeated_fields 
 {
   uint32 x            = 1;
   repeated uint32 y   = 2;

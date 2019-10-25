@@ -36,7 +36,7 @@ namespace EmbeddedProto
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
   }
 
-  bool serialize(uint32_t field_number, const boolean x, WriteBufferInterface& buffer) 
+  bool serialize(uint32_t field_number, const boolean& x, WriteBufferInterface& buffer) 
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
   }
@@ -103,7 +103,7 @@ namespace EmbeddedProto
     return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(x.get()), buffer);
   }
 
-  bool serialize(const boolean x, WriteBufferInterface& buffer)
+  bool serialize(const boolean& x, WriteBufferInterface& buffer)
   {
     return buffer.push(x.get() ? 0x01 : 0x00);
   }

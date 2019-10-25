@@ -3,6 +3,7 @@
 #define _DYNAMIC_BUFFER_H_
 
 #include <cstring>
+#include <algorithm>    // std::min
 
 namespace EmbeddedProto
 {
@@ -37,6 +38,13 @@ namespace EmbeddedProto
         \return The reference to the value at the given index.
       */
       virtual DATA_TYPE& get(uint32_t index) = 0;
+
+      //! Get a constatnt refernce to the value at the given index. 
+      /*!
+        \param[in] index The desired index to return.
+        \return The constant reference to the value at the given index.
+      */
+      virtual const DATA_TYPE& get(uint32_t index) const = 0;
 
       //! Get a refernce to the value at the given index. 
       /*!
@@ -91,7 +99,8 @@ namespace EmbeddedProto
     public:
 
       DynamicArraySize()
-        : current_size_(0)
+        : current_size_(0),
+          data_{0}
       {
 
       }  
@@ -107,8 +116,13 @@ namespace EmbeddedProto
       DATA_TYPE* get_data() { return data_; }
 
       DATA_TYPE& get(uint32_t index) override { return data_[index]; }
+      const DATA_TYPE& get(uint32_t index) const override { return data_[index]; }
 
-      void set(uint32_t index, const DATA_TYPE& value) override { data_[index] = value; }
+      void set(uint32_t index, const DATA_TYPE& value) override 
+      { 
+        data_[index] = value;
+        current_size_ = std::max(index+1, current_size_); 
+      }
 
       bool set_data(const DATA_TYPE* data, const uint32_t length) override 
       {

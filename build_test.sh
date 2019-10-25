@@ -6,10 +6,14 @@ protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./buil
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/nested_message.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
 
+mkdir -p ./build/google
+protoc -I./test/proto --cpp_out=./build/google ./test/proto/repeated_fields.proto
+
 # For validation and testing generate the same message using python
 mkdir -p ./build/python
 protoc -I./test/proto --python_out=./build/python ./test/proto/simple_types.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/nested_message.proto
+protoc -I./test/proto --python_out=./build/python ./test/proto/repeated_fields.proto
 
 
 # Build the tests

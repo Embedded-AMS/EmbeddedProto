@@ -138,7 +138,7 @@ class FieldTemplateParameters:
 
         self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
         if self.is_repeated_field:
-            self.repeated_type = "DynamicArraySize<" + self.type + ", " + self.variable_name + "SIZE>"
+            self.repeated_type = "::EmbeddedProto::DynamicArraySize<" + self.type + ", " + self.variable_name + "SIZE>"
 
         self.field_proto = field_proto
 
@@ -149,6 +149,10 @@ class MessageTemplateParameters:
     def __init__(self, msg_proto):
         self.name = msg_proto.name
         self.msg_proto = msg_proto
+        self.templates = []
+        for field in self.fields():
+            if field.is_repeated_field:
+                self.templates.append(field.variable_name)
 
     def fields(self):
         for f in self.msg_proto.field:

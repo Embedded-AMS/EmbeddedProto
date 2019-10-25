@@ -9,6 +9,11 @@ enum {{ _enum.name }}
 {% endmacro %}
 
 {% macro msg_macro(msg) %}
+{% if msg.templates is defined %}
+{% for template in msg.templates %}
+{{"template<" if loop.first}}uint32_t {{template}}{{"SIZE, " if not loop.last}}{{"SIZE>" if loop.last}}
+{% endfor %}
+{% endif %}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
@@ -82,6 +87,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         EmbeddedProto::uint32 value;
         value.set(static_cast<uint32_t>({{field.variable_name}}));
         result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
+      }
+      {% elif field.is_repeated_field %}
+      if(0 != {{field.variable_name}}.get_length() && result)
+      {
+        // TODO
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
