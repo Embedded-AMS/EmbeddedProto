@@ -138,7 +138,7 @@ class FieldTemplateParameters:
 
         self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
         if self.is_repeated_field:
-            self.repeated_type = "::EmbeddedProto::DynamicArraySize<" + self.type + ", " + self.variable_name + "SIZE>"
+            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " + self.variable_name + "SIZE>"
 
         self.field_proto = field_proto
 

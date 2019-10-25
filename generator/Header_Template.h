@@ -186,7 +186,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
-#include <DynamicArray.h>
+#include <RepeatedField.h>
 {% endif %}
 
 {% if namespace %}

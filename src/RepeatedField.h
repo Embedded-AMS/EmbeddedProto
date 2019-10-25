@@ -10,12 +10,12 @@ namespace EmbeddedProto
 
   //! Class template that specifies the interface of an arry with the data type.
   template<class DATA_TYPE>
-  class DynamicArray
+  class RepeatedField
   {
     public:
 
-      DynamicArray() = default;
-      virtual ~DynamicArray() = default;
+      RepeatedField() = default;
+      virtual ~RepeatedField() = default;
 
       //! Obtain the total number of bytes currently stored in the array.
       virtual uint32_t get_size() const = 0;
@@ -92,13 +92,13 @@ namespace EmbeddedProto
     class using this type of object.
   */
   template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class DynamicArraySize : DynamicArray<DATA_TYPE>
+  class RepeatedFieldSize : RepeatedField<DATA_TYPE>
   { 
       static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
 
     public:
 
-      DynamicArraySize()
+      RepeatedFieldSize()
         : current_size_(0),
           data_{0}
       {
