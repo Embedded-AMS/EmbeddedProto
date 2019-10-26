@@ -93,7 +93,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       result = (size_{{field.name}} <= buffer.get_available_size());
       if(result && (0 < size_{{field.name}}))
       {
-        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}});
+        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
         result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
         result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
         result = result && {{field.variable_name}}.serialize(buffer);
