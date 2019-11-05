@@ -28,4 +28,7 @@ CMakeFiles/**
 
 # Ignore build results
 **/*.a
-build/*
+build/
+
+# Ignore sonar scanner binaries
+sonar-scanner**

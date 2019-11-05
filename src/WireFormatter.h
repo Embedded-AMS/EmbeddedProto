@@ -3,12 +3,26 @@
 #define _WIRE_FORMATTER_H_
 
 #include <cstdint>
+#include <math.h> 
+#include <type_traits>
+#include <limits>
+
+#include "WriteBufferInterface.h"
+#include "ReadBufferInterface.h"
 
 namespace EmbeddedProto 
 {
 
+  //! This class combines functions to serialize and deserialize messages.
   class WireFormatter 
   {
+
+      //! Definitation of the number of bits it takes to serialize a byte of a varint.
+      static constexpr uint8_t VARINT_SHIFT_N_BITS = 7;
+
+      //! Definition of a mask inidicating the most significat bit used in varint encoding.
+      static constexpr uint8_t VARINT_MSB_BYTE = 0x80;
+
     public:
       //! Definitions of the different encoding types used in protobuf.
       enum class WireType 
@@ -22,154 +36,351 @@ namespace EmbeddedProto
       };
 
       /**
-         @brief Write fields, including tags to the given array
+         @brief Serialize fields, including tags to the given buffer.
          @{
       **/
-      static constexpr uint8_t* WriteInt(uint32_t field_number, int32_t value, uint8_t* target)
-      {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return IntNoTag(value, target);
+      template<class INT_TYPE>
+      static bool SerializeInt(uint32_t field_number, INT_TYPE value, WriteBufferInterface& buffer)
+      {        
+        typedef typename std::make_unsigned<INT_TYPE>::type UINT_TYPE;
+        return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SerializeVarint(static_cast<UINT_TYPE>(value), buffer);
       }
 
-      static constexpr uint8_t* WriteInt(uint32_t field_number, int64_t value, uint8_t* target)
+      template<class UINT_TYPE>
+      static bool SerializeUInt(uint32_t field_number, UINT_TYPE value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return IntNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SerializeVarint(value, buffer);
       }
 
-      static constexpr uint8_t* WriteUInt(uint32_t field_number, uint32_t value, uint8_t* target)
+      template<class INT_TYPE>
+      static bool SerializeSInt(uint32_t field_number, INT_TYPE value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return UIntNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SerializeVarint(ZigZagEncode(value), buffer);
+      }
+      
+      static bool SerializeFixed(uint32_t field_number, uint32_t value, WriteBufferInterface& buffer)
+      {
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && SerialzieFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteUInt(uint32_t field_number, uint64_t value, uint8_t* target)
+      static bool SerializeFixed(uint32_t field_number, uint64_t value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return UIntNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && SerialzieFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSInt(uint32_t field_number, int32_t value, uint8_t* target)
+      static bool SerializeSFixed(uint32_t field_number, int32_t value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return SIntNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && SerialzieSFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSInt(uint32_t field_number, int64_t value, uint8_t* target)
+      static bool SerializeSFixed(uint32_t field_number, int64_t value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return SIntNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && SerialzieSFixedNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFixed(uint32_t field_number, uint32_t value, uint8_t* target)
+      static bool SerializeFloat(uint32_t field_number, float value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return FixedNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer) 
+               && SerialzieFloatNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFixed(uint32_t field_number, uint64_t value, uint8_t* target)
+      static bool SerializeDouble(uint32_t field_number, double value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return FixedNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer) 
+               && SerialzieDoubleNoTag(value, buffer);
       }
 
-      static constexpr uint8_t* WriteSFixed(uint32_t field_number, int32_t value, uint8_t* target)
+      static bool SerializeBool(uint32_t field_number, bool value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return SFixedNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer)
+               && buffer.push(value ? 0x01 : 0x00);
       }
 
-      static constexpr uint8_t* WriteSFixed(uint32_t field_number, int64_t value, uint8_t* target)
+      static bool SerializeEnum(uint32_t field_number, uint32_t value, WriteBufferInterface& buffer)
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return SFixedNoTag(value, target);
+        return SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer) 
+               && SerializeVarint(value, buffer);
       }
 
-      static constexpr uint8_t* WriteFloat(uint32_t field_number, float value, uint8_t* target)
+      /** @} **/
+
+      /**
+        @brief Deserialize fields from the given buffer.
+        @{
+      **/
+
+      //! Read from the buffer the next wiretype and field id. 
+      /*!
+          \param[in] buffer The data source from which to read the type and id.
+          \param[out] type This parameter returns the wiretype of the next field in the data buffer.
+          \param[out] id This parameter returns the next field id.
+          \return True when deserializing the type and id succeded.  
+      */
+      static bool DeserializeTag(ReadBufferInterface& buffer, WireType& type, uint32_t& id) 
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED32), target);
-        return FloatNoTag(value, target);
+        uint32_t temp_value;
+        
+        // Read the next varint considerted to be a tag. Next check the validity of the wire type.
+        bool result = DeserializeVarint(buffer, temp_value) && 
+                      ((temp_value &  0x07) <= static_cast<uint32_t>(WireType::FIXED32));
+        
+        // If reading the tag succedded and the wire type is a valid one
+        if(result) 
+        {
+          type = static_cast<WireType>(temp_value &  0x07);
+          id = (temp_value >> 3);
+        }
+        return result;
       }
 
-      static constexpr uint8_t* WriteDouble(uint32_t field_number, double value, uint8_t* target)
+      template<class UINT_TYPE>
+      static bool DeserializeUInt(ReadBufferInterface& buffer, UINT_TYPE& value) 
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::FIXED64), target);
-        return DoubleNoTag(value, target);
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to DeserializeUInt.");
+        
+        return DeserializeVarint(buffer, value);
       }
 
-      static constexpr uint8_t* WriteBool(uint32_t field_number, bool value, uint8_t* target)
+      template<class INT_TYPE>
+      static bool DeserializeInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return BoolNoTag(value, target);
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeInt.");
+        
+        uint64_t uint_value;
+        bool result = DeserializeVarint(buffer, uint_value);
+        if(result) 
+        {
+          value = static_cast<INT_TYPE>(uint_value);
+        }
+        return result;
       }
 
-      static constexpr uint8_t* WriteEnum(uint32_t field_number, uint32_t value, uint8_t* target)
+      template<class INT_TYPE>
+      static bool DeserializeSInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
-        target = WriteVarint32ToArray(MakeTag(field_number, WireType::VARINT), target);
-        return EnumNoTag(value, target);
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeSInt.");
+        
+        uint64_t uint_value;
+        bool result = DeserializeVarint(buffer, uint_value);
+        if(result) 
+        {
+          value = ZigZagDecode(uint_value);
+        }
+        return result;
+      }
+
+      template<class TYPE>
+      static bool DeserializeFixed(ReadBufferInterface& buffer, TYPE& value) 
+      {
+        static_assert(std::is_same<TYPE, uint32_t>::value || 
+                      std::is_same<TYPE, uint64_t>::value, "Wrong type passed to DeserializeFixed.");
+
+          // Deserialize the data little endian to the buffer.
+          // TODO Define a little endian flag to support memcpy the data from the buffer.
+
+          TYPE temp_value = 0;
+          bool result(true);
+          uint8_t byte = 0;
+          for(uint8_t i = 0; (i < std::numeric_limits<TYPE>::digits) && result; 
+              i += std::numeric_limits<uint8_t>::digits)  
+          {
+            result = buffer.pop(byte);
+            if(result)
+            {
+              temp_value |= (static_cast<TYPE>(byte) << i);
+            }
+          }
+
+          if(result)
+          {
+            value = temp_value;
+          }
+
+          return result;
+      }
+
+      template<class STYPE>
+      static bool DeserializeSFixed(ReadBufferInterface& buffer, STYPE& value) 
+      {
+        static_assert(std::is_same<STYPE, int32_t>::value || 
+                      std::is_same<STYPE, int64_t>::value, "Wrong type passed to DeserializeSFixed.");
+
+        typedef typename std::make_unsigned<STYPE>::type USTYPE;
+        USTYPE temp_unsigned_value = 0;
+        bool result = DeserializeFixed(buffer, temp_unsigned_value);
+        if(result) {
+          value = static_cast<STYPE>(temp_unsigned_value);
+        }
+
+        return result;
+      }
+
+      static bool DeserializeFloat(ReadBufferInterface& buffer, float& value) 
+      {
+        uint32_t temp_value = 0;
+        bool result = DeserializeFixed(buffer, temp_value);
+        if(result) {
+          // Cast from unsigned int to a float.
+          const void* pVoid = static_cast<const void*>(&temp_value);
+          const float* pFloat = static_cast<const float*>(pVoid);
+          value = *pFloat;
+        }
+        return result;
+      }
+
+      static bool DeserializeDouble(ReadBufferInterface& buffer, double& value) 
+      {
+        uint64_t temp_value = 0;
+        bool result = DeserializeFixed(buffer, temp_value);
+        if(result) {
+          // Cast from unsigned int to a double.
+          const void* pVoid = static_cast<const void*>(&temp_value);
+          const double* pDouble = static_cast<const double*>(pVoid);
+          value = *pDouble;
+        }
+        return result;
+      }
+
+      static bool DeserializeBool(ReadBufferInterface& buffer, bool& value) 
+      {
+        uint8_t byte;
+        bool result = buffer.pop(byte);
+        if(result) {
+          value = static_cast<bool>(byte);
+        }
+        return result;
+      }
+
+      template<class ENUM_TYPE>
+      static bool DeserializeEnum(ReadBufferInterface& buffer, ENUM_TYPE& value) 
+      {
+        static_assert(std::is_enum<ENUM_TYPE>::value, "No enum given to DeserializeEnum parameter value.");
+        uint64_t temp_value;
+        bool result = DeserializeVarint(buffer, temp_value);
+        if(result) {
+          value = static_cast<ENUM_TYPE>(temp_value);
+        }
+        return result;
       }
 
 
       /** @} **/
 
-//    private:
 
-      //! This function converts a given value int a varint formated data array.
+      //! This function converts a given value unsigned integer to a varint formated data buffer.
       /*!
-        \param[in] value  The data to be serialized.
-        \param[in] target Pointer to the first element of an array in which the data is to be serialized.
-        \warning There should be sufficient space in the array to store a varint32.
-        \return A pointer to the first byte after the data just serialized.
-        This code is copied and modified from google protobuf sources.
+        \param[in] value  The data to be serialized, uint32_t or uint64_t.
+        \param[in] buffer A reference to a message buffer object in which to store the variable.
+        \return True when it was possible to store the variable in the buffer.
       */
-      static constexpr uint8_t* WriteVarint32ToArray(uint32_t value, uint8_t* target) {
-        constexpr uint32_t MSB_BYTE = 0x00000080;
-        constexpr uint8_t SHIFT_N_BITS = 7;
+      template<class UINT_TYPE>
+      static bool SerializeVarint(UINT_TYPE value, WriteBufferInterface& buffer) 
+      {
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, 
+                      "Wrong type passed to SerializeVarint.");
 
-        while (value >= MSB_BYTE) {
-          *target = static_cast<uint8_t>(value | MSB_BYTE);
-          value >>= SHIFT_N_BITS;
-          ++target;
+        while (value >= VARINT_MSB_BYTE) {
+          buffer.push(static_cast<uint8_t>(value | VARINT_MSB_BYTE));
+          value >>= VARINT_SHIFT_N_BITS;
         }
-        *target = static_cast<uint8_t>(value);
-        return target + 1;
+        return buffer.push(static_cast<uint8_t>(value));
       }
 
-      static constexpr uint8_t* WriteVarint64ToArray(uint64_t value, uint8_t* target) {
-        constexpr uint64_t MSB_BYTE = 0x0000000000000080;
-        constexpr uint8_t SHIFT_N_BITS = 7;
-
-        while (value >= MSB_BYTE) {
-          *target = static_cast<uint8_t>(value | MSB_BYTE);
-          value >>= SHIFT_N_BITS;
-          ++target;
+      //! This function de serializes the following N bytes into a varint.
+      /*!
+        \param[in] buffer The data buffer from which bytes are popped.
+        \param[out] value The varaible in which the varint is returned.
+        \return True when it was possible to desrialize a varint from the buffer.
+      */
+      template<class UINT_TYPE>
+      static bool DeserializeVarint(ReadBufferInterface& buffer, UINT_TYPE& value) 
+      {
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, 
+                      "Wrong type passed to DeserializeVarint.");
+        
+        // Calculate how many bytes there are in a varint 128 base encoded number. This should 
+        // yeild 5 for a 32bit number and 10 for a 64bit number.
+        static constexpr uint8_t N_BYTES_IN_VARINT = static_cast<uint8_t>(std::ceil(
+                                                          std::numeric_limits<UINT_TYPE>::digits 
+                                                        / static_cast<float>(VARINT_SHIFT_N_BITS)));
+        
+        UINT_TYPE temp_value = 0;
+        uint8_t byte = 0;
+        bool result = buffer.pop(byte);
+        // Loop until the end of the encoded varint or until there is nomore data in the buffer.
+        for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
+        {
+          temp_value |= static_cast<UINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
+          if(byte & VARINT_MSB_BYTE) 
+          {
+            // Continue
+            result = buffer.pop(byte);
+          }
+          else
+          {
+            // The varint is complete
+            break;
+          }
         }
-        *target = static_cast<uint8_t>(value);
-        return target + 1;
+
+        if(result)
+        {
+          value = temp_value;
+        }
+
+        return result;
       }
 
-      //! Encode a signed 32 bit integer using the zig zag method
+      //! Encode a signed integer using the zig zag method
       /*!
         As specified the right-shift must be arithmetic, hence the cast is after the shift. The 
         left shift must be unsigned because of overflow.
 
+        This function is suitable for 32 and 64 bit.
+
         \param[in] n The signed value to be encoded.
         \return The zig zag transformed value ready for serialization into the array.
       */
-      static constexpr uint32_t ZigZagEncode(const int32_t n) {
-        return (static_cast<uint32_t>(n) << 1) ^ static_cast<uint32_t>(n >> 31);
+      template<class INT_TYPE>
+      static constexpr auto ZigZagEncode(const INT_TYPE n) 
+      {
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ZigZagEncode.");
+
+        typedef typename std::make_unsigned<INT_TYPE>::type UINT_TYPE;
+        constexpr uint8_t N_BITS_TO_ZIGZAG = std::numeric_limits<UINT_TYPE>::digits - 1;
+
+        return (static_cast<UINT_TYPE>(n) << 1) ^ static_cast<UINT_TYPE>(n >> N_BITS_TO_ZIGZAG);
       }
 
-      //! Encode a signed 32 bit integer using the zig zag method
+      //! Decode a signed integer using the zig zag method
       /*!
-        As specified the right-shift must be arithmetic, hence the cast is after the shift. The 
-        left shift must be unsigned because of overflow.
+          \param[in] n The value encoded in zig zag to be deencoded.
+          \return The decoded signed value.
 
-        \param[in] n The signed value to be encoded.
-        \return The zig zag transformed value ready for serialization into the array.
+          This function is suitable for 32 and 64 bit.
       */
-      static constexpr uint64_t ZigZagEncode(const int64_t n) {
-        return (static_cast<uint64_t>(n) << 1) ^ static_cast<uint64_t>(n >> 63);
+      template<class UINT_TYPE>
+      static constexpr auto ZigZagDecode(const UINT_TYPE n) 
+      {
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to ZigZagDecode.");
+
+        typedef typename std::make_signed<UINT_TYPE>::type INT_TYPE;
+
+        return static_cast<INT_TYPE>((n >> 1) ^ (~(n & 1) + 1));
       }
 
       //! Create the tag of a field. 
@@ -184,100 +395,58 @@ namespace EmbeddedProto
       }
 
       /**
-         @brief Write fields, without tags the given array.
+         @brief Serialize fields, without tags the given buffer.
          @{
       **/
-      static constexpr uint8_t* IntNoTag(int32_t value, uint8_t* target) 
+
+      //! Serialize an unsigned fixed lenth field without the tag.
+      template<class UINT_TYPE>
+      static bool SerialzieFixedNoTag(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
-        return WriteVarint32ToArray(static_cast<uint32_t>(value), target);
+        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerialzieFixedNoTag.");
+
+        // Push the data little endian to the buffer.
+        // TODO Define a little endian flag to support memcpy the data to the buffer.
+
+        bool result = true;
+
+        // Loop over all bytes in the integer.
+        for(uint8_t i = 0; (i < std::numeric_limits<UINT_TYPE>::digits) && result; i += 8) {
+          // Shift the value using the current value of i.
+          result = buffer.push(static_cast<uint8_t>((value >> i) & 0x00FF));
+        }
+        return result;
       }
 
-      static constexpr uint8_t* IntNoTag(int64_t value, uint8_t* target)
+      //! Srialzie a signed fixed length field without the tag.
+      template<class INT_TYPE>
+      static bool SerialzieSFixedNoTag(INT_TYPE value, WriteBufferInterface& buffer)
       {
-        return WriteVarint64ToArray(static_cast<uint64_t>(value), target);
+        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
+                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to SerialzieSFixedNoTag.");
+
+        typedef typename std::make_unsigned<INT_TYPE>::type UINT_TYPE;
+
+        return SerialzieFixedNoTag(static_cast<UINT_TYPE>(value), buffer);
       }
 
-      static constexpr uint8_t* UIntNoTag(uint32_t value, uint8_t* target)
-      {
-        return WriteVarint32ToArray(value, target);
-      }
-
-      static constexpr uint8_t* UIntNoTag(uint64_t value, uint8_t* target)
-      {
-        return WriteVarint64ToArray(value, target);
-      }
-
-      static constexpr uint8_t* SIntNoTag(int32_t value, uint8_t* target)
-      {
-        return WriteVarint32ToArray(ZigZagEncode(value), target);
-      }
-
-      static constexpr uint8_t* SIntNoTag(int64_t value, uint8_t* target)
-      {
-        return WriteVarint64ToArray(ZigZagEncode(value), target);
-      };
-
-      static constexpr uint8_t* FixedNoTag(uint32_t value, uint8_t* target) 
-      {
-        // Write the data little endian to the array.
-        // TODO Define a little endian flag to support memcpy the data to the array.
-        target[0] = static_cast<uint8_t>(value & 0x000000FF);
-        target[1] = static_cast<uint8_t>((value >> 8) & 0x000000FF);
-        target[2] = static_cast<uint8_t>((value >> 16) & 0x000000FF);
-        target[3] = static_cast<uint8_t>((value >> 24) & 0x000000FF);
-        return target + 4;
-      }
-
-      static constexpr uint8_t* FixedNoTag(uint64_t value, uint8_t* target)
-      {
-        // Write the data little endian to the array.
-        // TODO Define a little endian flag to support memcpy the data to the array.
-        target[0] = static_cast<uint8_t>(value & 0x00000000000000FF);
-        target[1] = static_cast<uint8_t>((value >> 8) & 0x00000000000000FF);
-        target[2] = static_cast<uint8_t>((value >> 16) & 0x00000000000000FF);
-        target[3] = static_cast<uint8_t>((value >> 24) & 0x00000000000000FF);
-        target[4] = static_cast<uint8_t>((value >> 32) & 0x00000000000000FF);
-        target[5] = static_cast<uint8_t>((value >> 40) & 0x00000000000000FF);
-        target[6] = static_cast<uint8_t>((value >> 48) & 0x00000000000000FF);
-        target[7] = static_cast<uint8_t>((value >> 56) & 0x00000000000000FF);
-        return target + 8;
-      }
-
-      static constexpr uint8_t* SFixedNoTag(int32_t value, uint8_t* target)
-      {
-        return FixedNoTag(static_cast<uint32_t>(value), target);
-      }
-
-      static constexpr uint8_t* SFixedNoTag(int64_t value, uint8_t* target)
-      {
-        return FixedNoTag(static_cast<uint64_t>(value), target);
-      }
-
-      static constexpr uint8_t* FloatNoTag(float value, uint8_t* target)
+      //! Serialize a 32bit real value without tag.
+      static bool SerialzieFloatNoTag(float value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 32 fixed number
         void* pVoid = static_cast<void*>(&value);
         uint32_t* fixed = static_cast<uint32_t*>(pVoid);
-        return FixedNoTag(*fixed, target);
+        return SerialzieFixedNoTag(*fixed, buffer);
       }
 
-      static constexpr uint8_t* DoubleNoTag(double value, uint8_t* target)
+      //! SErialize a 64bit real value without tag.
+      static bool SerialzieDoubleNoTag(double value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 64 fixed number
         void* pVoid = static_cast<void*>(&value);
         uint64_t* fixed = static_cast<uint64_t*>(pVoid);
-        return FixedNoTag(*fixed, target);
-      }
-
-      static constexpr uint8_t* BoolNoTag(bool value, uint8_t* target)
-      {
-        *target = value ? 0x01 : 0x00;
-        return target + 1;
-      }
-
-      static constexpr uint8_t* EnumNoTag(uint32_t value, uint8_t* target)
-      {
-        return WriteVarint32ToArray(value, target);
+        return SerialzieFixedNoTag(*fixed, buffer);
       }
       /** @} **/
 

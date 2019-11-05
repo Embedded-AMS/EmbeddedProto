@@ -1,0 +1,10 @@
+// This file is used to test serializing repeated fields.
+
+syntax = "proto3";
+
+message repeated_fields 
+{
+  uint32 x            = 1;
+  repeated uint32 y   = 2;
+  uint32 z            = 3;
+}
