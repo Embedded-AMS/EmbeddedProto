@@ -97,9 +97,28 @@ def test_nested_message():
 def test_repeated_fields():
     msg = rf.repeated_fields()
 
-    y = msg.y.append(pow(2, 32) - 1)
-    y = msg.y.append(pow(2, 32) - 1)
-    y = msg.y.append(pow(2, 32) - 1)
+    #msg.x = 0
+    msg.y.append(0)
+    msg.y.append(0)
+    msg.y.append(0)
+    #msg.z = 0
+
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+
+    #msg.x = 1
+    #msg.y.append(1)
+    #msg.y.append(1)
+    #msg.y.append(1)
+    #msg.z = 1
+
+    #msg.x = pow(2, 32) - 1
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.z = pow(2, 32) - 1
+
 
     str = ""
     msg_str = msg.SerializeToString()

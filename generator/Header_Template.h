@@ -90,7 +90,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       }
       {% elif field.is_repeated_field %}
       const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      result = (size_{{field.name}} <= buffer.get_available_size());
+      result = (size_{{field.name}} < buffer.get_available_size());
       if(result && (0 < size_{{field.name}}))
       {
         uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
@@ -122,14 +122,18 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
           {% for field in msg.fields() %}
           case {{field.variable_id_name}}:
           {
-            if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
+            {% if field.is_repeated_field %}
+            if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type)
             {
-              {% if field.of_type_message %}
               uint32_t size;
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
               result = result && {{field.variable_name}}.deserialize(bufferSection);
-              {% elif field.is_repeated_field %}
+            }
+            {% else %}
+            if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
+            {
+              {% if field.of_type_message %}
               uint32_t size;
               result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
               ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
@@ -145,6 +149,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
               result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
               {% endif %}
             }
+            {% endif %}
             else
             {
               // TODO Error wire type does not match field.

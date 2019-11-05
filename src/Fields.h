@@ -63,19 +63,135 @@ namespace EmbeddedProto
   };
 
 
-  class int32 : public FieldTemplate<int32_t> { public: int32() : FieldTemplate<int32_t>(0) {}; int32(const int32_t& v) : FieldTemplate<int32_t>(v) {}; int32(const int32_t&& v) : FieldTemplate<int32_t>(v) {}; }; 
-  class int64 : public FieldTemplate<int64_t> { public: int64() : FieldTemplate<int64_t>(0) {}; int64(const int64_t& v) : FieldTemplate<int64_t>(v) {}; int64(const int64_t&& v) : FieldTemplate<int64_t>(v) {}; };
-  class uint32 : public FieldTemplate<uint32_t> { public: uint32() : FieldTemplate<uint32_t>(0) {}; uint32(const uint32_t& v) : FieldTemplate<uint32_t>(v) {}; uint32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {}; };
-  class uint64 : public FieldTemplate<uint64_t> { public: uint64() : FieldTemplate<uint64_t>(0) {}; uint64(const uint64_t& v) : FieldTemplate<uint64_t>(v) {}; uint64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {}; };
-  class sint32 : public FieldTemplate<int32_t> { public: sint32() : FieldTemplate<int32_t>(0) {}; sint32(const int32_t& v) : FieldTemplate<int32_t>(v) {}; sint32(const int32_t&& v) : FieldTemplate<int32_t>(v) {}; };
-  class sint64 : public FieldTemplate<int64_t> { public: sint64() : FieldTemplate<int64_t>(0) {}; sint64(const int64_t& v) : FieldTemplate<int64_t>(v) {}; sint64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};};
-  class boolean : public FieldTemplate<bool> { public: boolean() : FieldTemplate<bool>(false) {}; boolean(const bool& v) : FieldTemplate<bool>(v) {}; boolean(const boolean&& v) : FieldTemplate<bool>(v) {}; };
-  class fixed32 : public FieldTemplate<uint32_t> { public: fixed32() : FieldTemplate<uint32_t>(0) {}; fixed32(const uint32_t& v) : FieldTemplate<uint32_t>(v) {}; fixed32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {}; };
-  class fixed64 : public FieldTemplate<uint64_t> { public: fixed64() : FieldTemplate<uint64_t>(0) {}; fixed64(const uint64_t& v) : FieldTemplate<uint64_t>(v) {}; fixed64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {}; };
-  class sfixed32 : public FieldTemplate<int32_t> { public: sfixed32() : FieldTemplate<int32_t>(0) {}; sfixed32(const int32_t& v) : FieldTemplate<int32_t>(v) {}; sfixed32(const int32_t&& v) : FieldTemplate<int32_t>(v) {}; };
-  class sfixed64 : public FieldTemplate<int64_t> { public: sfixed64() : FieldTemplate<int64_t>(0) {}; sfixed64(const int64_t& v) : FieldTemplate<int64_t>(v) {}; sfixed64(const int64_t&& v) : FieldTemplate<int64_t>(v) {}; };
-  class floatfixed : public FieldTemplate<float> { public: floatfixed() : FieldTemplate<float>(0.0F) {}; floatfixed(const float& v) : FieldTemplate<float>(v) {}; floatfixed(const float&& v) : FieldTemplate<float>(v) {}; };
-  class doublefixed : public FieldTemplate<double> { public: doublefixed() : FieldTemplate<double>(0.0) {}; doublefixed(const double& v) : FieldTemplate<double>(v) {}; doublefixed(const double&& v) : FieldTemplate<double>(v) {}; };
+  class int32 : public FieldTemplate<int32_t> 
+  { 
+    public: 
+      int32() : FieldTemplate<int32_t>(0) {};
+      int32(const int32_t& v) : FieldTemplate<int32_t>(v) {};
+      int32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
+
+      ~int32() override = default;
+  };
+
+  class int64 : public FieldTemplate<int64_t> 
+  { 
+    public: 
+      int64() : FieldTemplate<int64_t>(0) {};
+      int64(const int64_t& v) : FieldTemplate<int64_t>(v) {};
+      int64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
+
+      ~int64() override = default;
+  };
+
+  class uint32 : public FieldTemplate<uint32_t> 
+  { 
+    public: 
+      uint32() : FieldTemplate<uint32_t>(0) {};
+      uint32(const uint32_t& v) : FieldTemplate<uint32_t>(v) {};
+      uint32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {};
+
+      ~uint32() override = default;
+  };
+
+  class uint64 : public FieldTemplate<uint64_t> 
+  { 
+    public: 
+      uint64() : FieldTemplate<uint64_t>(0) {};
+      uint64(const uint64_t& v) : FieldTemplate<uint64_t>(v) {};
+      uint64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {};
+
+      ~uint64() override = default;
+  };
+
+  class sint32 : public FieldTemplate<int32_t> 
+  { 
+    public: 
+      sint32() : FieldTemplate<int32_t>(0) {};
+      sint32(const int32_t& v) : FieldTemplate<int32_t>(v) {};
+      sint32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
+
+      ~sint32() override = default;
+  };
+
+  class sint64 : public FieldTemplate<int64_t> 
+  { 
+    public: 
+      sint64() : FieldTemplate<int64_t>(0) {};
+      sint64(const int64_t& v) : FieldTemplate<int64_t>(v) {};
+      sint64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
+
+      ~sint64() override = default;
+  };
+
+  class boolean : public FieldTemplate<bool> 
+  { 
+    public: 
+      boolean() : FieldTemplate<bool>(false) {};
+      boolean(const bool& v) : FieldTemplate<bool>(v) {};
+      boolean(const bool&& v) : FieldTemplate<bool>(v) {};
+
+      ~boolean() override = default;
+  };
+
+  class fixed32 : public FieldTemplate<uint32_t> 
+  { 
+    public: 
+      fixed32() : FieldTemplate<uint32_t>(0) {};
+      fixed32(const uint32_t& v) : FieldTemplate<uint32_t>(v) {};
+      fixed32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {};
+
+      ~fixed32() override = default;
+  };
+
+  class fixed64 : public FieldTemplate<uint64_t> 
+  { 
+    public: 
+      fixed64() : FieldTemplate<uint64_t>(0) {};
+      fixed64(const uint64_t& v) : FieldTemplate<uint64_t>(v) {};
+      fixed64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {};
+
+      ~fixed64() override = default;
+  };
+
+  class sfixed32 : public FieldTemplate<int32_t> 
+  { 
+    public: 
+      sfixed32() : FieldTemplate<int32_t>(0) {};
+      sfixed32(const int32_t& v) : FieldTemplate<int32_t>(v) {};
+      sfixed32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
+
+      ~sfixed32() override = default;
+  };
+
+  class sfixed64 : public FieldTemplate<int64_t> 
+  { 
+    public: 
+      sfixed64() : FieldTemplate<int64_t>(0) {};
+      sfixed64(const int64_t& v) : FieldTemplate<int64_t>(v) {};
+      sfixed64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
+
+      ~sfixed64() override = default;
+  };
+
+  class floatfixed : public FieldTemplate<float> 
+  { 
+    public: 
+      floatfixed() : FieldTemplate<float>(0.0F) {};
+      floatfixed(const float& v) : FieldTemplate<float>(v) {};
+      floatfixed(const float&& v) : FieldTemplate<float>(v) {};
+
+      ~floatfixed() override = default;
+  };
+
+  class doublefixed : public FieldTemplate<double> 
+  { 
+    public: 
+      doublefixed() : FieldTemplate<double>(0.0) {};
+      doublefixed(const double& v) : FieldTemplate<double>(v) {};
+      doublefixed(const double&& v) : FieldTemplate<double>(v) {};
+
+      ~doublefixed() override = default;
+  };
 
   bool serialize(uint32_t field_number, const int32& x, WriteBufferInterface& buffer);
   bool serialize(uint32_t field_number, const int64& x, WriteBufferInterface& buffer);

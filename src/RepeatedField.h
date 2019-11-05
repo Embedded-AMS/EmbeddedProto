@@ -154,6 +154,8 @@ namespace EmbeddedProto
 
       }  
 
+      ~RepeatedFieldSize() override = default;
+
       uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
 
       uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_SIZE; }
