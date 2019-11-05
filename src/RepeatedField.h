@@ -200,9 +200,7 @@ namespace EmbeddedProto
 
       void clear() override 
       {
-        constexpr uint32_t size = MAX_SIZE * BYTES_PER_ELEMENT;
         current_size_ = 0;
-        memset(data_, 0, size);
       }
 
     private:
