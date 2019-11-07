@@ -71,32 +71,28 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       bool result = true;
 
       {% for field in msg.fields() %}
-      {% if field.of_type_message %}
+      {% if field.is_repeated_field %}
       if(result)
       {
-        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
+        result = {{field.variable_name}}.serialize({{field.variable_id_name}}, buffer);
+      }
+      {% elif field.of_type_message %}
+      if(result)
+      {
+        const ::EmbeddedProto::MessageInterface* x = &{{field.variable_name}};
+        result = x->serialize({{field.variable_id_name}}, buffer);
       }
       {% elif field.of_type_enum %}
       if(({{field.default_value}} != {{field.variable_name}}) && result)
       {
         EmbeddedProto::uint32 value;
         value.set(static_cast<uint32_t>({{field.variable_name}}));
-        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
-      }
-      {% elif field.is_repeated_field %}
-      const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      result = (size_{{field.name}} < buffer.get_available_size());
-      if(result && (0 < size_{{field.name}}))
-      {
-        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-        result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-        result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
-        result = result && {{field.variable_name}}.serialize(buffer);
+        result = value.serialize({{field.variable_id_name}}, buffer);
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
       {
-        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
+        result = {{field.variable_name}}.serialize({{field.variable_id_name}}, buffer);
       }
       {% endif %}
 
@@ -141,7 +137,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
                 {{field.variable_name}} = static_cast<{{field.type}}>(value);
               }
               {% else %}
-              result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
+              result = {{field.variable_name}}.deserialize(buffer);
               {% endif %}
             }
             {% endif %}

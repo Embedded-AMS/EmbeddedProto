@@ -79,42 +79,6 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
-    type_to_ser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "serialize",
-                        FieldDescriptorProto.TYPE_FLOAT:    "serialize",
-                        FieldDescriptorProto.TYPE_INT64:    "serialize",
-                        FieldDescriptorProto.TYPE_UINT64:   "serialize",
-                        FieldDescriptorProto.TYPE_INT32:    "serialize",
-                        FieldDescriptorProto.TYPE_FIXED64:  "serialize",
-                        FieldDescriptorProto.TYPE_FIXED32:  "serialize",
-                        FieldDescriptorProto.TYPE_BOOL:     "serialize",
-                        FieldDescriptorProto.TYPE_ENUM:     "serialize",
-                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_MESSAGE:  "serialize",
-                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_UINT32:   "serialize",
-                        FieldDescriptorProto.TYPE_SFIXED32: "serialize",
-                        FieldDescriptorProto.TYPE_SFIXED64: "serialize",
-                        FieldDescriptorProto.TYPE_SINT32:   "serialize",
-                        FieldDescriptorProto.TYPE_SINT64:   "serialize"}
-
-    type_to_deser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "deserialize",
-                          FieldDescriptorProto.TYPE_FLOAT:    "deserialize",
-                          FieldDescriptorProto.TYPE_INT64:    "deserialize",
-                          FieldDescriptorProto.TYPE_UINT64:   "deserialize",
-                          FieldDescriptorProto.TYPE_INT32:    "deserialize",
-                          FieldDescriptorProto.TYPE_FIXED64:  "deserialize",
-                          FieldDescriptorProto.TYPE_FIXED32:  "deserialize",
-                          FieldDescriptorProto.TYPE_BOOL:     "deserialize",
-                          FieldDescriptorProto.TYPE_ENUM:     "deserialize",
-                          FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
-                          FieldDescriptorProto.TYPE_MESSAGE:  "deserialize",
-                          FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                          FieldDescriptorProto.TYPE_UINT32:   "deserialize",
-                          FieldDescriptorProto.TYPE_SFIXED32: "deserialize",
-                          FieldDescriptorProto.TYPE_SFIXED64: "deserialize",
-                          FieldDescriptorProto.TYPE_SINT32:   "deserialize",
-                          FieldDescriptorProto.TYPE_SINT64:   "deserialize"}
-
     def __init__(self, field_proto):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
@@ -123,8 +87,6 @@ class FieldTemplateParameters:
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
-        self.serialization_func = self.type_to_ser_func[field_proto.type]
-        self.deserialization_func = self.type_to_deser_func[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]

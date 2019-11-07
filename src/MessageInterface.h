@@ -6,11 +6,14 @@
 #include <cstdint>
 #include <WireFormatter.h>
 
-namespace EmbeddedProto {
+namespace EmbeddedProto 
+{
 
-class MessageInterface {
-public:
-    enum class Result {
+class MessageInterface 
+{
+  public:
+    enum class Result 
+    {
         OK,
         ERROR_BUFFER_TO_SMALL,
     };
@@ -18,6 +21,8 @@ public:
     MessageInterface() = default;
 
     virtual ~MessageInterface() = default;
+
+    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const;
 
     //! Function to serialize this message.
     /*!
@@ -51,44 +56,13 @@ public:
     */
     virtual uint32_t serialized_size() const = 0;
 
-protected:
+  protected:
 
 
-private:
+  private:
 
 
 };
-
-bool serialize(uint32_t field_number, const MessageInterface& x, WriteBufferInterface& buffer)
-{
-  const uint32_t size_x = x.serialized_size();
-  bool result = (size_x < buffer.get_available_size());
-  if(result && (0 < size_x))
-  {
-    uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-    result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-    result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-    result = result && x.serialize(buffer);
-  }
-  return result;
-}
-
-bool serialize(const MessageInterface& x, WriteBufferInterface& buffer)
-{
-  const uint32_t size_x = x.serialized_size();
-  bool result = (size_x < buffer.get_available_size());
-  if(result && (0 < size_x))
-  {
-    result = ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-    result = result && x.serialize(buffer);
-  }
-  return result;
-}
-
-inline bool deserialize(ReadBufferInterface& buffer, MessageInterface& x)
-{
-    return x.deserialize(buffer);
-}
 
 } // End of namespace EmbeddedProto
 

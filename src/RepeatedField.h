@@ -88,6 +88,21 @@ namespace EmbeddedProto
       //! Remove all data in the array and set it to the default value.
       virtual void clear() = 0;
 
+
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+      {
+        const uint32_t size_x = this->serialized_size();
+        bool result = (size_x < buffer.get_available_size());
+        if(result && (0 < size_x))
+        {
+          uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+          result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+          result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
+          result = result && this->serialize(buffer);
+        }
+        return result;
+      }
+
       //! Function to serialize this array.
       /*!
           The data this array holds will be serialized into the buffer.
@@ -99,7 +114,7 @@ namespace EmbeddedProto
         bool result = true;
         for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
         {
-          result = ::EmbeddedProto::serialize(this->get(i), buffer);
+          result = this->get(i).serialize(buffer);
         }
         return result;
       }
@@ -115,7 +130,7 @@ namespace EmbeddedProto
         this->clear();
         DATA_TYPE x;
         bool result = true;
-        while(result && ::EmbeddedProto::deserialize(buffer, x)) 
+        while(result && x.deserialize(buffer)) 
         {
           result = this->add(x);
         }
