@@ -14,6 +14,11 @@ namespace EmbeddedProto
     public:
       Field() = default;
       virtual ~Field() = default;
+
+      virtual bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
+      virtual bool serialize(WriteBufferInterface& buffer) const = 0;
+
+      virtual bool deserialize(ReadBufferInterface& buffer) = 0;
   };
 
   template<class TYPE>
@@ -71,6 +76,10 @@ namespace EmbeddedProto
       int32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
 
       ~int32() override = default;
+
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class int64 : public FieldTemplate<int64_t> 
@@ -81,6 +90,10 @@ namespace EmbeddedProto
       int64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
 
       ~int64() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class uint32 : public FieldTemplate<uint32_t> 
@@ -91,6 +104,10 @@ namespace EmbeddedProto
       uint32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {};
 
       ~uint32() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class uint64 : public FieldTemplate<uint64_t> 
@@ -101,6 +118,10 @@ namespace EmbeddedProto
       uint64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {};
 
       ~uint64() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffe) final; 
   };
 
   class sint32 : public FieldTemplate<int32_t> 
@@ -111,6 +132,10 @@ namespace EmbeddedProto
       sint32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
 
       ~sint32() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sint64 : public FieldTemplate<int64_t> 
@@ -121,6 +146,10 @@ namespace EmbeddedProto
       sint64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
 
       ~sint64() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class boolean : public FieldTemplate<bool> 
@@ -131,6 +160,10 @@ namespace EmbeddedProto
       boolean(const bool&& v) : FieldTemplate<bool>(v) {};
 
       ~boolean() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class fixed32 : public FieldTemplate<uint32_t> 
@@ -141,6 +174,10 @@ namespace EmbeddedProto
       fixed32(const uint32_t&& v) : FieldTemplate<uint32_t>(v) {};
 
       ~fixed32() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class fixed64 : public FieldTemplate<uint64_t> 
@@ -151,6 +188,10 @@ namespace EmbeddedProto
       fixed64(const uint64_t&& v) : FieldTemplate<uint64_t>(v) {};
 
       ~fixed64() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sfixed32 : public FieldTemplate<int32_t> 
@@ -161,6 +202,10 @@ namespace EmbeddedProto
       sfixed32(const int32_t&& v) : FieldTemplate<int32_t>(v) {};
 
       ~sfixed32() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sfixed64 : public FieldTemplate<int64_t> 
@@ -171,6 +216,10 @@ namespace EmbeddedProto
       sfixed64(const int64_t&& v) : FieldTemplate<int64_t>(v) {};
 
       ~sfixed64() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class floatfixed : public FieldTemplate<float> 
@@ -181,6 +230,10 @@ namespace EmbeddedProto
       floatfixed(const float&& v) : FieldTemplate<float>(v) {};
 
       ~floatfixed() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class doublefixed : public FieldTemplate<double> 
@@ -191,49 +244,11 @@ namespace EmbeddedProto
       doublefixed(const double&& v) : FieldTemplate<double>(v) {};
 
       ~doublefixed() override = default;
+      
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize(WriteBufferInterface& buffer) const final;
+      bool deserialize(ReadBufferInterface& buffer) final; 
   };
-
-  bool serialize(uint32_t field_number, const int32& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const int64& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const uint32& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const uint64& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const sint32& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const sint64& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const boolean& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const fixed32& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const fixed64& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const sfixed32& x, WriteBufferInterface& buffer); 
-  bool serialize(uint32_t field_number, const sfixed64& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const floatfixed& x, WriteBufferInterface& buffer);
-  bool serialize(uint32_t field_number, const doublefixed& x, WriteBufferInterface& buffer);
-
-  bool serialize(const int32& x, WriteBufferInterface& buffer);
-  bool serialize(const int64& x, WriteBufferInterface& buffer);
-  bool serialize(const uint32& x, WriteBufferInterface& buffer);
-  bool serialize(const uint64& x, WriteBufferInterface& buffer);
-  bool serialize(const sint32& x, WriteBufferInterface& buffer);
-  bool serialize(const sint64& x, WriteBufferInterface& buffer);
-  bool serialize(const boolean& x, WriteBufferInterface& buffer);
-  bool serialize(const fixed32& x, WriteBufferInterface& buffer);
-  bool serialize(const fixed64& x, WriteBufferInterface& buffer);
-  bool serialize(const sfixed32& x, WriteBufferInterface& buffer); 
-  bool serialize(const sfixed64& x, WriteBufferInterface& buffer);
-  bool serialize(const floatfixed& x, WriteBufferInterface& buffer);
-  bool serialize(const doublefixed& x, WriteBufferInterface& buffer);
-
-  bool deserialize(ReadBufferInterface& buffer, int32& x); 
-  bool deserialize(ReadBufferInterface& buffer, int64& x); 
-  bool deserialize(ReadBufferInterface& buffer, uint32& x);
-  bool deserialize(ReadBufferInterface& buffer, uint64& x);
-  bool deserialize(ReadBufferInterface& buffer, sint32& x);
-  bool deserialize(ReadBufferInterface& buffer, sint64& x);
-  bool deserialize(ReadBufferInterface& buffer, boolean& x);
-  bool deserialize(ReadBufferInterface& buffer, fixed32& x);
-  bool deserialize(ReadBufferInterface& buffer, fixed64& x);
-  bool deserialize(ReadBufferInterface& buffer, sfixed32& x);
-  bool deserialize(ReadBufferInterface& buffer, sfixed64& x);
-  bool deserialize(ReadBufferInterface& buffer, floatfixed& x);
-  bool deserialize(ReadBufferInterface& buffer, doublefixed& x);
 
 } // End of namespace EmbeddedProto.
 #endif

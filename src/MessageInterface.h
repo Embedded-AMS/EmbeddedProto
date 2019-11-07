@@ -6,11 +6,14 @@
 #include <cstdint>
 #include <WireFormatter.h>
 
-namespace EmbeddedProto {
+namespace EmbeddedProto 
+{
 
-class MessageInterface {
-public:
-    enum class Result {
+class MessageInterface 
+{
+  public:
+    enum class Result 
+    {
         OK,
         ERROR_BUFFER_TO_SMALL,
     };
@@ -18,6 +21,8 @@ public:
     MessageInterface() = default;
 
     virtual ~MessageInterface() = default;
+
+    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const;
 
     //! Function to serialize this message.
     /*!
@@ -51,10 +56,10 @@ public:
     */
     virtual uint32_t serialized_size() const = 0;
 
-protected:
+  protected:
 
 
-private:
+  private:
 
 
 };

@@ -55,7 +55,7 @@ TEST(NestedMessage, serialize_one)
   }
 
   // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
 
   uint8_t expected_a[] = {0x12, 0x09, // tag and size of nested a
                           0x08, 0x01, // x
@@ -94,7 +94,7 @@ TEST(NestedMessage, serialize_max)
   }
 
   // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(22));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(23));
 
   uint8_t expected_a[] = {0x12, 0x16, // tag and size of nested a
                           0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
@@ -136,7 +136,7 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
   }
 
   // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(22));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(23));
 
   uint8_t expected_a[] = {0x12, 0x16, // tag and size of nested a
                           0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x

@@ -8,3 +8,16 @@ message repeated_fields
   repeated uint32 y   = 2;
   uint32 z            = 3;
 }
+
+message repeated_nested_message
+{
+  uint32 u = 1;
+  uint32 v = 2;
+}
+
+message repeated_message
+{
+  uint32 x                            = 1;
+  repeated repeated_nested_message y  = 2;
+  uint32 z                            = 3;
+}

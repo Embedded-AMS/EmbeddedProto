@@ -6,203 +6,203 @@ namespace EmbeddedProto
 {
 
 
-  bool serialize(uint32_t field_number, const int32& x, WriteBufferInterface& buffer) 
+  bool int32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const int64& x, WriteBufferInterface& buffer) 
+  bool int64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const uint32& x, WriteBufferInterface& buffer) 
+  bool uint32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const uint64& x, WriteBufferInterface& buffer) 
+  bool uint64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const sint32& x, WriteBufferInterface& buffer) 
+  bool sint32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const sint64& x, WriteBufferInterface& buffer) 
+  bool sint64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const boolean& x, WriteBufferInterface& buffer) 
+  bool boolean::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const fixed32& x, WriteBufferInterface& buffer) 
+  bool fixed32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const fixed64& x, WriteBufferInterface& buffer) 
+  bool fixed64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const sfixed32& x, WriteBufferInterface& buffer) 
+  bool sfixed32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const sfixed64& x, WriteBufferInterface& buffer) 
+  bool sfixed64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const floatfixed& x, WriteBufferInterface& buffer) 
+  bool floatfixed::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool serialize(uint32_t field_number, const doublefixed& x, WriteBufferInterface& buffer) 
+  bool doublefixed::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(x, buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }
 
 
 
-  bool serialize(const int32& x, WriteBufferInterface& buffer)
+  bool int32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(static_cast<uint32_t>(x.get()), buffer);
+    return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
   }
 
-  bool serialize(const int64& x, WriteBufferInterface& buffer)
+  bool int64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(static_cast<uint64_t>(x.get()), buffer);
+    return WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer);
   }
 
-  bool serialize(const uint32& x, WriteBufferInterface& buffer)
+  bool uint32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(x.get(), buffer);
+    return WireFormatter::SerializeVarint(get(), buffer);
   }
 
-  bool serialize(const uint64& x, WriteBufferInterface& buffer)
+  bool uint64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(x.get(), buffer);
+    return WireFormatter::SerializeVarint(get(), buffer);
   }
 
-  bool serialize(const sint32& x, WriteBufferInterface& buffer)
+  bool sint32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(x.get()), buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
   }
 
-  bool serialize(const sint64& x, WriteBufferInterface& buffer)
+  bool sint64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(x.get()), buffer);
+    return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
   }
 
-  bool serialize(const boolean& x, WriteBufferInterface& buffer)
+  bool boolean::serialize(WriteBufferInterface& buffer) const
   {
-    return buffer.push(x.get() ? 0x01 : 0x00);
+    return buffer.push(get() ? 0x01 : 0x00);
   }
 
-  bool serialize(const fixed32& x, WriteBufferInterface& buffer)
+  bool fixed32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieFixedNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
   }
 
-  bool serialize(const fixed64& x, WriteBufferInterface& buffer)
+  bool fixed64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieFixedNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
   }
 
-  bool serialize(const sfixed32& x, WriteBufferInterface& buffer)
+  bool sfixed32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieSFixedNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieSFixedNoTag(get(), buffer);
   }
 
-  bool serialize(const sfixed64& x, WriteBufferInterface& buffer)
+  bool sfixed64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieSFixedNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieSFixedNoTag(get(), buffer);
   }
 
-  bool serialize(const floatfixed& x, WriteBufferInterface& buffer)
+  bool floatfixed::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieFloatNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieFloatNoTag(get(), buffer);
   }
 
-  bool serialize(const doublefixed& x, WriteBufferInterface& buffer)
+  bool doublefixed::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieDoubleNoTag(x.get(), buffer);
+    return WireFormatter::SerialzieDoubleNoTag(get(), buffer);
   }
 
 
 
-  bool deserialize(ReadBufferInterface& buffer, int32& x) 
+  bool int32::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeInt(buffer, x.get());
+    return WireFormatter::DeserializeInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, int64& x) 
+  bool int64::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeInt(buffer, x.get());
+    return WireFormatter::DeserializeInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, uint32& x) 
+  bool uint32::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeUInt(buffer, x.get());
+    return WireFormatter::DeserializeUInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, uint64& x) 
+  bool uint64::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeUInt(buffer, x.get());
+    return WireFormatter::DeserializeUInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, sint32& x) 
+  bool sint32::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeSInt(buffer, x.get());
+    return WireFormatter::DeserializeSInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, sint64& x) 
+  bool sint64::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeSInt(buffer, x.get());
+    return WireFormatter::DeserializeSInt(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, boolean& x) 
+  bool boolean::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeBool(buffer, x.get());
+    return WireFormatter::DeserializeBool(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, fixed32& x) 
+  bool fixed32::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeFixed(buffer, x.get());
+    return WireFormatter::DeserializeFixed(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, fixed64& x) 
+  bool fixed64::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeFixed(buffer, x.get());
+    return WireFormatter::DeserializeFixed(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, sfixed32& x) 
+  bool sfixed32::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeSFixed(buffer, x.get());
+    return WireFormatter::DeserializeSFixed(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, sfixed64& x) 
+  bool sfixed64::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeSFixed(buffer, x.get());
+    return WireFormatter::DeserializeSFixed(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, floatfixed& x) 
+  bool floatfixed::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeFloat(buffer, x.get());
+    return WireFormatter::DeserializeFloat(buffer, get());
   }
 
-  bool deserialize(ReadBufferInterface& buffer, doublefixed& x) 
+  bool doublefixed::deserialize(ReadBufferInterface& buffer) 
   { 
-    return WireFormatter::DeserializeDouble(buffer, x.get());
+    return WireFormatter::DeserializeDouble(buffer, get());
   }
   
 } // End of namespace EmbeddedProto

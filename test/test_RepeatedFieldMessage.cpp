@@ -24,6 +24,7 @@ static constexpr uint32_t Y_SIZE = 3;
 TEST(RepeatedFieldMessage, construction) 
 {
   repeated_fields<Y_SIZE> msg;
+  repeated_message<Y_SIZE> msg2;
 }
 
 TEST(RepeatedFieldMessage, serialize_empty) 
