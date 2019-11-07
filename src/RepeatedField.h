@@ -149,7 +149,7 @@ namespace EmbeddedProto
 
       RepeatedFieldSize()
         : current_size_(0),
-          data_{0}
+          data_{}
       {
 
       }  
@@ -211,6 +211,40 @@ namespace EmbeddedProto
       //! The actual data 
       DATA_TYPE data_[MAX_SIZE];
   };
+
+  template<class DATA_TYPE>
+  bool serialize(uint32_t field_number, const RepeatedField<DATA_TYPE>& x, WriteBufferInterface& buffer)
+  {
+    const uint32_t size_x = x.serialized_size();
+    bool result = (size_x < buffer.get_available_size());
+    if(result && (0 < size_x))
+    {
+      uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+      result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+      result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
+      result = result && x.serialize(buffer);
+    }
+    return result;
+  }
+
+  template<class DATA_TYPE>
+  bool serialize(const RepeatedField<DATA_TYPE>& x, WriteBufferInterface& buffer)
+  {
+    const uint32_t size_x = x.serialized_size();
+    bool result = (size_x < buffer.get_available_size());
+    if(result && (0 < size_x))
+    {
+      result = ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
+      result = result && x.serialize(buffer);
+    }
+    return result;
+  }
+
+  template<class DATA_TYPE>
+  inline bool deserialize(ReadBufferInterface& buffer, RepeatedField<DATA_TYPE>& x)
+  {
+      return x.deserialize(buffer);
+  }
 
 } // End of namespace EmbeddedProto
 

@@ -89,6 +89,7 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_BOOL:     "serialize",
                         FieldDescriptorProto.TYPE_ENUM:     "serialize",
                         FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_MESSAGE:  "serialize",
                         FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
                         FieldDescriptorProto.TYPE_UINT32:   "serialize",
                         FieldDescriptorProto.TYPE_SFIXED32: "serialize",
@@ -106,6 +107,7 @@ class FieldTemplateParameters:
                           FieldDescriptorProto.TYPE_BOOL:     "deserialize",
                           FieldDescriptorProto.TYPE_ENUM:     "deserialize",
                           FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                          FieldDescriptorProto.TYPE_MESSAGE:  "deserialize",
                           FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
                           FieldDescriptorProto.TYPE_UINT32:   "deserialize",
                           FieldDescriptorProto.TYPE_SFIXED32: "deserialize",
@@ -121,9 +123,8 @@ class FieldTemplateParameters:
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
-        if not self.of_type_message:
-            self.serialization_func = self.type_to_ser_func[field_proto.type]
-            self.deserialization_func = self.type_to_deser_func[field_proto.type]
+        self.serialization_func = self.type_to_ser_func[field_proto.type]
+        self.deserialization_func = self.type_to_deser_func[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]

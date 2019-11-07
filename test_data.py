@@ -2,6 +2,7 @@ import build.python.simple_types_pb2 as st
 import build.python.nested_message_pb2 as nm
 import build.python.repeated_fields_pb2 as rf
 
+
 def test_simple_types():
     # A test function used to generate encoded data to test the implementation of the wireformatter
     # and header template.
@@ -131,4 +132,28 @@ def test_repeated_fields():
     print()
 
 
-test_repeated_fields()
+def test_repeated_message():
+    nmsg = rf.nested_message()
+    nmsg.u = 1
+    nmsg.v = 1
+
+    msg = rf.repeated_message()
+
+    msg.x = 0
+    for i in range(3):
+        nmsg = msg.y.add()
+        nmsg.u = 1
+        nmsg.v = 1
+    msg.z = 0
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+      str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+test_repeated_message()
