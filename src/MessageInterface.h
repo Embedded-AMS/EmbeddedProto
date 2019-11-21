@@ -5,44 +5,23 @@
 
 #include <cstdint>
 #include <WireFormatter.h>
+#include <Fields.h>
 
 namespace EmbeddedProto 
 {
 
-class MessageInterface 
+class MessageInterface : public ::EmbeddedProto::Field
 {
   public:
-    enum class Result 
-    {
-        OK,
-        ERROR_BUFFER_TO_SMALL,
-    };
 
     MessageInterface() = default;
 
     virtual ~MessageInterface() = default;
 
-    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const;
+    // TODO doc
+    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
 
-    //! Function to serialize this message.
-    /*!
-        The data this message holds will be serialized into an byte array.
-
-        \param buffer [in]  The memory in which the serialized message is stored.
-
-        \return True when every was successfull. 
-    */
-    virtual bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const = 0;
-
-    //! Function to deserialize this message.
-    /*!
-        From an array of data fill this message object with data.
-
-        \param buffer [in]  The memory from which the message is obtained.
-
-        \return True when every was successfull. 
-    */
-    virtual bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) = 0;
+    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer, bool packed) const;
 
     //! Clear the content of this message and set it to it's default state.
     /*!
@@ -55,12 +34,6 @@ class MessageInterface
         \return The number of bytes this message will require once serialized.
     */
     virtual uint32_t serialized_size() const = 0;
-
-  protected:
-
-
-  private:
-
 
 };
 

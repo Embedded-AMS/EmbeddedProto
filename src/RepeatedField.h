@@ -4,8 +4,10 @@
 
 #include <cstring>
 #include <algorithm>    // std::min
+#include <type_traits>
 
 #include <Fields.h>
+#include <MessageInterface.h>
 #include <MessageSizeCalculator.h>
 
 namespace EmbeddedProto
@@ -13,8 +15,10 @@ namespace EmbeddedProto
 
   //! Class template that specifies the interface of an arry with the data type.
   template<class DATA_TYPE>
-  class RepeatedField
+  class RepeatedField : public Field
   {
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
+
     public:
 
       RepeatedField() = default;
@@ -88,34 +92,40 @@ namespace EmbeddedProto
       //! Remove all data in the array and set it to the default value.
       virtual void clear() = 0;
 
-
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+      bool serialize(WriteBufferInterface& buffer) const final
       {
-        const uint32_t size_x = this->serialized_size();
-        bool result = (size_x < buffer.get_available_size());
-        if(result && (0 < size_x))
-        {
-          uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-          result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-          result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-          result = result && this->serialize(buffer);
-        }
-        return result;
+        return false;
       }
 
-      //! Function to serialize this array.
-      /*!
-          The data this array holds will be serialized into the buffer.
-          \param buffer [in]  The memory in which the serialized array is stored.
-          \return True when every was successfull. 
-      */
-      bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const
+      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final
       {
         bool result = true;
-        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+
+        //! Check how this field shoeld be serialized, packed or not.
+        static constexpr bool PACKED = !std::is_base_of<MessageInterface, DATA_TYPE>::value;
+
+        if(PACKED)
         {
-          result = this->get(i).serialize(buffer);
+          const uint32_t size_x = this->serialized_size_packed(field_number);
+          result = (size_x < buffer.get_available_size());
+
+          // Use the packed way of serialization for base fields.
+          if(result && (0 < size_x))
+          {          
+            uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
+                                        ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+            result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+            result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
+            result = result && serialize_packed(buffer);
+          }
         }
+        else 
+        {
+          const uint32_t size_x = this->serialized_size_unpacked(field_number);
+          result = (size_x < buffer.get_available_size());
+          result = result && serialize_unpacked(field_number, buffer);
+        }
+
         return result;
       }
 
@@ -125,7 +135,7 @@ namespace EmbeddedProto
           \param buffer [in]  The memory from which the message is obtained.
           \return True when every was successfull. 
       */
-      bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer)
+      bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
       {
         this->clear();
         DATA_TYPE x;
@@ -141,11 +151,46 @@ namespace EmbeddedProto
       /*!
           \return The number of bytes this message will require once serialized.
       */
-      uint32_t serialized_size() const 
+      uint32_t serialized_size_packed(int32_t field_number) const 
       {
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
-        this->serialize(calcBuffer);
+        serialize_packed(calcBuffer);
         return calcBuffer.get_size();
+      }
+
+      //! Calculate the size of this message when serialized.
+      /*!
+          \return The number of bytes this message will require once serialized.
+      */
+      uint32_t serialized_size_unpacked(int32_t field_number) const 
+      {
+        ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+        serialize_unpacked(field_number, calcBuffer);
+        return calcBuffer.get_size();
+      }
+
+    private:
+
+      bool serialize_packed(WriteBufferInterface& buffer) const
+      {
+        bool result = true;
+        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+        {
+          const ::EmbeddedProto::Field& base = static_cast<const ::EmbeddedProto::Field&>(this->get(i));
+          result = base.serialize(buffer);
+        }
+        return result;
+      }
+
+      bool serialize_unpacked(uint32_t field_number, WriteBufferInterface& buffer) const
+      {
+        bool result = true;
+        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+        {
+          const ::EmbeddedProto::Field& base = static_cast<const ::EmbeddedProto::Field&>(this->get(i));
+          result = base.serialize(field_number, buffer);
+        }
+        return result;
       }
 
   };
@@ -227,6 +272,7 @@ namespace EmbeddedProto
       DATA_TYPE data_[MAX_SIZE];
   };
 
+/*
   template<class DATA_TYPE>
   bool serialize(uint32_t field_number, const RepeatedField<DATA_TYPE>& x, WriteBufferInterface& buffer)
   {
@@ -260,7 +306,7 @@ namespace EmbeddedProto
   {
       return x.deserialize(buffer);
   }
-
+*/
 } // End of namespace EmbeddedProto
 
 #endif // End of _DYNAMIC_BUFFER_H_

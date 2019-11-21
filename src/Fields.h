@@ -16,6 +16,7 @@ namespace EmbeddedProto
       virtual ~Field() = default;
 
       virtual bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
+
       virtual bool serialize(WriteBufferInterface& buffer) const = 0;
 
       virtual bool deserialize(ReadBufferInterface& buffer) = 0;

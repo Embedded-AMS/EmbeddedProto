@@ -27,21 +27,35 @@ TEST(RepeatedFieldMessage, construction)
   repeated_message<Y_SIZE> msg2;
 }
 
-TEST(RepeatedFieldMessage, serialize_empty) 
+TEST(RepeatedFieldMessage, serialize_empty_fields) 
 {
   repeated_fields<Y_SIZE> msg;
 
   Mocks::WriteBufferMock buffer;
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
+  EXPECT_CALL(buffer, get_available_size()).WillRepeatedly(Return(99));
 
   EXPECT_TRUE(msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
 
-TEST(RepeatedFieldMessage, serialize_array_zero)
+TEST(RepeatedFieldMessage, serialize_empty_message) 
+{
+  repeated_message<Y_SIZE> msg;
+
+  Mocks::WriteBufferMock buffer;
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_,_)).Times(0);
+  EXPECT_CALL(buffer, get_available_size()).WillRepeatedly(Return(99));
+
+  EXPECT_TRUE(msg.serialize(buffer));
+
+  EXPECT_EQ(0, msg.serialized_size());
+}
+
+TEST(RepeatedFieldMessage, serialize_array_zero_fields)
 { 
   InSequence s;
   
@@ -54,6 +68,63 @@ TEST(RepeatedFieldMessage, serialize_array_zero)
 
   uint8_t expected[] = {0x12, 0x03, 0x00, 0x00, 0x00}; // y
 
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
+
+  for(auto e : expected) 
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_TRUE(msg.serialize(buffer));
+}
+
+TEST(RepeatedFieldMessage, serialize_array_zero_messages)
+{ 
+  InSequence s;
+  
+  Mocks::WriteBufferMock buffer;
+  repeated_message<Y_SIZE> msg;
+
+  repeated_nested_message rnm;
+  rnm.set_u(0);
+  rnm.set_v(0);
+
+  msg.add_y(rnm);
+  msg.add_y(rnm);
+  msg.add_y(rnm);
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  EXPECT_TRUE(msg.serialize(buffer));
+}
+
+TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
+{
+  InSequence s;
+  Mocks::WriteBufferMock buffer;
+
+  repeated_fields<Y_SIZE> msg;
+  msg.add_y(0);
+  msg.add_y(1);
+  msg.add_y(0);
+
+  uint8_t expected[] = {0x12, 0x03, 0x00, 0x01, 0x00}; // y
+
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
 
   for(auto e : expected) 
@@ -63,6 +134,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero)
 
   EXPECT_TRUE(msg.serialize(buffer));
 }
+
 
 TEST(RepeatedFieldMessage, serialize_array_one)
 {
