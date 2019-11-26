@@ -1,6 +1,6 @@
 
-#ifndef _MESSAGE_BUFFER_SECTIOn_H_
-#define _MESSAGE_BUFFER_SECTION_H_
+#ifndef _READ_BUFFER_SECTION_H_
+#define _READ_BUFFER_SECTION_H_
 
 #include <cstdint>
 
@@ -80,4 +80,4 @@ namespace EmbeddedProto
 
 } // End of namespace EmbeddedProto
 
-#endif 
+#endif // _READ_BUFFER_SECTION_H_

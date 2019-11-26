@@ -116,10 +116,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
             {% if field.is_repeated_field %}
             if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type)
             {
-              uint32_t size;
-              result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-              ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
-              result = result && {{field.variable_name}}.deserialize(bufferSection);
+              result = {{field.variable_name}}.deserialize(buffer);
             }
             {% else %}
             if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
@@ -176,7 +173,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 };
 {% endmacro %}
 // This file is generated. Please do not edit!
-#pragma once
+#ifndef _{{filename.upper()}}_H_
+#define _{{filename.upper()}}_H_
 
 #include <cstdint>
 {% if messages %}
@@ -201,3 +199,5 @@ namespace {{ namespace }}
 {% if namespace %}
 } // End of namespace {{ namespace }}
 {% endif %}
+#endif // _{{filename.upper()}}_H_
+

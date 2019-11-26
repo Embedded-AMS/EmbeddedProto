@@ -150,8 +150,11 @@ def generate_code(request, respones):
         messages_generator = generate_messages(proto_file.message_type)
         enums_generator = generate_enums(proto_file.enum_type)
 
+        filename_str = os.path.splitext(proto_file.name)[0]
+
         try:
-            file_str = template.render(namespace=proto_file.package, messages=messages_generator, enums=enums_generator)
+            file_str = template.render(filename=filename_str, namespace=proto_file.package, messages=messages_generator,
+                                       enums=enums_generator)
         except jinja2.TemplateError as e:
             print("TemplateError exception: " + str(e))
         except jinja2.UndefinedError as e:
@@ -166,7 +169,7 @@ def generate_code(request, respones):
             print("Template renderer exception: " + str(e))
         else:
             f = respones.file.add()
-            f.name = os.path.splitext(proto_file.name)[0] + ".h"
+            f.name = filename_str + ".h"
             f.content = file_str
 
 
