@@ -19,7 +19,7 @@ pipelines:
           
           - cd -
           - export SONAR_SCANNER_OPTS="-Xmx1024m"
-          - sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=492dba2b1a7da82eaea36308ce177f6033626bca -Dsonar.cfamily.build-wrapper-output=build/test/SonarQube-output
+          - sonar-scanner -Dproject.settings=sonar-project.properties
                  
 definitions:
   caches:
