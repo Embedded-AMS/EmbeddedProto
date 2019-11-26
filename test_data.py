@@ -72,9 +72,9 @@ def test_nested_message():
 
     msg.u = 0 #pow(2, 1023)
     msg.v = 0 #pow(2, 1023)
-    msg.nested_a.x = pow(2, 31) - 1
-    msg.nested_a.y = 0 #1.0
-    msg.nested_a.z = 0 #1
+    #msg.nested_a.x = 0#pow(2, 31) - 1
+    #msg.nested_a.y = 0 #1.0
+    #msg.nested_a.z = 0 #1
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -100,7 +100,7 @@ def test_repeated_fields():
 
     #msg.x = 0
     msg.y.append(0)
-    msg.y.append(0)
+    msg.y.append(1)
     msg.y.append(0)
     #msg.z = 0
 
@@ -133,18 +133,17 @@ def test_repeated_fields():
 
 
 def test_repeated_message():
-    nmsg = rf.nested_message()
-    nmsg.u = 1
-    nmsg.v = 1
-
     msg = rf.repeated_message()
 
     msg.x = 0
     for i in range(3):
         nmsg = msg.y.add()
-        nmsg.u = 1
-        nmsg.v = 1
+        nmsg.u = 0
+        nmsg.v = 0
     msg.z = 0
+
+    msg.y[1].u = 1
+    msg.y[1].v = 1
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -156,4 +155,6 @@ def test_repeated_message():
     print(str)
     print()
 
+#test_repeated_fields()
 test_repeated_message()
+#test_nested_message()

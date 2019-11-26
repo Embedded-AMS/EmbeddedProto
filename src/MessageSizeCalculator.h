@@ -2,9 +2,9 @@
 #ifndef _MESSAGE_SIZE_CALCULATOR_H_
 #define _MESSAGE_SIZE_CALCULATOR_H_
 
-#include "WriteBufferInterface.h"
-
 #include <limits> 
+
+#include "WriteBufferInterface.h"
 
 namespace EmbeddedProto 
 {
