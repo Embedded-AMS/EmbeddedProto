@@ -13,6 +13,7 @@ pipelines:
           - source bitbucket-pipelines-dependencies.sh
 
           - ./build_test.sh
+          - ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 
           - cd build/test
           - build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
