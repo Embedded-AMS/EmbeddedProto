@@ -129,6 +129,44 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
+TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
+{ 
+  InSequence s;
+  
+  Mocks::WriteBufferMock buffer;
+  repeated_message<Y_SIZE> msg;
+
+  repeated_nested_message rnm;
+  
+  rnm.set_u(0);
+  rnm.set_v(0);
+  msg.add_y(rnm);
+
+  rnm.set_u(1);
+  rnm.set_v(1);
+  msg.add_y(rnm);
+  
+  rnm.set_u(0);
+  rnm.set_v(0);
+  msg.add_y(rnm);
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x04)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true)); 
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true)); 
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  EXPECT_TRUE(msg.serialize(buffer));
+}
 
 TEST(RepeatedFieldMessage, serialize_array_one)
 {
@@ -241,7 +279,7 @@ TEST(RepeatedFieldMessage, serialize_max)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
-TEST(RepeatedFieldMessage, deserialize_empty) 
+TEST(RepeatedFieldMessage, deserialize_empty_array) 
 {
   repeated_fields<Y_SIZE> msg;
 
@@ -251,6 +289,17 @@ TEST(RepeatedFieldMessage, deserialize_empty)
 
   EXPECT_TRUE(msg.deserialize(buffer));
 
+}
+
+TEST(RepeatedFieldMessage, deserialize_empty_message_array) 
+{
+  repeated_message<Y_SIZE> msg;
+
+  Mocks::ReadBufferMock buffer;
+  EXPECT_CALL(buffer, pop(_)).WillRepeatedly(Return(false));
+  EXPECT_CALL(buffer, get_size()).WillRepeatedly(Return(0));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, deserialize_one) 
@@ -279,6 +328,71 @@ TEST(RepeatedFieldMessage, deserialize_one)
   EXPECT_EQ(1, msg.y(2));
   EXPECT_EQ(1, msg.get_z());
 
+}
+
+TEST(RepeatedFieldMessage, deserialize_one_message_array) 
+{
+  InSequence s;
+
+  repeated_message<Y_SIZE> msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0x08, 0x01, // x
+                       0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
+                       0x18, 0x01}; // z 
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_x());
+  EXPECT_EQ(3, msg.get_y().get_length());
+  EXPECT_EQ(0, msg.y(0).u());
+  EXPECT_EQ(0, msg.y(0).v());
+  EXPECT_EQ(1, msg.y(1).u());
+  EXPECT_EQ(1, msg.y(1).v());
+  EXPECT_EQ(0, msg.y(2).u());
+  EXPECT_EQ(0, msg.y(2).v());
+  EXPECT_EQ(1, msg.get_z());
+}
+
+TEST(RepeatedFieldMessage, deserialize_mixed_message_array) 
+{
+  // I should be possible to read in the non packed data mixed with other fields. All elements 
+  // should be added to the array.
+
+  InSequence s;
+
+  repeated_message<Y_SIZE> msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0x12, 0x00, // y[0]
+                       0x08, 0x01, // x
+                       0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
+                       0x18, 0x01, // z
+                       0x12, 0x00, }; // y[2] 
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_x());
+  EXPECT_EQ(3, msg.get_y().get_length());
+  EXPECT_EQ(0, msg.y(0).u());
+  EXPECT_EQ(0, msg.y(0).v());
+  EXPECT_EQ(1, msg.y(1).u());
+  EXPECT_EQ(1, msg.y(1).v());
+  EXPECT_EQ(0, msg.y(2).u());
+  EXPECT_EQ(0, msg.y(2).v());
+  EXPECT_EQ(1, msg.get_z());
 }
 
 TEST(RepeatedFieldMessage, deserialize_max) 

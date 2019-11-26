@@ -135,12 +135,15 @@ def test_repeated_fields():
 def test_repeated_message():
     msg = rf.repeated_message()
 
-    msg.x = 1
+    msg.x = 0
     for i in range(3):
         nmsg = msg.y.add()
         nmsg.u = 0
         nmsg.v = 0
     msg.z = 0
+
+    msg.y[1].u = 1
+    msg.y[1].v = 1
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -152,6 +155,6 @@ def test_repeated_message():
     print(str)
     print()
 
-test_repeated_fields()
+#test_repeated_fields()
 test_repeated_message()
-test_nested_message()
+#test_nested_message()

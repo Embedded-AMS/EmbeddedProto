@@ -20,6 +20,9 @@ namespace EmbeddedProto
   {
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
 
+    //! Check how this field shoeld be serialized, packed or not.
+    static constexpr bool PACKED = !std::is_base_of<MessageInterface, DATA_TYPE>::value;
+
     public:
 
       RepeatedField() = default;
@@ -102,9 +105,6 @@ namespace EmbeddedProto
       {
         bool result = true;
 
-        //! Check how this field shoeld be serialized, packed or not.
-        static constexpr bool PACKED = !std::is_base_of<MessageInterface, DATA_TYPE>::value;
-
         if(PACKED)
         {
           const uint32_t size_x = this->serialized_size_packed(field_number);
@@ -138,12 +138,28 @@ namespace EmbeddedProto
       */
       bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
       {
-        this->clear();
-        DATA_TYPE x;
         bool result = true;
-        while(result && x.deserialize(buffer)) 
+        if(PACKED)
+        {              
+          uint32_t size;
+          result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+          ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+          DATA_TYPE x;
+          while(result && x.deserialize(bufferSection)) 
+          {
+            result = this->add(x);
+          }
+        }
+        else 
         {
-          result = this->add(x);
+          uint32_t size;
+          result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+          ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+          DATA_TYPE x;
+          if(result && x.deserialize(bufferSection))
+          {
+            result = this->add(x);
+          }
         }
         return result;
       }
