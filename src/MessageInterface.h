@@ -4,8 +4,9 @@
 #define _MESSAGE_INTERFACE_H_
 
 #include <cstdint>
-#include <WireFormatter.h>
-#include <Fields.h>
+
+#include "WireFormatter.h"
+#include "Fields.h"
 
 namespace EmbeddedProto 
 {

@@ -1,5 +1,5 @@
 #include "MessageInterface.h"
-#include <WireFormatter.h>
+#include "WireFormatter.h"
 
 namespace EmbeddedProto
 {

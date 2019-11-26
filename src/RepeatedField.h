@@ -6,9 +6,10 @@
 #include <algorithm>    // std::min
 #include <type_traits>
 
-#include <Fields.h>
-#include <MessageInterface.h>
-#include <MessageSizeCalculator.h>
+#include "Fields.h"
+#include "MessageInterface.h"
+#include "MessageSizeCalculator.h"
+#include "ReadBufferSection.h" 
 
 namespace EmbeddedProto
 {

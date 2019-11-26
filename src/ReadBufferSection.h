@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include <ReadBufferInterface.h>
+#include "ReadBufferInterface.h"
 
 namespace EmbeddedProto 
 {
