@@ -79,40 +79,6 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
-    type_to_ser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "serialize",
-                        FieldDescriptorProto.TYPE_FLOAT:    "serialize",
-                        FieldDescriptorProto.TYPE_INT64:    "serialize",
-                        FieldDescriptorProto.TYPE_UINT64:   "serialize",
-                        FieldDescriptorProto.TYPE_INT32:    "serialize",
-                        FieldDescriptorProto.TYPE_FIXED64:  "serialize",
-                        FieldDescriptorProto.TYPE_FIXED32:  "serialize",
-                        FieldDescriptorProto.TYPE_BOOL:     "serialize",
-                        FieldDescriptorProto.TYPE_ENUM:     "serialize",
-                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_UINT32:   "serialize",
-                        FieldDescriptorProto.TYPE_SFIXED32: "serialize",
-                        FieldDescriptorProto.TYPE_SFIXED64: "serialize",
-                        FieldDescriptorProto.TYPE_SINT32:   "serialize",
-                        FieldDescriptorProto.TYPE_SINT64:   "serialize"}
-
-    type_to_deser_func = {FieldDescriptorProto.TYPE_DOUBLE:   "deserialize",
-                          FieldDescriptorProto.TYPE_FLOAT:    "deserialize",
-                          FieldDescriptorProto.TYPE_INT64:    "deserialize",
-                          FieldDescriptorProto.TYPE_UINT64:   "deserialize",
-                          FieldDescriptorProto.TYPE_INT32:    "deserialize",
-                          FieldDescriptorProto.TYPE_FIXED64:  "deserialize",
-                          FieldDescriptorProto.TYPE_FIXED32:  "deserialize",
-                          FieldDescriptorProto.TYPE_BOOL:     "deserialize",
-                          FieldDescriptorProto.TYPE_ENUM:     "deserialize",
-                          FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
-                          FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
-                          FieldDescriptorProto.TYPE_UINT32:   "deserialize",
-                          FieldDescriptorProto.TYPE_SFIXED32: "deserialize",
-                          FieldDescriptorProto.TYPE_SFIXED64: "deserialize",
-                          FieldDescriptorProto.TYPE_SINT32:   "deserialize",
-                          FieldDescriptorProto.TYPE_SINT64:   "deserialize"}
-
     def __init__(self, field_proto):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
@@ -121,9 +87,6 @@ class FieldTemplateParameters:
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
-        if not self.of_type_message:
-            self.serialization_func = self.type_to_ser_func[field_proto.type]
-            self.deserialization_func = self.type_to_deser_func[field_proto.type]
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
@@ -136,6 +99,10 @@ class FieldTemplateParameters:
         else:
             self.default_value = self.type_to_default_value[field_proto.type]
 
+        self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
+        if self.is_repeated_field:
+            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " + self.variable_name + "SIZE>"
+
         self.field_proto = field_proto
 
 # -----------------------------------------------------------------------------
@@ -145,6 +112,10 @@ class MessageTemplateParameters:
     def __init__(self, msg_proto):
         self.name = msg_proto.name
         self.msg_proto = msg_proto
+        self.templates = []
+        for field in self.fields():
+            if field.is_repeated_field:
+                self.templates.append(field.variable_name)
 
     def fields(self):
         for f in self.msg_proto.field:
@@ -179,8 +150,11 @@ def generate_code(request, respones):
         messages_generator = generate_messages(proto_file.message_type)
         enums_generator = generate_enums(proto_file.enum_type)
 
+        filename_str = os.path.splitext(proto_file.name)[0]
+
         try:
-            file_str = template.render(namespace=proto_file.package, messages=messages_generator, enums=enums_generator)
+            file_str = template.render(filename=filename_str, namespace=proto_file.package, messages=messages_generator,
+                                       enums=enums_generator)
         except jinja2.TemplateError as e:
             print("TemplateError exception: " + str(e))
         except jinja2.UndefinedError as e:
@@ -195,7 +169,7 @@ def generate_code(request, respones):
             print("Template renderer exception: " + str(e))
         else:
             f = respones.file.add()
-            f.name = os.path.splitext(proto_file.name)[0] + ".h"
+            f.name = filename_str + ".h"
             f.content = file_str
 
 

@@ -9,6 +9,11 @@ enum {{ _enum.name }}
 {% endmacro %}
 
 {% macro msg_macro(msg) %}
+{% if msg.templates is defined %}
+{% for template in msg.templates %}
+{{"template<" if loop.first}}uint32_t {{template}}{{"SIZE, " if not loop.last}}{{"SIZE>" if loop.last}}
+{% endfor %}
+{% endif %}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
@@ -31,18 +36,29 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
     {% for field in msg.fields() %}
     static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
-    {% if field.of_type_message %}
+    {% if field.is_repeated_field %}
+    inline const {{field.type}}& {{field.name}}(uint32_t index) const { return {{field.variable_name}}[index]; }
+    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
+    inline void set_{{field.name}}(uint32_t index, const {{field.type}}& value) { {{field.variable_name}}.set(index, value); }
+    inline void set_{{field.name}}(uint32_t index, const {{field.type}}&& value) { {{field.variable_name}}.set(index, value); }
+    inline void add_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}}.add(value); }
+    inline const {{field.repeated_type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
+    inline {{field.repeated_type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
+    {% elif field.of_type_message %}
+    inline const {{field.type}}& {{field.name}}() const { return {{field.variable_name}}; }
     inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
     inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
     {% elif field.of_type_enum %}
+    inline {{field.type}} {{field.name}}() const { return {{field.variable_name}}; }
     inline void clear_{{field.name}}() { {{field.variable_name}} = static_cast<{{field.type}}>({{field.default_value}}); }
     inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
     inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
     inline {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
     {% else %}
+    inline {{field.type}}::FIELD_TYPE {{field.name}}() const { return {{field.variable_name}}.get(); }
     inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
     inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
@@ -55,27 +71,28 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       bool result = true;
 
       {% for field in msg.fields() %}
-      {% if field.of_type_message %}
-      const uint32_t size_{{field.name}} = {{field.variable_name}}.serialized_size();
-      result = (size_{{field.name}} <= buffer.get_available_size());
-      if(result && (0 < size_{{field.name}}))
+      {% if field.is_repeated_field %}
+      if(result)
       {
-        uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag({{field.variable_id_name}}, ::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}});
-        result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-        result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_{{field.name}}, buffer);
-        result = result && {{field.variable_name}}.serialize(buffer);
+        result = {{field.variable_name}}.serialize({{field.variable_id_name}}, buffer);
+      }
+      {% elif field.of_type_message %}
+      if(result)
+      {
+        const ::EmbeddedProto::MessageInterface* x = &{{field.variable_name}};
+        result = x->serialize({{field.variable_id_name}}, buffer);
       }
       {% elif field.of_type_enum %}
       if(({{field.default_value}} != {{field.variable_name}}) && result)
       {
         EmbeddedProto::uint32 value;
         value.set(static_cast<uint32_t>({{field.variable_name}}));
-        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, value, buffer);
+        result = value.serialize({{field.variable_id_name}}, buffer);
       }
       {% else %}
       if(({{field.default_value}} != {{field.variable_name}}.get()) && result)
       {
-        result = ::EmbeddedProto::{{field.serialization_func}}({{field.variable_id_name}}, {{field.variable_name}}, buffer);
+        result = {{field.variable_name}}.serialize({{field.variable_id_name}}, buffer);
       }
       {% endif %}
 
@@ -96,6 +113,12 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
           {% for field in msg.fields() %}
           case {{field.variable_id_name}}:
           {
+            {% if field.is_repeated_field %}
+            if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type)
+            {
+              result = {{field.variable_name}}.deserialize(buffer);
+            }
+            {% else %}
             if(::EmbeddedProto::WireFormatter::WireType::{{field.wire_type}} == wire_type)
             {
               {% if field.of_type_message %}
@@ -111,9 +134,10 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
                 {{field.variable_name}} = static_cast<{{field.type}}>(value);
               }
               {% else %}
-              result = ::EmbeddedProto::{{field.deserialization_func}}(buffer, {{field.variable_name}});
+              result = {{field.variable_name}}.deserialize(buffer);
               {% endif %}
             }
+            {% endif %}
             else
             {
               // TODO Error wire type does not match field.
@@ -137,22 +161,20 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     }
 
-    uint32_t serialized_size() const final
-    {
-      ::EmbeddedProto::MessageSizeCalculator calcBuffer;
-      this->serialize(calcBuffer);
-      return calcBuffer.get_size();
-    }
-
   private:
 
     {% for field in msg.fields() %}
+    {% if field.is_repeated_field %}
+    {{field.repeated_type}} {{field.variable_name}};
+    {% else %}
     {{field.type}} {{field.variable_name}};
+    {% endif %}
     {% endfor %}
 };
 {% endmacro %}
 // This file is generated. Please do not edit!
-#pragma once
+#ifndef _{{filename.upper()}}_H_
+#define _{{filename.upper()}}_H_
 
 #include <cstdint>
 {% if messages %}
@@ -161,6 +183,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
+#include <RepeatedField.h>
 {% endif %}
 
 {% if namespace %}
@@ -176,3 +199,5 @@ namespace {{ namespace }}
 {% if namespace %}
 } // End of namespace {{ namespace }}
 {% endif %}
+#endif // _{{filename.upper()}}_H_
+

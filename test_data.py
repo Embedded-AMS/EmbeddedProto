@@ -1,5 +1,7 @@
 import build.python.simple_types_pb2 as st
 import build.python.nested_message_pb2 as nm
+import build.python.repeated_fields_pb2 as rf
+
 
 def test_simple_types():
     # A test function used to generate encoded data to test the implementation of the wireformatter
@@ -70,9 +72,9 @@ def test_nested_message():
 
     msg.u = 0 #pow(2, 1023)
     msg.v = 0 #pow(2, 1023)
-    msg.nested_a.x = pow(2, 31) - 1
-    msg.nested_a.y = 0 #1.0
-    msg.nested_a.z = 0 #1
+    #msg.nested_a.x = 0#pow(2, 31) - 1
+    #msg.nested_a.y = 0 #1.0
+    #msg.nested_a.z = 0 #1
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -93,4 +95,66 @@ def test_nested_message():
     print(msg2)
 
 
-test_nested_message()
+def test_repeated_fields():
+    msg = rf.repeated_fields()
+
+    #msg.x = 0
+    msg.y.append(0)
+    msg.y.append(1)
+    msg.y.append(0)
+    #msg.z = 0
+
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+
+    #msg.x = 1
+    #msg.y.append(1)
+    #msg.y.append(1)
+    #msg.y.append(1)
+    #msg.z = 1
+
+    #msg.x = pow(2, 32) - 1
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.y.append(pow(2, 32) - 1)
+    #msg.z = pow(2, 32) - 1
+
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+      str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+
+def test_repeated_message():
+    msg = rf.repeated_message()
+
+    msg.x = 0
+    for i in range(3):
+        nmsg = msg.y.add()
+        nmsg.u = 0
+        nmsg.v = 0
+    msg.z = 0
+
+    msg.y[1].u = 1
+    msg.y[1].v = 1
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+      str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+#test_repeated_fields()
+test_repeated_message()
+#test_nested_message()

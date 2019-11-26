@@ -32,3 +32,6 @@ build/
 
 # Ignore sonar scanner binaries
 sonar-scanner**
+
+# Ignore code coverage reports
+code_coverage_report/**
