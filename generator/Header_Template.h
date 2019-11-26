@@ -164,13 +164,6 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     }
 
-    uint32_t serialized_size() const final
-    {
-      ::EmbeddedProto::MessageSizeCalculator calcBuffer;
-      this->serialize(calcBuffer);
-      return calcBuffer.get_size();
-    }
-
   private:
 
     {% for field in msg.fields() %}

@@ -107,7 +107,7 @@ namespace EmbeddedProto
         if(PACKED)
         {
           const uint32_t size_x = this->serialized_size_packed(field_number);
-          result = (size_x < buffer.get_available_size());
+          result = (size_x <= buffer.get_available_size());
 
           // Use the packed way of serialization for base fields.
           if(result && (0 < size_x))
@@ -122,7 +122,7 @@ namespace EmbeddedProto
         else 
         {
           const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          result = (size_x < buffer.get_available_size());
+          result = (size_x <= buffer.get_available_size());
           result = result && serialize_unpacked(field_number, buffer);
         }
 
@@ -176,8 +176,7 @@ namespace EmbeddedProto
         bool result = true;
         for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
         {
-          const ::EmbeddedProto::Field& base = static_cast<const ::EmbeddedProto::Field&>(this->get(i));
-          result = base.serialize(buffer);
+          result = this->get(i).serialize(buffer);
         }
         return result;
       }
@@ -187,8 +186,15 @@ namespace EmbeddedProto
         bool result = true;
         for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
         {
-          const ::EmbeddedProto::Field& base = static_cast<const ::EmbeddedProto::Field&>(this->get(i));
-          result = base.serialize(field_number, buffer);
+          const uint32_t size_x = this->get(i).serialized_size();
+          uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
+                                    ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+          result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+          result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
+          if(result && (0 < size_x)) 
+          {
+            result = this->get(i).serialize(buffer);
+          }
         }
         return result;
       }

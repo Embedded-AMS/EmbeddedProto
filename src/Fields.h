@@ -20,6 +20,12 @@ namespace EmbeddedProto
       virtual bool serialize(WriteBufferInterface& buffer) const = 0;
 
       virtual bool deserialize(ReadBufferInterface& buffer) = 0;
+
+      //! Calculate the size of this message when serialized.
+      /*!
+          \return The number of bytes this message will require once serialized.
+      */
+      uint32_t serialized_size() const;
   };
 
   template<class TYPE>

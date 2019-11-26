@@ -1,10 +1,15 @@
 
 #include <Fields.h>
-
+#include <MessageSizeCalculator.h>
 
 namespace EmbeddedProto 
 {
-
+  uint32_t Field::serialized_size() const
+  {
+    ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+    this->serialize(calcBuffer);
+    return calcBuffer.get_size();
+  }
 
   bool int32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
   { 

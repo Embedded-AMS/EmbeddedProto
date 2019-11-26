@@ -6,14 +6,9 @@ namespace EmbeddedProto
 
   bool MessageInterface::MessageInterface::serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
-    return serialize(field_number, buffer, false);
-  }
-
-  bool MessageInterface::MessageInterface::serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer, bool packed) const
-  {
     const uint32_t size_x = this->serialized_size();
     bool result = (size_x < buffer.get_available_size());
-    if(result && ((0 < size_x) || packed))
+    if(result && (0 < size_x))
     {
       uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
                               ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);

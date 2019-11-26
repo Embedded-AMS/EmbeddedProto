@@ -95,17 +95,11 @@ TEST(RepeatedFieldMessage, serialize_array_zero_messages)
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
-
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
-
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
 
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
