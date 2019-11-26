@@ -4,26 +4,22 @@ pipelines:
     - step:    
         caches:
           - git-modules
-        script:            
-          - apt-get update; apt-get install -y jq unzip lib32ncurses5 lib32z1 lib32stdc++6 tree protobuf-compiler cmake
-          - which python3
+        script: 
+          - add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          - apt-get update
+          - apt-get install -y jq gcc-9 g++-9 unzip cmake lib32ncurses5 lib32z1 lib32stdc++6 python3-venv
+          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
           - git submodule update --recursive --init
-          - mkdir -p ./build/EAMS
-          - protoc --version
-          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/simple_types.proto
-          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/nested_message.proto
-          - protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
-          - mkdir -p build/test
-          - cd build/test/
-          - cmake -DCMAKE_BUILD_TYPE=Debug ../../
-          - make
-          - cd ../..
           - source bitbucket-pipelines-dependencies.sh
-          - cd ./build/test
-          - ../../build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
+
+          - ./build_test.sh
+
+          - cd build/test
+          - build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
+          
           - cd -
           - export SONAR_SCANNER_OPTS="-Xmx1024m"
-          - ./sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=492dba2b1a7da82eaea36308ce177f6033626bca -Dsonar.cfamily.build-wrapper-output=build/test/SonarQube-output
+          - sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=492dba2b1a7da82eaea36308ce177f6033626bca -Dsonar.cfamily.build-wrapper-output=build/test/SonarQube-output
                  
 definitions:
   caches:
