@@ -8,6 +8,38 @@ enum {{ _enum.name }}
 
 {% endmacro %}
 
+{% macro field_get_set_macro(_field) %}
+static const uint32_t {{_field.variable_id_name}} = {{_field.variable_id}};
+{% if _field.is_repeated_field %}
+    inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_name}}[index]; }
+    inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
+    inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value) { {{_field.variable_name}}.set(index, value); }
+    inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value) { {{_field.variable_name}}.set(index, value); }
+    inline void add_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}}.add(value); }
+    inline const {{_field.repeated_type}}& get_{{_field.name}}() const { return {{_field.variable_name}}; }
+    inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_name}}; }
+{% elif _field.of_type_message %}
+    inline const {{_field.type}}& {{_field.name}}() const { return {{_field.variable_name}}; }
+    inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
+    inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}} = value; }
+    inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_name}} = value; }
+    inline const {{_field.type}}& get_{{_field.name}}() const { return {{_field.variable_name}}; }
+    inline {{_field.type}}& mutable_{{_field.name}}() { return {{_field.variable_name}}; }
+{% elif _field.of_type_enum %}
+    inline {{_field.type}} {{_field.name}}() const { return {{_field.variable_name}}; }
+    inline void clear_{{_field.name}}() { {{_field.variable_name}} = static_cast<{{_field.type}}>({{_field.default_value}}); }
+    inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}} = value; }
+    inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_name}} = value; }
+    inline {{_field.type}} get_{{_field.name}}() const { return {{_field.variable_name}}; }
+{% else %}
+    inline {{_field.type}}::FIELD_TYPE {{_field.name}}() const { return {{_field.variable_name}}.get(); }
+    inline void clear_{{_field.name}}() { {{_field.variable_name}}.set({{_field.default_value}}); }
+    inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE& value) { {{_field.variable_name}}.set(value); }
+    inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE&& value) { {{_field.variable_name}}.set(value); }
+    inline {{_field.type}}::FIELD_TYPE get_{{_field.name}}() const { return {{_field.variable_name}}.get(); }
+{% endif %}
+{% endmacro %}
+
 {% macro msg_macro(msg) %}
 {% if msg.templates is defined %}
 {% for template in msg.templates %}
@@ -35,36 +67,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
     {% endfor %}
     {% for field in msg.fields() %}
-    static const uint32_t {{field.variable_id_name}} = {{field.variable_id}};
-    {% if field.is_repeated_field %}
-    inline const {{field.type}}& {{field.name}}(uint32_t index) const { return {{field.variable_name}}[index]; }
-    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
-    inline void set_{{field.name}}(uint32_t index, const {{field.type}}& value) { {{field.variable_name}}.set(index, value); }
-    inline void set_{{field.name}}(uint32_t index, const {{field.type}}&& value) { {{field.variable_name}}.set(index, value); }
-    inline void add_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}}.add(value); }
-    inline const {{field.repeated_type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
-    inline {{field.repeated_type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
-    {% elif field.of_type_message %}
-    inline const {{field.type}}& {{field.name}}() const { return {{field.variable_name}}; }
-    inline void clear_{{field.name}}() { {{field.variable_name}}.clear(); }
-    inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
-    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
-    inline const {{field.type}}& get_{{field.name}}() const { return {{field.variable_name}}; }
-    inline {{field.type}}& mutable_{{field.name}}() { return {{field.variable_name}}; }
-    {% elif field.of_type_enum %}
-    inline {{field.type}} {{field.name}}() const { return {{field.variable_name}}; }
-    inline void clear_{{field.name}}() { {{field.variable_name}} = static_cast<{{field.type}}>({{field.default_value}}); }
-    inline void set_{{field.name}}(const {{field.type}}& value) { {{field.variable_name}} = value; }
-    inline void set_{{field.name}}(const {{field.type}}&& value) { {{field.variable_name}} = value; }
-    inline {{field.type}} get_{{field.name}}() const { return {{field.variable_name}}; }
-    {% else %}
-    inline {{field.type}}::FIELD_TYPE {{field.name}}() const { return {{field.variable_name}}.get(); }
-    inline void clear_{{field.name}}() { {{field.variable_name}}.set({{field.default_value}}); }
-    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE& value) { {{field.variable_name}}.set(value); }
-    inline void set_{{field.name}}(const {{field.type}}::FIELD_TYPE&& value) { {{field.variable_name}}.set(value); }
-    inline {{field.type}}::FIELD_TYPE get_{{field.name}}() const { return {{field.variable_name}}.get(); }
-    {% endif %}
-
+    {{ field_get_set_macro(field) }}
     {% endfor %}
     bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
