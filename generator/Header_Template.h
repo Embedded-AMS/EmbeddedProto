@@ -69,6 +69,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% for field in msg.fields() %}
     {{ field_get_set_macro(field) }}
     {% endfor %}
+    {% for oneof in msg.oneofs() %}
+    {% for field in oneof.fields() %}
+    {{ field_get_set_macro(field) }}
+    {% endfor %}
+    {% endfor %}
     bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
       bool result = true;
