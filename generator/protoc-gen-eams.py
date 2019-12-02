@@ -84,8 +84,10 @@ class FieldTemplateParameters:
         self.variable_name = self.name + "_"
         self.variable_id_name = self.name + "_id"
         self.variable_id = field_proto.number
-        # When set this field is part of a oneof.
-        self.which_oneof = which_oneof
+
+        if which_oneof:
+            # When set this field is part of a oneof.
+            self.which_oneof = which_oneof
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
