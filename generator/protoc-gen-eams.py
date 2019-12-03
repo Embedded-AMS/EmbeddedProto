@@ -115,7 +115,7 @@ class FieldTemplateParameters:
 class OneofTemplateParameters:
     def __init__(self, name, index, msg_proto):
         self.name = name
-        self.which_oneof = "which_" + name
+        self.which_oneof = "which_" + name + "_"
         self.index = index
         self.msg_proto = msg_proto
 
