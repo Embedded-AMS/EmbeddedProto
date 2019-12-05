@@ -26,7 +26,6 @@ namespace EmbeddedProto
     public:
 
       RepeatedField() = default;
-      virtual ~RepeatedField() = default;
 
       //! Obtain the total number of bytes currently stored in the array.
       virtual uint32_t get_size() const = 0;
@@ -236,8 +235,6 @@ namespace EmbeddedProto
       {
 
       }  
-
-      ~RepeatedFieldSize() override = default;
 
       uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
 

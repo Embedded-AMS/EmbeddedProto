@@ -17,8 +17,6 @@ class MessageInterface : public ::EmbeddedProto::Field
 
     MessageInterface() = default;
 
-    virtual ~MessageInterface() = default;
-
     // TODO doc
     bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
 

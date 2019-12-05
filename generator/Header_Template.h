@@ -200,7 +200,6 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {
 
     };
-    ~{{ msg.name }}() override = default;
 
     {% for enum in msg.nested_enums() %}
     {{ enum_macro(enum) }}
@@ -296,13 +295,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
     {% for oneof in msg.oneofs() %}
     ::EmbeddedProto::uint32 {{oneof.which_oneof}};
-    {% for field in oneof.fields() %}
-    {% if field.is_repeated_field %}
-    {{field.repeated_type}} {{field.variable_name}};
-    {% else %}
-    {{field.type}} {{field.variable_name}};
-    {% endif %}
-    {% endfor %}
+    union
+    {
+      {% for field in oneof.fields() %}
+      {% if field.is_repeated_field %}
+      {{field.repeated_type}} {{field.variable_name}};
+      {% else %}
+      {{field.type}} {{field.variable_name}};
+      {% endif %}
+      {% endfor %}
+    };
     {% endfor %}
 };
 {% endmacro %}
