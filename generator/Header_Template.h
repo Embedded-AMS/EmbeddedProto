@@ -220,6 +220,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
       {% for field in msg.fields() %}
       {{ field_serialize_macro(field)|indent(6) }}
+
       {% endfor %}
       {% for oneof in msg.oneofs() %}
       if((0 != {{oneof.which_oneof}}) && result)
@@ -236,6 +237,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
             break;
         }
       }
+
       {% endfor %}
       return result;
     };
