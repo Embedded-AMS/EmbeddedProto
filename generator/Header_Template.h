@@ -295,7 +295,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
 
     {% for oneof in msg.oneofs() %}
-    uint32 {{oneof.which_oneof}};
+    ::EmbeddedProto::uint32 {{oneof.which_oneof}};
     {% for field in oneof.fields() %}
     {% if field.is_repeated_field %}
     {{field.repeated_type}} {{field.variable_name}};
