@@ -11,29 +11,29 @@ enum {{ _enum.name }}
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
 {% macro field_get_set_macro(_field) %}
-static const uint32_t {{_field.variable_id_name}} = {{_field.variable_id}};
+static constexpr uint32_t {{_field.variable_id_name}} = {{_field.variable_id}};
 {% if _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_name}}[index]; }
 inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 {% if _field.which_oneof is defined %}
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}}.set(index, value);
 }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}}.set(index, value);
 }
 inline void add_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}}.add(value);
 }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}()
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   return {{_field.variable_name}};
 }
 {% else %}
@@ -49,17 +49,17 @@ inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 {% if _field.which_oneof is defined %}
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}} = value;
 }
 inline void set_{{_field.name}}(const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}} = value;
 }
 inline {{_field.type}}& mutable_{{_field.name}}()
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   return {{_field.variable_name}};
 }
 {% else %}
@@ -74,12 +74,12 @@ inline void clear_{{_field.name}}() { {{_field.variable_name}} = static_cast<{{_
 {% if _field.which_oneof is defined %}
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}} = value;
 }
 inline void set_{{_field.name}}(const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}} = value;
 }
 {% else %}
@@ -92,12 +92,12 @@ inline void clear_{{_field.name}}() { {{_field.variable_name}}.set({{_field.defa
 {% if _field.which_oneof is defined %}
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}}.set(value);
 }
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id_name}};
+  {{_field.which_oneof}} = {{_field.variable_id}};
   {{_field.variable_name}}.set(value);
 }
 {% else %}
@@ -158,7 +158,7 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   {
     {{_field.variable_name}} = static_cast<{{_field.type}}>(value);
     {% if _field.which_oneof is defined %}
-    {{_field.which_oneof}} = {{_field.variable_id_name}};
+    {{_field.which_oneof}} = {{_field.variable_id}};
     {% endif %}
   }
   {% else %}
@@ -166,7 +166,7 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   {% if _field.which_oneof is defined %}
   if(result)
   {
-    {{_field.which_oneof}} = {{_field.variable_id_name}};
+    {{_field.which_oneof}} = {{_field.variable_id}};
   }
   {% endif %}
   {% endif %}
