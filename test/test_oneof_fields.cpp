@@ -34,6 +34,28 @@ TEST(OneofField, serialize_zero)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
+TEST(OneofField, set_get_clear)
+{
+  message_oneof msg;
+  EXPECT_EQ(0, msg.get_which_xyz());
+  msg.set_x(1);
+  EXPECT_EQ(1, msg.get_x());
+  EXPECT_EQ(5, msg.get_which_xyz());
+  msg.clear_x();
+
+  EXPECT_EQ(0, msg.get_which_xyz());
+  msg.set_y(1);
+  EXPECT_EQ(1, msg.get_y());
+  EXPECT_EQ(6, msg.get_which_xyz());
+  msg.clear_y();
+
+  EXPECT_EQ(0, msg.get_which_xyz());
+  msg.set_z(1);
+  EXPECT_EQ(1, msg.get_z());
+  EXPECT_EQ(7, msg.get_which_xyz());
+  msg.clear_z();
+}
+
 TEST(OneofField, serialize_ones) 
 {
   InSequence s;

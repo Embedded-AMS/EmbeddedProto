@@ -14,8 +14,15 @@ enum {{ _enum.name }}
 static constexpr uint32_t {{_field.variable_id_name}} = {{_field.variable_id}};
 {% if _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_name}}[index]; }
-inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 {% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = 0;
+    {{_field.variable_name}}.clear();
+  }
+}
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value)
 {
   {{_field.which_oneof}} = {{_field.variable_id}};
@@ -37,6 +44,7 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}()
   return {{_field.variable_name}};
 }
 {% else %}
+inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value) { {{_field.variable_name}}.set(index, value); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value) { {{_field.variable_name}}.set(index, value); }
 inline void add_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}}.add(value); }
@@ -45,8 +53,15 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.var
 inline const {{_field.repeated_type}}& get_{{_field.name}}() const { return {{_field.variable_name}}; }
 {% elif _field.of_type_message %}
 inline const {{_field.type}}& {{_field.name}}() const { return {{_field.variable_name}}; }
-inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 {% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = 0;
+    {{_field.variable_name}}.clear();
+  }
+}
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
   {{_field.which_oneof}} = {{_field.variable_id}};
@@ -63,6 +78,7 @@ inline {{_field.type}}& mutable_{{_field.name}}()
   return {{_field.variable_name}};
 }
 {% else %}
+inline void clear_{{_field.name}}() { {{_field.variable_name}}.clear(); }
 inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}} = value; }
 inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_name}} = value; }
 inline {{_field.type}}& mutable_{{_field.name}}() { return {{_field.variable_name}}; }
@@ -70,8 +86,15 @@ inline {{_field.type}}& mutable_{{_field.name}}() { return {{_field.variable_nam
 inline const {{_field.type}}& get_{{_field.name}}() const { return {{_field.variable_name}}; }
 {% elif _field.of_type_enum %}
 inline {{_field.type}} {{_field.name}}() const { return {{_field.variable_name}}; }
-inline void clear_{{_field.name}}() { {{_field.variable_name}} = static_cast<{{_field.type}}>({{_field.default_value}}); }
 {% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = 0;
+    {{_field.variable_name}} = static_cast<{{_field.type}}>({{_field.default_value}});
+  }
+}
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
   {{_field.which_oneof}} = {{_field.variable_id}};
@@ -83,13 +106,21 @@ inline void set_{{_field.name}}(const {{_field.type}}&& value)
   {{_field.variable_name}} = value;
 }
 {% else %}
+inline void clear_{{_field.name}}() { {{_field.variable_name}} = static_cast<{{_field.type}}>({{_field.default_value}}); }
 inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_name}} = value; }
 inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_name}} = value; }
 {% endif %}    inline {{_field.type}} get_{{_field.name}}() const { return {{_field.variable_name}}; }
 {% else %}
 inline {{_field.type}}::FIELD_TYPE {{_field.name}}() const { return {{_field.variable_name}}.get(); }
-inline void clear_{{_field.name}}() { {{_field.variable_name}}.set({{_field.default_value}}); }
 {% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = 0;
+    {{_field.variable_name}}.set({{_field.default_value}});
+  }
+}
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE& value)
 {
   {{_field.which_oneof}} = {{_field.variable_id}};
@@ -101,6 +132,7 @@ inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE&& value)
   {{_field.variable_name}}.set(value);
 }
 {% else %}
+inline void clear_{{_field.name}}() { {{_field.variable_name}}.set({{_field.default_value}}); }
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE& value) { {{_field.variable_name}}.set(value); }
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE&& value) { {{_field.variable_name}}.set(value); }
 {% endif %}
@@ -209,6 +241,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {{ field_get_set_macro(field)|indent(4) }}
     {% endfor %}
     {% for oneof in msg.oneofs() %}
+    uint32_t get_which_{{oneof.name}}() const { return {{oneof.which_oneof}}; }
+
     {% for field in oneof.fields() %}
     {{ field_get_set_macro(field)|indent(4) }}
     {% endfor %}
