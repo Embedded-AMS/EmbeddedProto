@@ -132,6 +132,8 @@ class MessageTemplateParameters:
     def __init__(self, msg_proto):
         self.name = msg_proto.name
         self.msg_proto = msg_proto
+        self.has_fields = len(self.msg_proto.field) > 0
+        self.has_oneofs = len(self.msg_proto.oneof_decl) > 0
         self.templates = []
 
         #TODO this creates a bug if a oneof field is also a repeated_field.

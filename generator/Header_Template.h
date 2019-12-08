@@ -226,8 +226,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         {% if field.of_type_enum %}
         {{field.variable_name}}({{field.default_value}}){{"," if not loop.last}}
         {% else %}
-        {{field.variable_name}}(){{"," if not loop.last}}
+        {{field.variable_name}}(){{"," if not loop.last}}{{"," if loop.last and msg.has_oneofs}}
         {% endif %}
+    {% endfor %}
+    {% for oneof in msg.oneofs() %}
+        {{oneof.which_oneof}}(){{"," if not loop.last}}
     {% endfor %}
     {
 
