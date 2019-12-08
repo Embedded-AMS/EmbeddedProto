@@ -19,4 +19,4 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/oneof_fields.prot
 mkdir -p build/test
 cd build/test/
 cmake -DCMAKE_BUILD_TYPE=Debug ../../
-make
+make -j16
