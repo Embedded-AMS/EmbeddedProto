@@ -82,7 +82,7 @@ class FieldTemplateParameters:
     def __init__(self, field_proto, which_oneof=None):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
-        self.variable_id_name = self.name + "_id"
+        self.variable_id_name = self.name.upper()
         self.variable_id = field_proto.number
 
         if which_oneof:
@@ -135,11 +135,21 @@ class MessageTemplateParameters:
         self.has_fields = len(self.msg_proto.field) > 0
         self.has_oneofs = len(self.msg_proto.oneof_decl) > 0
         self.templates = []
+        self.field_ids = []
 
         #TODO this creates a bug if a oneof field is also a repeated_field.
         for field in self.fields():
+            self.field_ids.append((field.variable_id, field.variable_id_name))
             if field.is_repeated_field:
                 self.templates.append(field.variable_name)
+
+        for oneof in self.oneofs():
+            for field in oneof.fields():
+                self.field_ids.append((field.variable_id, field.variable_id_name))
+
+        # Sort the field id's such they will appear in order in the id enum.
+        self.field_ids.sort()
+
 
     def fields(self):
         # Yield only the normal fields in this message.

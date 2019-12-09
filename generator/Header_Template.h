@@ -11,36 +11,35 @@ enum {{ _enum.name }}
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
 {% macro field_get_set_macro(_field) %}
-static constexpr uint32_t {{_field.variable_id_name}} = {{_field.variable_id}};
 {% if _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_name}}[index]; }
 {% if _field.which_oneof is defined %}
 inline void clear_{{_field.name}}()
 {
-  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
-    {{_field.which_oneof}} = 0;
+    {{_field.which_oneof}} = id::NOT_SET;
     {{_field.variable_name}}.clear();
   }
 }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}}.set(index, value);
 }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}}.set(index, value);
 }
 inline void add_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}}.add(value);
 }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}()
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   return {{_field.variable_name}};
 }
 {% else %}
@@ -56,25 +55,25 @@ inline const {{_field.type}}& {{_field.name}}() const { return {{_field.variable
 {% if _field.which_oneof is defined %}
 inline void clear_{{_field.name}}()
 {
-  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
-    {{_field.which_oneof}} = 0;
+    {{_field.which_oneof}} = id::NOT_SET;
     {{_field.variable_name}}.clear();
   }
 }
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}} = value;
 }
 inline void set_{{_field.name}}(const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}} = value;
 }
 inline {{_field.type}}& mutable_{{_field.name}}()
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   return {{_field.variable_name}};
 }
 {% else %}
@@ -89,20 +88,20 @@ inline {{_field.type}} {{_field.name}}() const { return {{_field.variable_name}}
 {% if _field.which_oneof is defined %}
 inline void clear_{{_field.name}}()
 {
-  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
-    {{_field.which_oneof}} = 0;
+    {{_field.which_oneof}} = id::NOT_SET;
     {{_field.variable_name}} = static_cast<{{_field.type}}>({{_field.default_value}});
   }
 }
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}} = value;
 }
 inline void set_{{_field.name}}(const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}} = value;
 }
 {% else %}
@@ -115,20 +114,20 @@ inline {{_field.type}}::FIELD_TYPE {{_field.name}}() const { return {{_field.var
 {% if _field.which_oneof is defined %}
 inline void clear_{{_field.name}}()
 {
-  if({{_field.variable_id_name}} == {{_field.which_oneof}})
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
-    {{_field.which_oneof}} = 0;
+    {{_field.which_oneof}} = id::NOT_SET;
     {{_field.variable_name}}.set({{_field.default_value}});
   }
 }
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}}.set(value);
 }
 inline void set_{{_field.name}}(const {{_field.type}}::FIELD_TYPE&& value)
 {
-  {{_field.which_oneof}} = {{_field.variable_id}};
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_name}}.set(value);
 }
 {% else %}
@@ -146,25 +145,25 @@ inline {{_field.type}}::FIELD_TYPE get_{{_field.name}}() const { return {{_field
 {% if _field.is_repeated_field %}
 if(result)
 {
-  result = {{_field.variable_name}}.serialize({{_field.variable_id_name}}, buffer);
+  result = {{_field.variable_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_message %}
 if(result)
 {
   const ::EmbeddedProto::MessageInterface* x = &{{_field.variable_name}};
-  result = x->serialize({{_field.variable_id_name}}, buffer);
+  result = x->serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_enum %}
 if(({{_field.default_value}} != {{_field.variable_name}}) && result)
 {
   EmbeddedProto::uint32 value;
   value.set(static_cast<uint32_t>({{_field.variable_name}}));
-  result = value.serialize({{_field.variable_id_name}}, buffer);
+  result = value.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% else %}
 if(({{_field.default_value}} != {{_field.variable_name}}.get()) && result)
 {
-  result = {{_field.variable_name}}.serialize({{_field.variable_id_name}}, buffer);
+  result = {{_field.variable_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 } {% endif %} {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
@@ -190,7 +189,7 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   {
     {{_field.variable_name}} = static_cast<{{_field.type}}>(value);
     {% if _field.which_oneof is defined %}
-    {{_field.which_oneof}} = {{_field.variable_id}};
+    {{_field.which_oneof}} = id::{{_field.variable_id_name}};
     {% endif %}
   }
   {% else %}
@@ -198,7 +197,7 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   {% if _field.which_oneof is defined %}
   if(result)
   {
-    {{_field.which_oneof}} = {{_field.variable_id}};
+    {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   }
   {% endif %}
   {% endif %}
@@ -240,11 +239,19 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {{ enum_macro(enum) }}
 
     {% endfor %}
+    enum class id
+    {
+      NOT_SET = 0,
+      {% for id_set in msg.field_ids %}
+      {{id_set[1]}} = {{id_set[0]}}{{ "," if not loop.last }}
+      {% endfor %}
+    };
+
     {% for field in msg.fields() %}
     {{ field_get_set_macro(field)|indent(4) }}
     {% endfor %}
     {% for oneof in msg.oneofs() %}
-    uint32_t get_which_{{oneof.name}}() const { return {{oneof.which_oneof}}; }
+    id get_which_{{oneof.name}}() const { return {{oneof.which_oneof}}; }
 
     {% for field in oneof.fields() %}
     {{ field_get_set_macro(field)|indent(4) }}
@@ -259,12 +266,12 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
       {% endfor %}
       {% for oneof in msg.oneofs() %}
-      if((0 != {{oneof.which_oneof}}) && result)
+      if(result)
       {
         switch({{oneof.which_oneof}})
         {
           {% for field in oneof.fields() %}
-          case {{field.variable_id_name}}:
+          case id::{{field.variable_id_name}}:
             {{ field_serialize_macro(field)|indent(12) }}
             break;
 
@@ -289,7 +296,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         switch(id_number)
         {
           {% for field in msg.fields() %}
-          case {{field.variable_id_name}}:
+          case static_cast<uint32_t>(id::{{field.variable_id_name}}):
           {
             {{ field_deserialize_macro(field)|indent(12) }}
             break;
@@ -298,7 +305,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
           {% endfor %}
           {% for oneof in msg.oneofs() %}
           {% for field in oneof.fields() %}
-          case {{field.variable_id_name}}:
+          case static_cast<uint32_t>(id::{{field.variable_id_name}}):
           {
             {{ field_deserialize_macro(field)|indent(12) }}
             break;
@@ -331,7 +338,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
 
     {% for oneof in msg.oneofs() %}
-    ::EmbeddedProto::uint32 {{oneof.which_oneof}};
+    id {{oneof.which_oneof}};
     union
     {
       {% for field in oneof.fields() %}
