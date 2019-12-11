@@ -79,15 +79,19 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
-    def __init__(self, field_proto, which_oneof=None):
+    def __init__(self, field_proto, oneof=None):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
         self.variable_id_name = self.name.upper()
         self.variable_id = field_proto.number
 
-        if which_oneof:
+        if oneof:
             # When set this field is part of a oneof.
-            self.which_oneof = which_oneof
+            self.which_oneof = "which_" + oneof + "_"
+            self.variable_full_name = oneof + "_." + self.variable_name
+        else:
+            self.variable_full_name = self.variable_name
+
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
@@ -123,7 +127,7 @@ class OneofTemplateParameters:
         # Yield all the fields in this oneof
         for f in self.msg_proto.field:
             if f.HasField('oneof_index') and self.index == f.oneof_index:
-                yield FieldTemplateParameters(f, self.which_oneof)
+                yield FieldTemplateParameters(f, self.name)
 
 
 # -----------------------------------------------------------------------------
