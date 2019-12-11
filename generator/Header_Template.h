@@ -229,7 +229,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
         {% endif %}
     {% endfor %}
     {% for oneof in msg.oneofs() %}
-        {{oneof.which_oneof}}(){{"," if not loop.last}}
+        {{oneof.which_oneof}}(id::NOT_SET){{"," if not loop.last}}
     {% endfor %}
     {
 
@@ -266,19 +266,16 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 
       {% endfor %}
       {% for oneof in msg.oneofs() %}
-      if(result)
+      switch({{oneof.which_oneof}})
       {
-        switch({{oneof.which_oneof}})
-        {
-          {% for field in oneof.fields() %}
-          case id::{{field.variable_id_name}}:
-            {{ field_serialize_macro(field)|indent(12) }}
-            break;
+        {% for field in oneof.fields() %}
+        case id::{{field.variable_id_name}}:
+          {{ field_serialize_macro(field)|indent(12) }}
+          break;
 
-          {% endfor %}
-          default:
-            break;
-        }
+        {% endfor %}
+        default:
+          break;
       }
 
       {% endfor %}
@@ -349,6 +346,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% endif %}
       {% endfor %}
     };
+
     {% endfor %}
 };
 {% endmacro %}
