@@ -14,4 +14,10 @@ message message_oneof
   }
 
   int32 b = 10;
+
+  oneof uvw {
+    float u = 15;
+    float v = 16;
+    float w = 17;
+  }
 }

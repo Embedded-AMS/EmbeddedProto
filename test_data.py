@@ -162,7 +162,8 @@ def test_oneof_fields():
 
     msg.a = 1
     msg.b = 1
-    msg.z = 1
+    msg.x = 1
+    msg.v = 1
 
     str = ""
     msg_str = msg.SerializeToString()
