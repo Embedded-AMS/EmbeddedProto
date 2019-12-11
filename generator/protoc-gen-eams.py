@@ -137,7 +137,6 @@ class MessageTemplateParameters:
         self.templates = []
         self.field_ids = []
 
-        #TODO this creates a bug if a oneof field is also a repeated_field.
         for field in self.fields():
             self.field_ids.append((field.variable_id, field.variable_id_name))
             if field.is_repeated_field:
@@ -146,10 +145,11 @@ class MessageTemplateParameters:
         for oneof in self.oneofs():
             for field in oneof.fields():
                 self.field_ids.append((field.variable_id, field.variable_id_name))
+                if field.is_repeated_field:
+                    self.templates.append(field.variable_name)
 
         # Sort the field id's such they will appear in order in the id enum.
         self.field_ids.sort()
-
 
     def fields(self):
         # Yield only the normal fields in this message.
