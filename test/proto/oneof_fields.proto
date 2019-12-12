@@ -1,0 +1,23 @@
+
+// This file is used to test oneof fields in messages.
+
+syntax = "proto3";
+
+message message_oneof 
+{
+  int32 a = 1;
+
+  oneof xyz {
+    int32 x = 5;
+    int32 y = 6;
+    int32 z = 7;
+  }
+
+  int32 b = 10;
+
+  oneof uvw {
+    float u = 15;
+    float v = 16;
+    float w = 17;
+  }
+}

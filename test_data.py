@@ -1,6 +1,7 @@
 import build.python.simple_types_pb2 as st
 import build.python.nested_message_pb2 as nm
 import build.python.repeated_fields_pb2 as rf
+import build.python.oneof_fields_pb2 as of
 
 
 def test_simple_types():
@@ -155,6 +156,27 @@ def test_repeated_message():
     print(str)
     print()
 
+
+def test_oneof_fields():
+    msg = of.message_oneof()
+
+    msg.a = 1
+    msg.b = 1
+    msg.x = 1
+    msg.v = 1
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+      str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+
 #test_repeated_fields()
-test_repeated_message()
+#test_repeated_message()
 #test_nested_message()
+test_oneof_fields()

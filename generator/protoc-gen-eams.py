@@ -79,11 +79,19 @@ class FieldTemplateParameters:
                          FieldDescriptorProto.TYPE_FLOAT:    "FIXED32",
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
-    def __init__(self, field_proto):
+    def __init__(self, field_proto, oneof=None):
         self.name = field_proto.name
         self.variable_name = self.name + "_"
-        self.variable_id_name = self.name + "_id"
+        self.variable_id_name = self.name.upper()
         self.variable_id = field_proto.number
+
+        if oneof:
+            # When set this field is part of a oneof.
+            self.which_oneof = "which_" + oneof + "_"
+            self.variable_full_name = oneof + "_." + self.variable_name
+        else:
+            self.variable_full_name = self.variable_name
+
 
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
@@ -108,20 +116,58 @@ class FieldTemplateParameters:
 # -----------------------------------------------------------------------------
 
 
+class OneofTemplateParameters:
+    def __init__(self, name, index, msg_proto):
+        self.name = name
+        self.which_oneof = "which_" + name + "_"
+        self.index = index
+        self.msg_proto = msg_proto
+
+    def fields(self):
+        # Yield all the fields in this oneof
+        for f in self.msg_proto.field:
+            if f.HasField('oneof_index') and self.index == f.oneof_index:
+                yield FieldTemplateParameters(f, self.name)
+
+
+# -----------------------------------------------------------------------------
+
 class MessageTemplateParameters:
     def __init__(self, msg_proto):
         self.name = msg_proto.name
         self.msg_proto = msg_proto
+        self.has_fields = len(self.msg_proto.field) > 0
+        self.has_oneofs = len(self.msg_proto.oneof_decl) > 0
         self.templates = []
+        self.field_ids = []
+
         for field in self.fields():
+            self.field_ids.append((field.variable_id, field.variable_id_name))
             if field.is_repeated_field:
                 self.templates.append(field.variable_name)
 
+        for oneof in self.oneofs():
+            for field in oneof.fields():
+                self.field_ids.append((field.variable_id, field.variable_id_name))
+                if field.is_repeated_field:
+                    self.templates.append(field.variable_name)
+
+        # Sort the field id's such they will appear in order in the id enum.
+        self.field_ids.sort()
+
     def fields(self):
+        # Yield only the normal fields in this message.
         for f in self.msg_proto.field:
-            yield FieldTemplateParameters(f)
+            if not f.HasField('oneof_index'):
+                yield FieldTemplateParameters(f)
+
+    def oneofs(self):
+        # Yield all the oneofs in this message.
+        for index, oneof in enumerate(self.msg_proto.oneof_decl):
+            yield OneofTemplateParameters(oneof.name, index, self.msg_proto)
 
     def nested_enums(self):
+        # Yield all the enumerations defined in the scope of this message.
         for enum in self.msg_proto.enum_type:
             yield EnumTemplateParameters(enum)
 
