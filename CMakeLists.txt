@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 project(test_EmbeddedProto)
 
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -fprofile-arcs -ftest-coverage")
-
+set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
 
 add_subdirectory(external/googletest)
 

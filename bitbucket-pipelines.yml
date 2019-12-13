@@ -15,6 +15,8 @@ pipelines:
           - ./build_test.sh
           - ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 
+          - ./code_coverage.sh
+
           - cd build/test
           - build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
           
