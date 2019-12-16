@@ -123,14 +123,19 @@ class OneofTemplateParameters:
         self.index = index
         self.msg_proto = msg_proto
 
-    def fields(self):
-        # Yield all the fields in this oneof
+        self.fields_array = []
+        # Loop over all the fields in this oneof
         for f in self.msg_proto.field:
             if f.HasField('oneof_index') and self.index == f.oneof_index:
-                yield FieldTemplateParameters(f, self.name)
+                self.fields_array.append(FieldTemplateParameters(f, self.name))
+
+    def fields(self):
+        for f in self.fields_array:
+            yield f
 
 
 # -----------------------------------------------------------------------------
+
 
 class MessageTemplateParameters:
     def __init__(self, msg_proto):
@@ -138,15 +143,27 @@ class MessageTemplateParameters:
         self.msg_proto = msg_proto
         self.has_fields = len(self.msg_proto.field) > 0
         self.has_oneofs = len(self.msg_proto.oneof_decl) > 0
+
+        self.fields_array = []
+        # Loop over only the normal fields in this message.
+        for f in self.msg_proto.field:
+            if not f.HasField('oneof_index'):
+                self.fields_array.append(FieldTemplateParameters(f))
+
+        self.oneof_fields = []
+        # Loop over all the oneofs in this message.
+        for index, oneof in enumerate(self.msg_proto.oneof_decl):
+            self.oneof_fields.append(OneofTemplateParameters(oneof.name, index, self.msg_proto))
+
         self.templates = []
         self.field_ids = []
 
-        for field in self.fields():
+        for field in self.fields_array:
             self.field_ids.append((field.variable_id, field.variable_id_name))
             if field.is_repeated_field:
                 self.templates.append(field.variable_name)
 
-        for oneof in self.oneofs():
+        for oneof in self.oneof_fields:
             for field in oneof.fields():
                 self.field_ids.append((field.variable_id, field.variable_id_name))
                 if field.is_repeated_field:
@@ -156,15 +173,12 @@ class MessageTemplateParameters:
         self.field_ids.sort()
 
     def fields(self):
-        # Yield only the normal fields in this message.
-        for f in self.msg_proto.field:
-            if not f.HasField('oneof_index'):
-                yield FieldTemplateParameters(f)
+        for f in self.fields_array:
+            yield f
 
     def oneofs(self):
-        # Yield all the oneofs in this message.
-        for index, oneof in enumerate(self.msg_proto.oneof_decl):
-            yield OneofTemplateParameters(oneof.name, index, self.msg_proto)
+        for o in self.oneof_fields:
+            yield o
 
     def nested_enums(self):
         # Yield all the enumerations defined in the scope of this message.
