@@ -214,7 +214,7 @@ else
 {% macro msg_macro(msg) %}
 {% if msg.templates is defined %}
 {% for template in msg.templates %}
-{{"template<" if loop.first}}uint32_t {{template}}{{"SIZE, " if not loop.last}}{{"SIZE>" if loop.last}}
+{{"template<" if loop.first}}{{template["type"]}} {{template["name"]}}{{", " if not loop.last}}{{">" if loop.last}}
 {% endfor %}
 {% endif %}
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
