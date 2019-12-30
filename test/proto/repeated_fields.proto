@@ -21,3 +21,8 @@ message repeated_message
   repeated repeated_nested_message y  = 2;
   uint32 z                            = 3;
 }
+
+message nested_repeated_message
+{
+    repeated_message rm = 1;
+}

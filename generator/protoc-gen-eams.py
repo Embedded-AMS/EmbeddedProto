@@ -113,12 +113,15 @@ class FieldTemplateParameters:
         if self.of_type_message:
             for msg in messages:
                 if msg.name == self.type:
-                    self.templates.extend(msg.templates)
+                    msg_templates = msg.templates
+                    for tmpl in msg_templates:
+                        tmpl["name"] = self.variable_name + tmpl["name"]
+                    self.templates.extend(msg_templates)
 
                     if self.templates:
                         self.type += "<"
-                        for tmpl in self.templates[:-1]["name"]:
-                            self.type += tmpl + ", "
+                        for tmpl in self.templates[:-1]:
+                            self.type += tmpl["name"] + ", "
                         self.type += self.templates[-1]["name"] + ">"
 
                     break
@@ -131,7 +134,7 @@ class FieldTemplateParameters:
         if self.is_repeated_field:
             self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " +  self.variable_name \
                                  + "SIZE>"
-            self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE>"})
+            self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE"})
 
 
 # -----------------------------------------------------------------------------
