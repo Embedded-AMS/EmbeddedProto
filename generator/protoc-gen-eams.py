@@ -2,6 +2,7 @@ import io
 import sys
 import os
 import jinja2
+from copy import deepcopy
 
 from google.protobuf.compiler import plugin_pb2 as plugin
 from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto, EnumDescriptorProto
@@ -113,7 +114,7 @@ class FieldTemplateParameters:
         if self.of_type_message:
             for msg in messages:
                 if msg.name == self.type:
-                    msg_templates = msg.templates
+                    msg_templates = deepcopy(msg.templates)
                     for tmpl in msg_templates:
                         tmpl["name"] = self.variable_name + tmpl["name"]
                     self.templates.extend(msg_templates)
@@ -132,7 +133,7 @@ class FieldTemplateParameters:
             self.default_value = self.type_to_default_value[self.field_proto.type]
 
         if self.is_repeated_field:
-            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " +  self.variable_name \
+            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " + self.variable_name \
                                  + "SIZE>"
             self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE"})
 
