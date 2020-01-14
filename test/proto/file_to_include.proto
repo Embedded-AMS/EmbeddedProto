@@ -1,0 +1,16 @@
+
+// This file is used to test including other proto files.
+// This is the file which is included in "include_other_files.proto".
+
+syntax = "proto3";
+
+enum CommonStates {
+  Idle   = 0;
+  StateA = 1;
+  StateB = 2;
+}
+
+message CommonMessage {
+  uint32 a = 1;
+  float  b = 2;
+}

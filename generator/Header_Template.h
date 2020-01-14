@@ -370,8 +370,15 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <ReadBufferSection.h>
 #include <RepeatedField.h>
 {% endif %}
+{% if dependencies %}
 
+// Include external proto definitions
+{% for dependency in dependencies %}
+#include <{{dependency}}>
+{% endfor %}
+{% endif %}
 {% if namespace %}
+
 namespace {{ namespace }}
 { {% endif %}
 
