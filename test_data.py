@@ -1,7 +1,13 @@
-import build.python.simple_types_pb2 as st
-import build.python.nested_message_pb2 as nm
-import build.python.repeated_fields_pb2 as rf
-import build.python.oneof_fields_pb2 as of
+
+from sys import path
+path.append('./build/python/')
+
+import simple_types_pb2 as st
+import nested_message_pb2 as nm
+import repeated_fields_pb2 as rf
+import oneof_fields_pb2 as of
+import file_to_include_pb2 as fti
+import include_other_files_pb2 as iof
 
 
 def test_simple_types():
@@ -51,7 +57,6 @@ def test_simple_types():
 
     print(str)
     print()
-
 
     x = bytearray([0x08, 0x80, 0x80, 0x80, 0x80, 0x08,
                  0x10, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01,
@@ -127,7 +132,7 @@ def test_repeated_fields():
     print(len(msg_str))
     print(msg_str)
     for x in msg_str:
-      str += "0x{:02x}, ".format(x)
+        str += "0x{:02x}, ".format(x)
 
     print(str)
     print()
@@ -136,22 +141,22 @@ def test_repeated_fields():
 def test_repeated_message():
     msg = rf.repeated_message()
 
-    msg.x = 0
+    msg.a = 0
     for i in range(3):
-        nmsg = msg.y.add()
+        nmsg = msg.b.add()
         nmsg.u = 0
         nmsg.v = 0
-    msg.z = 0
+    msg.c = 0
 
-    msg.y[1].u = 1
-    msg.y[1].v = 1
+    msg.b[1].u = 1
+    msg.b[1].v = 1
 
     str = ""
     msg_str = msg.SerializeToString()
     print(len(msg_str))
     print(msg_str)
     for x in msg_str:
-      str += "0x{:02x}, ".format(x)
+        str += "0x{:02x}, ".format(x)
 
     print(str)
     print()
@@ -170,7 +175,32 @@ def test_oneof_fields():
     print(len(msg_str))
     print(msg_str)
     for x in msg_str:
-      str += "0x{:02x}, ".format(x)
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+
+def test_included_proto():
+    msg = iof.IncludedMessages()
+
+    msg.state = fti.StateA
+
+    msg.msg.a = 1
+    msg.msg.b = 1.0
+
+    msg.rf.x = 1
+    msg.rf.y.append(1)
+    msg.rf.y.append(1)
+    msg.rf.y.append(1)
+    msg.rf.z = 1
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
 
     print(str)
     print()
@@ -179,4 +209,5 @@ def test_oneof_fields():
 #test_repeated_fields()
 #test_repeated_message()
 #test_nested_message()
-test_oneof_fields()
+#test_oneof_fields()
+test_included_proto()
