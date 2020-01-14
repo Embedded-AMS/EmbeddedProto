@@ -17,9 +17,9 @@ message repeated_nested_message
 
 message repeated_message
 {
-  uint32 x                            = 1;
-  repeated repeated_nested_message y  = 2;
-  uint32 z                            = 3;
+  uint32 a                            = 1;
+  repeated repeated_nested_message b  = 2;
+  uint32 c                            = 3;
 }
 
 message nested_repeated_message
