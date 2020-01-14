@@ -47,9 +47,9 @@ TEST(IncludeOtherFiles, set)
   ::IncludedMessages<RF_SIZE> msg;
   Mocks::WriteBufferMock buffer;
 
-  msg.set_state(::CommonStates::StateA);
+  msg.set_state(some::external::lib::CommonStates::StateA);
 
-  ::CommonMessage cmsg;
+  some::external::lib::CommonMessage cmsg;
   cmsg.set_a(1);
   cmsg.set_b(1.0F);
   msg.set_msg(cmsg);

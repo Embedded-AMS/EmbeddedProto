@@ -10,7 +10,7 @@ import "file_to_include.proto";
 import "repeated_fields.proto";
 
 message IncludedMessages {
-  CommonStates  state = 1;
-  CommonMessage msg   = 2;
+  some.external.lib.CommonStates  state = 1;
+  some.external.lib.CommonMessage msg   = 2;
   repeated_fields rf  = 3;
 }
