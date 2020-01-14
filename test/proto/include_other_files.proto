@@ -3,9 +3,14 @@
 
 syntax = "proto3";
 
+// Import something simple
 import "file_to_include.proto";
+
+// Import something with variable length
+import "repeated_fields.proto";
 
 message IncludedMessages {
   CommonStates  state = 1;
   CommonMessage msg   = 2;
+  repeated_fields rf  = 3;
 }
