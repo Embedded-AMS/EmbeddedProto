@@ -233,6 +233,7 @@ def generate_code(request, respones):
     template = template_env.get_template(template_file)
 
     messages_array = []
+    number_of_processed_msg = 0
 
     # Loop over all proto files in the request
     for proto_file in request.proto_file:
@@ -249,9 +250,15 @@ def generate_code(request, respones):
 
         filename_str = os.path.splitext(proto_file.name)[0]
 
+        imported_dependencies = []
+        if proto_file.dependency:
+            imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in proto_file.dependency]
+
         try:
-            file_str = template.render(filename=filename_str, namespace=proto_file.package, messages=messages_array,
-                                       enums=enums_generator)
+            file_str = template.render(filename=filename_str, namespace=proto_file.package,
+                                       messages=messages_array[number_of_processed_msg:],
+                                       enums=enums_generator, dependencies=imported_dependencies)
+
         except jinja2.TemplateError as e:
             print("TemplateError exception: " + str(e))
         except jinja2.UndefinedError as e:
@@ -265,6 +272,7 @@ def generate_code(request, respones):
         except Exception as e:
             print("Template renderer exception: " + str(e))
         else:
+            number_of_processed_msg = len(messages_array)
             f = respones.file.add()
             f.name = filename_str + ".h"
             f.content = file_str
