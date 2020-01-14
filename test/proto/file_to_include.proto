@@ -4,6 +4,8 @@
 
 syntax = "proto3";
 
+package some.external.lib;
+
 enum CommonStates {
   Idle   = 0;
   StateA = 1;

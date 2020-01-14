@@ -98,6 +98,7 @@ class FieldTemplateParameters:
 
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
+            self.type = self.type.replace(".", "::")
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
 
@@ -254,8 +255,12 @@ def generate_code(request, respones):
         if proto_file.dependency:
             imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in proto_file.dependency]
 
+        namespace_name = ""
+        if proto_file.package:
+            namespace_name = proto_file.package.replace(".", "::")
+
         try:
-            file_str = template.render(filename=filename_str, namespace=proto_file.package,
+            file_str = template.render(filename=filename_str, namespace=namespace_name,
                                        messages=messages_array[number_of_processed_msg:],
                                        enums=enums_generator, dependencies=imported_dependencies)
 

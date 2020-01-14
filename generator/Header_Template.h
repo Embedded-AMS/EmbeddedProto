@@ -380,7 +380,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {% if namespace %}
 
 namespace {{ namespace }}
-{ {% endif %}
+{
+{% endif %}
 
 {% for enum in enums %}
 {{ enum_macro(enum) }}
