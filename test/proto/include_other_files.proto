@@ -1,0 +1,11 @@
+
+// This file is used to test including other proto files.
+
+syntax = "proto3";
+
+import "file_to_include.proto";
+
+message IncludedMessages {
+  CommonStates  state = 1;
+  CommonMessage msg   = 2;
+}
