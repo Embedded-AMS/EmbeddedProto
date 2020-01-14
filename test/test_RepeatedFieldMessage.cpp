@@ -89,9 +89,9 @@ TEST(RepeatedFieldMessage, serialize_array_zero_messages)
   rnm.set_u(0);
   rnm.set_v(0);
 
-  msg.add_y(rnm);
-  msg.add_y(rnm);
-  msg.add_y(rnm);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
 
@@ -140,15 +140,15 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   
   rnm.set_u(0);
   rnm.set_v(0);
-  msg.add_y(rnm);
+  msg.add_b(rnm);
 
   rnm.set_u(1);
   rnm.set_v(1);
-  msg.add_y(rnm);
+  msg.add_b(rnm);
   
   rnm.set_u(0);
   rnm.set_v(0);
-  msg.add_y(rnm);
+  msg.add_b(rnm);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
 
@@ -349,15 +349,15 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
 
   EXPECT_TRUE(msg.deserialize(buffer));
 
-  EXPECT_EQ(1, msg.get_x());
-  EXPECT_EQ(3, msg.get_y().get_length());
-  EXPECT_EQ(0, msg.y(0).u());
-  EXPECT_EQ(0, msg.y(0).v());
-  EXPECT_EQ(1, msg.y(1).u());
-  EXPECT_EQ(1, msg.y(1).v());
-  EXPECT_EQ(0, msg.y(2).u());
-  EXPECT_EQ(0, msg.y(2).v());
-  EXPECT_EQ(1, msg.get_z());
+  EXPECT_EQ(1, msg.get_a());
+  EXPECT_EQ(3, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.b(0).u());
+  EXPECT_EQ(0, msg.b(0).v());
+  EXPECT_EQ(1, msg.b(1).u());
+  EXPECT_EQ(1, msg.b(1).v());
+  EXPECT_EQ(0, msg.b(2).u());
+  EXPECT_EQ(0, msg.b(2).v());
+  EXPECT_EQ(1, msg.get_c());
 }
 
 TEST(RepeatedFieldMessage, deserialize_mixed_message_array) 
@@ -384,15 +384,15 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
 
   EXPECT_TRUE(msg.deserialize(buffer));
 
-  EXPECT_EQ(1, msg.get_x());
-  EXPECT_EQ(3, msg.get_y().get_length());
-  EXPECT_EQ(0, msg.y(0).u());
-  EXPECT_EQ(0, msg.y(0).v());
-  EXPECT_EQ(1, msg.y(1).u());
-  EXPECT_EQ(1, msg.y(1).v());
-  EXPECT_EQ(0, msg.y(2).u());
-  EXPECT_EQ(0, msg.y(2).v());
-  EXPECT_EQ(1, msg.get_z());
+  EXPECT_EQ(1, msg.get_a());
+  EXPECT_EQ(3, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.b(0).u());
+  EXPECT_EQ(0, msg.b(0).v());
+  EXPECT_EQ(1, msg.b(1).u());
+  EXPECT_EQ(1, msg.b(1).v());
+  EXPECT_EQ(0, msg.b(2).u());
+  EXPECT_EQ(0, msg.b(2).v());
+  EXPECT_EQ(1, msg.get_c());
 }
 
 TEST(RepeatedFieldMessage, deserialize_max) 
