@@ -2,14 +2,20 @@
 ![alt text](https://embeddedams.nl/wp-content/uploads/2018/07/EmbeddedAMS_long.png "Embedded AMS Logo")
 
 
-Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
+Copyrichts 2020 Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
 
 
 # Introduction
 
-EmbeddedProto is a C++14 implementation of [Google Protocol Buffers](https://developers.google.com/protocol-buffers/) dedicated for micro controllers. This means the implementation focuses on a small footprint and low memory usage. No dynamic memory allocation is used and the code is check to be in line with the [MISRA C++](https://www.misra.org.uk/Activities/MISRAC/tabid/171/Default.aspx) guideline. 
+EmbeddedProto is a C++ implementation of [Google Protocol Buffers](https://developers.google.com/protocol-buffers/) dedicated for micro controllers. This means the implementation focuses on a small footprint and low memory usage. No dynamic memory allocation is used and the code is checked to be in line with the [MISRA C++](https://www.misra.org.uk/Activities/MISRAC/tabid/171/Default.aspx) guideline. 
 
-In this way EmbeddedProto provides a very simple interface to exchange data between embedded devices and the out side world. Specifying the data format between your device and other devices, servers, apps or desktop applications is standardized and made simple.
+In this way EmbeddedProto provides an easy to use interface to exchange data between embedded devices and the out side world. Specifying the data format between your device and other devices, servers, apps or desktop applications in a standardized way.
+
+This document details the following:
+* Supported Features
+* Installation
+* Usage
+* Development
 
 
 # Supported Features
@@ -28,33 +34,33 @@ int32 | Full
 int64 | Full
 uint32 | Full
 uint64 | Full
-sint32 | No
-sint64 | No
+sint32 | Full
+sint64 | Full
 fixed32 | Full
 fixed64 | Full
 sfixed32 | Full
 sfixed64 | Full
 bool | Full
-string | No
-bytes | No
+string | Under Development
+bytes | Under Development
 
 | Feature | Support |
 | --- | --- |
 Enum | Full
-Other Messages | No support
-oneof | No support
+Other Messages | Full
+oneof | Full
 singular | No support
-repeated | No support
+repeated | Full
 
 
 # Installation
 
 What is required to be able to generate the source files:
 1. Python 3.6
-2. Pip
-3. Protobuf 3.6.1
-4. CMake 3.10.2 (optional to build PC unit tests)
-5. Git if you do not have it already.
+1. Pip
+1. Protobuf 3.6.1
+1. CMake 3.10.2 (required to build the PC unit tests)
+1. Git if you do not have it already.
 
 Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule. If you intent to run the PC unit tests of EmbeddedProto it is suggested that you pull in the submodules as well. 
 
@@ -64,7 +70,7 @@ pip install -r requirements.txt
 ```
 
 
-# Normal Usage
+# Usage
 
 When working on your project you write your proto files. Next the would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler `protoc-gen-eams.py`. To generate the code use the following command:
 ```bash

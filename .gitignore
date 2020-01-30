@@ -29,9 +29,12 @@ CMakeFiles/**
 # Ignore build results
 **/*.a
 build/
+*.bin
 
 # Ignore sonar scanner binaries
 sonar-scanner**
+build-wrapper**
+.sonarwork/
 
 # Ignore code coverage reports
 code_coverage_report/**
