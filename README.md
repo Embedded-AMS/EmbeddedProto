@@ -56,12 +56,65 @@ What is required to be able to generate the source files:
 4. CMake 3.10.2 (optional to build PC unit tests)
 5. Git if you do not have it already.
 
+## Linux
 Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule. If you intent to run the PC unit tests of EmbeddedProto it is suggested that you pull in the submodules as well. 
+```bash
+git clone --recursive URL_TO_EMBEDDED_AMS
+```
+
+Next enter the folder and in that folder create a virtual environment called venv:
+```bash
+virtualenv venv
+```
+
+Activate the virtual environment
+```bash
+./venv/Scripts/activate
+```
 
 Besides the list of tools above additional python packages are required. These are listed in the `requirements.txt` file in this repository. It is advised to install these required packages using pip in a python virtenv. You can however install the requirements globally. To install the packages run the command:
 ```bash
 pip install -r requirements.txt
 ```
+
+You can now use the Embedded Proto protoc plugin in your projects. You are also ready to build the PC unit tests if you have installed CMake.
+
+
+## Windows
+
+Clone the repository using your favourit git tool.
+
+From the [Protocol Buffers website](https://developers.google.com/protocol-buffers/docs/downloads) download the desired release of *protoc*. Mind that the source is indicated with *protobuf-XXX-A.B.C.zip*. You are looking for *protoc-A.B.C.-win64.zip*. Unzip the file and install it according to the Readme file. 
+
+Next open up powershell and go to the EmbeddedProto folder.
+```bash
+cd C:\some\dir\embeddedproto
+```
+
+If not already installed, install virtualenv using pip3. 
+```bash
+pip install virtualenv
+```
+
+Next create a virtual environment called venv:
+```bash
+virtualenv venv
+```
+
+Activate the virtual environment
+```bash
+.\venv\Scripts\activate
+```
+You should now see in your console the addition of `(venv)` in front of your location.
+
+Next we will install all the python packages required for the plugin. These packages are contained by the virtualenv and will not interfere with other installations. The requirements file lists all packages to be installed using pip3.
+```bash
+pip install -r requirements.txt
+```
+
+You can now use the Embedded Proto protoc plugin. 
+
+At this time building the unit tests under Windows is not supported.
 
 
 # Normal Usage

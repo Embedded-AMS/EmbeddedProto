@@ -1,13 +1,7 @@
 #!/bin/sh
 
-# This file is used to invoke protoc-gen-eams.py as a plugin
-# to protoc on Linux and other *nix-style systems.
-# Use it like this:
-# protoc --plugin=protoc-gen-nanopb=..../protoc-gen-nanopb --nanopb_out=dir foo.proto
-#
-# Note that if you use the binary package of nanopb, the protoc
-# path is already set up properly and there is no need to give
-# --plugin= on the command line.
-
+# This file is used to invoke protoc-gen-eams.py as a plugin to protoc on 
+# Linux. The reason this has to be used is that protoc expects a binary or
+# terminal script as plugin. Directly calling python scripts is not supported.
 
 ./venv/bin/python generator/protoc-gen-eams.py --protoc-plugin
