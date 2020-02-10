@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package demo;
+
+enum types 
+{
+	A = 0;
+	B = 1;
+}
+
+message request 
+{
+	uint32 msgId	= 1;
+	types selection = 2;
+}

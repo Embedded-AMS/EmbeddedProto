@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package demo;
+
+message A
+{
+	uint32 x = 1;
+	uint32 y = 2;
+	uint32 z = 3;
+}
+
+message B
+{
+	double u = 1;
+	double v = 2;
+	double w = 3;
+}
+
+message reply
+{
+	uint32 msgId = 1;
+	oneof type
+	{
+		A a = 2;
+		B b = 3;
+	}
+}
