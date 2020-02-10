@@ -35,3 +35,5 @@ sonar-scanner**
 
 # Ignore code coverage reports
 code_coverage_report/**
+examples/NUCLEO-F446RE/Debug/
+examples/NUCLEO-F446RE/Core/Inc/generated
