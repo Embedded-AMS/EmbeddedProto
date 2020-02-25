@@ -45,7 +45,7 @@ void clear_{{_oneof.name}}()
     {% for field in _oneof.fields() %}
     case id::{{field.variable_id_name}}:
       {% if field.of_type_message or field.is_repeated_field%}
-      {{field.variable_full_name}}.~{{field.type}}();
+      {{field.variable_full_name}}.~{{field.short_type}}();
       {% else %}
       {{field.variable_full_name}}.set(0);
       {% endif %}
@@ -69,7 +69,7 @@ inline void clear_{{_field.name}}()
   if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
     {{_field.which_oneof}} = id::NOT_SET;
-    {{_field.variable_full_name}}.~{{_field.type}}();
+    {{_field.variable_full_name}}.~{{_field.short_type}}();
   }
 }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value)
@@ -108,7 +108,7 @@ inline void clear_{{_field.name}}()
   if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
     {{_field.which_oneof}} = id::NOT_SET;
-    {{_field.variable_full_name}}.~{{_field.type}}();
+    {{_field.variable_full_name}}.~{{_field.short_type}}();
   }
 }
 inline void set_{{_field.name}}(const {{_field.type}}& value)

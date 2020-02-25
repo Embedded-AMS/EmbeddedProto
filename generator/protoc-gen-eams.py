@@ -100,6 +100,8 @@ class FieldTemplateParameters:
         if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
             self.type = self.type.replace(".", "::")
+            # Store only the type without namespace or class scopes
+            self.short_type = self.type.split("::")[-1]
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
 
