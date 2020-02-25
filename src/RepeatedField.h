@@ -101,7 +101,7 @@ namespace EmbeddedProto
         return false;
       }
 
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final
       {
         bool result = true;
 

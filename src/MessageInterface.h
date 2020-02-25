@@ -20,7 +20,7 @@ class MessageInterface : public ::EmbeddedProto::Field
     virtual ~MessageInterface() = default;
 
     // TODO doc
-    bool serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
+    bool serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
 
     //! Clear the content of this message and set it to it's default state.
     /*!

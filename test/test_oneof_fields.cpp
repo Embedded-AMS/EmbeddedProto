@@ -54,6 +54,27 @@ TEST(OneofField, set_get_clear)
   EXPECT_EQ(1, msg.get_z());
   EXPECT_EQ(message_oneof::id::Z, msg.get_which_xyz());
   msg.clear_z();
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  msg.mutable_msg_ABC().set_varA(1);
+  msg.mutable_msg_ABC().set_varB(22);
+  msg.mutable_msg_ABC().set_varC(333);
+  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  EXPECT_EQ(1, msg.msg_ABC().varA());
+  EXPECT_EQ(22, msg.msg_ABC().varB());
+  EXPECT_EQ(333, msg.msg_ABC().varC());
+  msg.clear_msg_ABC();
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+
+  msg.set_x(1);
+  msg.mutable_msg_ABC().set_varA(1);
+  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  msg.clear();
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
 }
 
 TEST(OneofField, serialize_ones) 
@@ -150,6 +171,46 @@ TEST(OneofField, deserialize)
   EXPECT_EQ(1, msg.get_y());
 }
 
+TEST(OneofField, deserialize_override)
+{
+  InSequence s;
+
+  message_oneof msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0x08, 0x01,  // a
+                       0x50, 0x01,  // b
+                       0x30, 0x01,  // y
+                       0x28, 0x01}; // x 
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_a());
+  EXPECT_EQ(1, msg.get_b());
+  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(1, msg.get_x());
+}
+
+TEST(OneofField, deserialize_failure)
+{
+  InSequence s;
+
+  message_oneof msg;
+  Mocks::ReadBufferMock buffer;
+
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x30), Return(true)));  // y
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(false))); // This simulates the fialure.
+
+  EXPECT_FALSE(msg.deserialize(buffer));
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+
+}
+
 TEST(OneofField, deserialize_second_oneof) 
 {
   InSequence s;
@@ -177,5 +238,49 @@ TEST(OneofField, deserialize_second_oneof)
   EXPECT_EQ(1.0, msg.get_y());
 }
 
+TEST(OneofField, serialize_oneof_msg) 
+{
+  InSequence s;
+  message_oneof msg;
+  Mocks::WriteBufferMock buffer;
 
+  msg.mutable_msg_ABC().set_varA(1);
+  msg.mutable_msg_ABC().set_varB(1);
+  msg.mutable_msg_ABC().set_varC(1);
 
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
+
+  uint8_t expected_ABC[] = {0xa2,       // field ID.
+                            0x01, 0x06, // Nested message size.
+                            0x08, 0x01, // varA
+                            0x10, 0x01, // varB
+                            0x18, 0x01};// varC
+
+  for(auto e : expected_ABC) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_TRUE(msg.serialize(buffer));
+}
+
+TEST(OneofField, deserialize_oneof_msg) 
+{
+  InSequence s;
+
+  message_oneof msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
+    for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(message_oneof::id::MSG_DEF, msg.get_which_message());
+  EXPECT_EQ(1, msg.get_msg_DEF().get_varD());
+  EXPECT_EQ(22, msg.get_msg_DEF().get_varE());
+  EXPECT_EQ(333, msg.get_msg_DEF().get_varF());
+}

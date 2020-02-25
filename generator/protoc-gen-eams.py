@@ -88,6 +88,7 @@ class FieldTemplateParameters:
 
         if oneof:
             # When set this field is part of a oneof.
+            self.oneof_name = oneof
             self.which_oneof = "which_" + oneof + "_"
             self.variable_full_name = oneof + "_." + self.variable_name
         else:
