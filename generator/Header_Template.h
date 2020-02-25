@@ -239,25 +239,25 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   uint32_t size;
   result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
   ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+  {% if _field.oneof_name is defined %}
+  init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  {% endif %}
   result = result && {{_field.variable_full_name}}.deserialize(bufferSection);
   {% elif _field.of_type_enum %}
   uint32_t value;
   result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
   if(result)
   {
-    {{_field.variable_full_name}} = static_cast<{{_field.type}}>(value);
-    {% if _field.which_oneof is defined %}
-    {{_field.which_oneof}} = id::{{_field.variable_id_name}};
-    {% endif %}
+    set_{{_field.name}}(static_cast<{{_field.type}}>(value));
   }
   {% else %}
   result = {{_field.variable_full_name}}.deserialize(buffer);
-  {% if _field.which_oneof is defined %}
+  {% endif %}
+   {% if _field.which_oneof is defined %}
   if(result)
   {
     {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   }
-  {% endif %}
   {% endif %}
 }
 {% endif %}

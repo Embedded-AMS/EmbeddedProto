@@ -165,9 +165,9 @@ def test_repeated_message():
 def test_oneof_fields():
     msg = of.message_oneof()
 
-    msg.msg_ABC.varA = 1
-    msg.msg_ABC.varB = 1
-    msg.msg_ABC.varC = 1
+    msg.msg_DEF.varD = 1
+    msg.msg_DEF.varE = 22
+    msg.msg_DEF.varF = 333
 
     str = ""
     msg_str = msg.SerializeToString()

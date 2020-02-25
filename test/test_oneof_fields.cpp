@@ -203,3 +203,23 @@ TEST(OneofField, serialize_oneof_msg)
   EXPECT_TRUE(msg.serialize(buffer));
 }
 
+TEST(OneofField, deserialize_oneof_msg) 
+{
+  InSequence s;
+
+  message_oneof msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
+    for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_TRUE(msg.deserialize(buffer));
+
+  EXPECT_EQ(message_oneof::id::MSG_DEF, msg.get_which_message());
+  EXPECT_EQ(1, msg.get_msg_DEF().get_varD());
+  EXPECT_EQ(22, msg.get_msg_DEF().get_varE());
+  EXPECT_EQ(333, msg.get_msg_DEF().get_varF());
+}
