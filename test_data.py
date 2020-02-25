@@ -165,10 +165,9 @@ def test_repeated_message():
 def test_oneof_fields():
     msg = of.message_oneof()
 
-    msg.a = 1
-    msg.b = 1
-    msg.x = 1
-    msg.v = 1
+    msg.msg_ABC.varA = 1
+    msg.msg_ABC.varB = 1
+    msg.msg_ABC.varC = 1
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -209,5 +208,5 @@ def test_included_proto():
 #test_repeated_fields()
 #test_repeated_message()
 #test_nested_message()
-#test_oneof_fields()
-test_included_proto()
+test_oneof_fields()
+#test_included_proto()

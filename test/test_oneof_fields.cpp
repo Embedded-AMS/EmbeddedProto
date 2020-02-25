@@ -177,5 +177,29 @@ TEST(OneofField, deserialize_second_oneof)
   EXPECT_EQ(1.0, msg.get_y());
 }
 
+TEST(OneofField, serialize_oneof_msg) 
+{
+  InSequence s;
+  message_oneof msg;
+  Mocks::WriteBufferMock buffer;
 
+  msg.mutable_msg_ABC().set_varA(1);
+  msg.mutable_msg_ABC().set_varB(1);
+  msg.mutable_msg_ABC().set_varC(1);
+
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
+
+  uint8_t expected_ABC[] = {0xa2,       // field ID.
+                            0x01, 0x06, // Nested message size.
+                            0x08, 0x01, // varA
+                            0x10, 0x01, // varB
+                            0x18, 0x01};// varC
+
+  for(auto e : expected_ABC) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_TRUE(msg.serialize(buffer));
+}
 
