@@ -5,7 +5,7 @@
 #include <WriteBufferInterface.h>
 #include <stdio.h>
 
-namespace DEMO
+namespace demo
 {
 	template<uint32_t BUFFER_SIZE>
 	class WriteBuffer : public EmbeddedProto::WriteBufferInterface
@@ -14,16 +14,16 @@ namespace DEMO
       WriteBuffer()
     		: bytes_used_(0),
       		bytes_{0U}
-		  {
+      {
 
-		  }
+      }
 
       virtual ~WriteBuffer() = default;
 
       void clear() override
       {
     		bytes_used_ = 0;
-  		}
+  	  }
 
       uint32_t get_size() const override
       {

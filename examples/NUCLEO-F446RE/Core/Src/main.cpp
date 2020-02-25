@@ -23,6 +23,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <reply.h>
+#include <request.h>
+#include <DemoWriteBuffer.h>
+#include <DemoReadBuffer.h>
 
 /* USER CODE END Includes */
 
@@ -43,6 +47,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+// Construction of the messages.
+demo::reply reply_msg;
+demo::request request_msg;
+
+// Construction of the write and read buffer objects.
+demo::WriteBuffer<50> send_buffer;
+demo::ReadBuffer read_buffer;
 
 /* USER CODE END PV */
 
@@ -65,7 +76,7 @@ static void MX_GPIO_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  uint32_t request_counter = 0;
   /* USER CODE END 1 */
   
 
@@ -98,6 +109,70 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    // Increment the request counter each iteration and alternate between request A and B.
+    request_msg.set_msgId(++request_counter);
+    request_msg.set_selection((request_counter & 0x01) ? demo::types::A
+                                                       : demo::types::B);
+
+    request_msg.serialize(send_buffer);
+
+    // Now lets pretend the data in the send_buffer has been transmitted over a bus of your choice.
+    // We wait a little and you get a response in the read buffer.
+
+    send_buffer.clear();
+    reply_msg.set_msgId(1);
+    reply_msg.mutable_a().set_x(10);
+    reply_msg.mutable_a().set_y(20);
+    reply_msg.mutable_a().set_z(30);
+    reply_msg.serialize(send_buffer);
+
+    send_buffer.clear();
+    reply_msg.set_msgId(2);
+    reply_msg.mutable_b().set_u(100);
+    reply_msg.mutable_b().set_v(200);
+    reply_msg.mutable_b().set_w(300);
+    reply_msg.serialize(send_buffer);
+
+    // For demo purposes manually set the demo data.
+    if(request_counter & 0x01)
+    {
+      // Data for A
+      constexpr uint32_t RESPONS_SIZE_A = 3;
+      uint8_t demo_response_A[RESPONS_SIZE_A] = {0x01, 0x02, 0x03};
+      read_buffer.set_demo_data(demo_response_A, RESPONS_SIZE_A);
+    }
+    else
+    {
+      // Data for B
+      constexpr uint32_t RESPONS_SIZE_B = 3;
+      uint8_t demo_response_B[RESPONS_SIZE_B] = {0x01, 0x02, 0x03};
+      read_buffer.set_demo_data(demo_response_B, RESPONS_SIZE_B);
+    }
+
+    // Obtain from the buffer the reply message.
+    if(reply_msg.deserialize(read_buffer))
+    {
+      // Now we can use it.
+      switch(reply_msg.get_which_type())
+      {
+        case demo::reply::id::A:
+        {
+          // Do something with the data.
+          uint32_t ans_a = reply_msg.a().x() + reply_msg.a().y() + reply_msg.a().z();
+          break;
+        }
+
+        case demo::reply::id::B:
+        {
+          // Do something with the data.
+          uint32_t ans_b = reply_msg.b().u() * reply_msg.b().v() * reply_msg.b().w();
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
 
     /* USER CODE BEGIN 3 */
   }
