@@ -10,6 +10,56 @@ enum {{ _enum.name }}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
+{% macro oneof_init(_oneof) %}
+void init_{{_oneof.name}}(const id field_id)
+{
+  if(id::NOT_SET != {{_oneof.which_oneof}})
+  {
+    // First delete the old object in the oneof.
+    clear_{{_oneof.name}}();
+  }
+
+  // C++11 unions only support non-trivial members when you explicitly call the placement new statement.
+  switch(field_id)
+  {
+    {% for field in _oneof.fields() %}
+    case id::{{field.variable_id_name}}:
+      {% if field.of_type_message or field.is_repeated_field%}
+      new(&{{field.variable_full_name}}) {{field.type}};
+      {{_oneof.which_oneof}} = id::{{field.variable_id_name}};
+      {% endif %}
+      break;
+    {% endfor %}
+    default:
+      break;
+   }
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{% macro oneof_clear(_oneof) %}
+void clear_{{_oneof.name}}()
+{
+  switch({{_oneof.which_oneof}})
+  {
+    {% for field in _oneof.fields() %}
+    case id::{{field.variable_id_name}}:
+      {% if field.of_type_message or field.is_repeated_field%}
+      {{field.variable_full_name}}.~{{field.type}}();
+      {% else %}
+      {{field.variable_full_name}}.set(0);
+      {% endif %}
+      break;
+    {% endfor %}
+    default:
+      break;
+  }
+  {{_oneof.which_oneof}} = id::NOT_SET;
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
 {% macro field_get_set_macro(_field) %}
 {% if _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_full_name}}[index]; }
@@ -19,7 +69,7 @@ inline void clear_{{_field.name}}()
   if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
     {{_field.which_oneof}} = id::NOT_SET;
-    {{_field.variable_full_name}}.clear();
+    {{_field.variable_full_name}}.~{{_field.type}}();
   }
 }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value)
@@ -58,22 +108,31 @@ inline void clear_{{_field.name}}()
   if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
   {
     {{_field.which_oneof}} = id::NOT_SET;
-    {{_field.variable_full_name}}.clear();
+    {{_field.variable_full_name}}.~{{_field.type}}();
   }
 }
 inline void set_{{_field.name}}(const {{_field.type}}& value)
 {
-  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
   {{_field.variable_full_name}} = value;
 }
 inline void set_{{_field.name}}(const {{_field.type}}&& value)
 {
-  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
   {{_field.variable_full_name}} = value;
 }
 inline {{_field.type}}& mutable_{{_field.name}}()
 {
-  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
   return {{_field.variable_full_name}};
 }
 {% else %}
@@ -145,25 +204,24 @@ inline {{_field.type}}::FIELD_TYPE get_{{_field.name}}() const { return {{_field
 {% if _field.is_repeated_field %}
 if(result)
 {
-  result = {{_field.variable_full_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_message %}
 if(result)
 {
-  const ::EmbeddedProto::MessageInterface* x = &{{_field.variable_full_name}};
-  result = x->serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_enum %}
 if(({{_field.default_value}} != {{_field.variable_full_name}}) && result)
 {
   EmbeddedProto::uint32 value;
   value.set(static_cast<uint32_t>({{_field.variable_full_name}}));
-  result = value.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = value.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% else %}
 if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && result)
 {
-  result = {{_field.variable_full_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 } {% endif %} {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
@@ -181,25 +239,25 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   uint32_t size;
   result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
   ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+  {% if _field.oneof_name is defined %}
+  init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  {% endif %}
   result = result && {{_field.variable_full_name}}.deserialize(bufferSection);
   {% elif _field.of_type_enum %}
   uint32_t value;
   result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
   if(result)
   {
-    {{_field.variable_full_name}} = static_cast<{{_field.type}}>(value);
-    {% if _field.which_oneof is defined %}
-    {{_field.which_oneof}} = id::{{_field.variable_id_name}};
-    {% endif %}
+    set_{{_field.name}}(static_cast<{{_field.type}}>(value));
   }
   {% else %}
   result = {{_field.variable_full_name}}.deserialize(buffer);
-  {% if _field.which_oneof is defined %}
+  {% endif %}
+   {% if _field.which_oneof is defined %}
   if(result)
   {
     {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   }
-  {% endif %}
   {% endif %}
 }
 {% endif %}
@@ -323,6 +381,9 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% for field in msg.fields() %}
       clear_{{field.name}}();
       {% endfor %}
+      {% for oneof in msg.oneofs() %}
+      clear_{{oneof.name}}();
+      {% endfor %}
     }
 
   private:
@@ -351,6 +412,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     };
     {{oneof.name}} {{oneof.name}}_;
 
+    {{ oneof_init(oneof)|indent(4) }}
+    {{ oneof_clear(oneof)|indent(4) }}
     {% endfor %}
 };
 {% endmacro %}
