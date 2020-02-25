@@ -381,6 +381,9 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {% for field in msg.fields() %}
       clear_{{field.name}}();
       {% endfor %}
+      {% for oneof in msg.oneofs() %}
+      clear_{{oneof.name}}();
+      {% endfor %}
     }
 
   private:

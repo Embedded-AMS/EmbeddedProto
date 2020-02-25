@@ -54,6 +54,27 @@ TEST(OneofField, set_get_clear)
   EXPECT_EQ(1, msg.get_z());
   EXPECT_EQ(message_oneof::id::Z, msg.get_which_xyz());
   msg.clear_z();
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  msg.mutable_msg_ABC().set_varA(1);
+  msg.mutable_msg_ABC().set_varB(22);
+  msg.mutable_msg_ABC().set_varC(333);
+  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  EXPECT_EQ(1, msg.msg_ABC().varA());
+  EXPECT_EQ(22, msg.msg_ABC().varB());
+  EXPECT_EQ(333, msg.msg_ABC().varC());
+  msg.clear_msg_ABC();
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+
+  msg.set_x(1);
+  msg.mutable_msg_ABC().set_varA(1);
+  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  msg.clear();
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
 }
 
 TEST(OneofField, serialize_ones) 
