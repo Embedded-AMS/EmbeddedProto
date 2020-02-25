@@ -145,25 +145,24 @@ inline {{_field.type}}::FIELD_TYPE get_{{_field.name}}() const { return {{_field
 {% if _field.is_repeated_field %}
 if(result)
 {
-  result = {{_field.variable_full_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_message %}
 if(result)
 {
-  const ::EmbeddedProto::MessageInterface* x = &{{_field.variable_full_name}};
-  result = x->serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_enum %}
 if(({{_field.default_value}} != {{_field.variable_full_name}}) && result)
 {
   EmbeddedProto::uint32 value;
   value.set(static_cast<uint32_t>({{_field.variable_full_name}}));
-  result = value.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = value.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% else %}
 if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && result)
 {
-  result = {{_field.variable_full_name}}.serialize(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 } {% endif %} {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}

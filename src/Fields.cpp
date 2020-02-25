@@ -11,67 +11,67 @@ namespace EmbeddedProto
     return calcBuffer.get_size();
   }
 
-  bool int32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool int32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool int64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool int64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool uint32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool uint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool uint64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool uint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool sint32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool sint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool sint64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool sint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool boolean::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool boolean::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
   }
 
-  bool fixed32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool fixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool fixed64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool fixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }
 
-  bool sfixed32::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool sfixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool sfixed64::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool sfixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }
 
-  bool floatfixed::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool floatfixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
   }
 
-  bool doublefixed::serialize(uint32_t field_number, WriteBufferInterface& buffer) const
+  bool doublefixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
     return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
   }

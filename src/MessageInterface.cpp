@@ -4,7 +4,7 @@
 namespace EmbeddedProto
 {
 
-  bool MessageInterface::MessageInterface::serialize(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
+  bool MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
     const uint32_t size_x = this->serialized_size();
     bool result = (size_x < buffer.get_available_size());
