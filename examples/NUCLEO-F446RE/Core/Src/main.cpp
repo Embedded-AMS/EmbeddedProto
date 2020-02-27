@@ -114,38 +114,33 @@ int main(void)
     request_msg.set_selection((request_counter & 0x01) ? demo::types::A
                                                        : demo::types::B);
 
-    request_msg.serialize(send_buffer);
-
-    // Now lets pretend the data in the send_buffer has been transmitted over a bus of your choice.
-    // We wait a little and you get a response in the read buffer.
-
-    send_buffer.clear();
-    reply_msg.set_msgId(1);
-    reply_msg.mutable_a().set_x(10);
-    reply_msg.mutable_a().set_y(20);
-    reply_msg.mutable_a().set_z(30);
-    reply_msg.serialize(send_buffer);
-
-    send_buffer.clear();
-    reply_msg.set_msgId(2);
-    reply_msg.mutable_b().set_u(100);
-    reply_msg.mutable_b().set_v(200);
-    reply_msg.mutable_b().set_w(300);
-    reply_msg.serialize(send_buffer);
+    if(request_msg.serialize(send_buffer))
+    {
+      // Serialization is successful. We can now use the buffer to send the data via a peripheral.
+    }
+    else
+    {
+      // Serialization failed for some reason.
+    }
 
     // For demo purposes manually set the demo data.
     if(request_counter & 0x01)
     {
       // Data for A
-      constexpr uint32_t RESPONS_SIZE_A = 3;
-      uint8_t demo_response_A[RESPONS_SIZE_A] = {0x01, 0x02, 0x03};
+      constexpr uint32_t RESPONS_SIZE_A = 10;
+      uint8_t demo_response_A[RESPONS_SIZE_A] = {0x08, 0x01, 0x12, 0x06, 0x08, 0x0A, 0x10, 0x14,
+    		  0x18, 0x1E};
+
       read_buffer.set_demo_data(demo_response_A, RESPONS_SIZE_A);
     }
     else
     {
       // Data for B
-      constexpr uint32_t RESPONS_SIZE_B = 3;
-      uint8_t demo_response_B[RESPONS_SIZE_B] = {0x01, 0x02, 0x03};
+      constexpr uint32_t RESPONS_SIZE_B = 31;
+      uint8_t demo_response_B[RESPONS_SIZE_B] = {0x08, 0x02, 0x1A, 0x1B, 0x09, 0x00, 0x00, 0x00,
+    		  0x00, 0x00, 0x00, 0x59, 0x40, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x69, 0x40,
+			  0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x72, 0x40};
+
       read_buffer.set_demo_data(demo_response_B, RESPONS_SIZE_B);
     }
 
