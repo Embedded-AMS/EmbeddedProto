@@ -28,23 +28,24 @@ int32 | Full
 int64 | Full
 uint32 | Full
 uint64 | Full
-sint32 | No
-sint64 | No
+sint32 | Full
+sint64 | Full
 fixed32 | Full
 fixed64 | Full
 sfixed32 | Full
 sfixed64 | Full
 bool | Full
-string | No
-bytes | No
+string | Design phase
+bytes | Design phase
 
 | Feature | Support |
 | --- | --- |
 Enum | Full
-Other Messages | No support
-oneof | No support
-singular | No support
-repeated | No support
+Other Messages | Full
+oneof | Full
+singular | Full
+repeated | Full
+maps | Under sonisderation
 
 
 # Installation
@@ -69,7 +70,7 @@ virtualenv venv
 
 Activate the virtual environment
 ```bash
-./venv/Scripts/activate
+source ./venv/bin/activate
 ```
 
 Besides the list of tools above additional python packages are required. These are listed in the `requirements.txt` file in this repository. It is advised to install these required packages using pip in a python virtenv. You can however install the requirements globally. To install the packages run the command:
@@ -93,7 +94,7 @@ cd C:\some\dir\embeddedproto
 
 If not already installed, install virtualenv using pip3. 
 ```bash
-pip install virtualenv
+pip3 install virtualenv
 ```
 
 Next create a virtual environment called venv:
@@ -109,7 +110,7 @@ You should now see in your console the addition of `(venv)` in front of your loc
 
 Next we will install all the python packages required for the plugin. These packages are contained by the virtualenv and will not interfere with other installations. The requirements file lists all packages to be installed using pip3.
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 You can now use the Embedded Proto protoc plugin. 
