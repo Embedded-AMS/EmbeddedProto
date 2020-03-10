@@ -1,0 +1,74 @@
+/*
+ *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://EmbeddedProto.com/license/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal adress:
+ *    Johan Huizingalaan 763a
+ *    1066 VH, Amsterdam
+ *    the Netherlands
+ */
+
+// This file is used to test oneof fields in messages.
+
+syntax = "proto3";
+
+message some_ABC
+{
+  int32 varA = 1;
+  int32 varB = 2;
+  int32 varC = 3;
+}
+
+message some_DEF
+{
+  int32 varD = 1;
+  int32 varE = 2;
+  int32 varF = 3;
+}
+
+message message_oneof 
+{
+  int32 a = 1;
+
+  oneof xyz 
+  {
+    int32 x = 5;
+    int32 y = 6;
+    int32 z = 7;
+  }
+
+  int32 b = 10;
+
+  oneof uvw 
+  {
+    float u = 15;
+    float v = 16;
+    float w = 17;
+  }
+
+  oneof message 
+  {
+    some_ABC msg_ABC = 20;
+    some_DEF msg_DEF = 21;
+  }
+}
