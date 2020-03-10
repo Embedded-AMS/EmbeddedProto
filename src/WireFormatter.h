@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
- *  For commercial and closed source application please vist:
+ *  For commercial and closed source application please visit:
  *  <https://EmbeddedProto.com/license/>.
  *
  *  Embedded AMS B.V.
@@ -46,10 +46,10 @@ namespace EmbeddedProto
   class WireFormatter 
   {
 
-      //! Definitation of the number of bits it takes to serialize a byte of a varint.
+      //! Definition of the number of bits it takes to serialize a byte of a varint.
       static constexpr uint8_t VARINT_SHIFT_N_BITS = 7;
 
-      //! Definition of a mask inidicating the most significat bit used in varint encoding.
+      //! Definition of a mask indicating the most significant bit used in varint encoding.
       static constexpr uint8_t VARINT_MSB_BYTE = 0x80;
 
     public:
@@ -59,8 +59,8 @@ namespace EmbeddedProto
         VARINT            = 0,  //!< int32, int64, uint32, uint64, sint32, sint64, bool, enum.
         FIXED64           = 1,  //!< fixed64, sfixed64, double
         LENGTH_DELIMITED  = 2,  //!< string, bytes, embedded messages, packed repeated fields
-        START_GROUP       = 3,  //!< Depricated
-        END_GROUP         = 4,  //!< Depricated
+        START_GROUP       = 3,  //!< Deprecated
+        END_GROUP         = 4,  //!< Deprecated
         FIXED32           = 5,  //!< fixed32, sfixed32, float
       };
 
@@ -150,7 +150,7 @@ namespace EmbeddedProto
           \param[in] buffer The data source from which to read the type and id.
           \param[out] type This parameter returns the wiretype of the next field in the data buffer.
           \param[out] id This parameter returns the next field id.
-          \return True when deserializing the type and id succeded.  
+          \return True when deserializing the type and id succeeded.  
       */
       static bool DeserializeTag(ReadBufferInterface& buffer, WireType& type, uint32_t& id) 
       {
@@ -306,7 +306,7 @@ namespace EmbeddedProto
       /** @} **/
 
 
-      //! This function converts a given value unsigned integer to a varint formated data buffer.
+      //! This function converts a given value unsigned integer to a varint formatted data buffer.
       /*!
         \param[in] value  The data to be serialized, uint32_t or uint64_t.
         \param[in] buffer A reference to a message buffer object in which to store the variable.
@@ -329,8 +329,8 @@ namespace EmbeddedProto
       //! This function de serializes the following N bytes into a varint.
       /*!
         \param[in] buffer The data buffer from which bytes are popped.
-        \param[out] value The varaible in which the varint is returned.
-        \return True when it was possible to desrialize a varint from the buffer.
+        \param[out] value The variable in which the varint is returned.
+        \return True when it was possible to deserialize a varint from the buffer.
       */
       template<class UINT_TYPE>
       static bool DeserializeVarint(ReadBufferInterface& buffer, UINT_TYPE& value) 
@@ -348,7 +348,7 @@ namespace EmbeddedProto
         UINT_TYPE temp_value = 0;
         uint8_t byte = 0;
         bool result = buffer.pop(byte);
-        // Loop until the end of the encoded varint or until there is nomore data in the buffer.
+        // Loop until the end of the encoded varint or until there is no more data in the buffer.
         for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
         {
           temp_value |= static_cast<UINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
@@ -396,7 +396,7 @@ namespace EmbeddedProto
 
       //! Decode a signed integer using the zig zag method
       /*!
-          \param[in] n The value encoded in zig zag to be deencoded.
+          \param[in] n The value encoded in zig zag to be decoded.
           \return The decoded signed value.
 
           This function is suitable for 32 and 64 bit.
@@ -428,7 +428,7 @@ namespace EmbeddedProto
          @{
       **/
 
-      //! Serialize an unsigned fixed lenth field without the tag.
+      //! Serialize an unsigned fixed length field without the tag.
       template<class UINT_TYPE>
       static bool SerialzieFixedNoTag(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
@@ -469,7 +469,7 @@ namespace EmbeddedProto
         return SerialzieFixedNoTag(*fixed, buffer);
       }
 
-      //! SErialize a 64bit real value without tag.
+      //! Serialize a 64bit real value without tag.
       static bool SerialzieDoubleNoTag(double value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 64 fixed number

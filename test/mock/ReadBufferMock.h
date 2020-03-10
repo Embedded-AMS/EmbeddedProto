@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
- *  For commercial and closed source application please vist:
+ *  For commercial and closed source application please visit:
  *  <https://EmbeddedProto.com/license/>.
  *
  *  Embedded AMS B.V.

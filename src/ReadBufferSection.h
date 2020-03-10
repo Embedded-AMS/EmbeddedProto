@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
- *  For commercial and closed source application please vist:
+ *  For commercial and closed source application please visit:
  *  <https://EmbeddedProto.com/license/>.
  *
  *  Embedded AMS B.V.
@@ -41,7 +41,7 @@ namespace EmbeddedProto
   /*!
       This class is used when decoding a length delimited fields. It is constructed given a message
       buffer and a size. This class will return bytes from the buffer for the given number of bytes
-      givne in the size parameter.
+      stated in the size parameter.
 
       \see ReadBufferInterface
   */
@@ -49,7 +49,7 @@ namespace EmbeddedProto
   {
     public:
 
-      //! Explicitly delete the default constructor in favour of the one with parameters.
+      //! Explicitly delete the default constructor in favor of the one with parameters.
       ReadBufferSection() = delete;
 
       //! The constructor of the class with the required parameters

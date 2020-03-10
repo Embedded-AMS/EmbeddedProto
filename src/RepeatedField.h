@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
- *  For commercial and closed source application please vist:
+ *  For commercial and closed source application please visit:
  *  <https://EmbeddedProto.com/license/>.
  *
  *  Embedded AMS B.V.
@@ -72,28 +72,28 @@ namespace EmbeddedProto
       //! Get a pointer to the first element in the array.
       virtual DATA_TYPE* get_data() = 0;
 
-      //! Get a refernce to the value at the given index. 
+      //! Get a reference to the value at the given index. 
       /*!
         \param[in] index The desired index to return.
         \return The reference to the value at the given index.
       */
       virtual DATA_TYPE& get(uint32_t index) = 0;
 
-      //! Get a constatnt refernce to the value at the given index. 
+      //! Get a constant reference to the value at the given index. 
       /*!
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
       virtual const DATA_TYPE& get(uint32_t index) const = 0;
 
-      //! Get a refernce to the value at the given index. 
+      //! Get a reference to the value at the given index. 
       /*!
         \param[in] index The desired index to return.
         \return The reference to the value at the given index.
       */
       DATA_TYPE& operator[](uint32_t index) { return this->get(index); }
 
-      //! Get a refernce to the value at the given index. But constant. 
+      //! Get a reference to the value at the given index. But constant. 
       /*!
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
@@ -163,7 +163,7 @@ namespace EmbeddedProto
       /*!
           From a buffer of data fill this array with data.
           \param buffer [in]  The memory from which the message is obtained.
-          \return True when every was successfull. 
+          \return True when every was successful. 
       */
       bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
       {
@@ -249,7 +249,7 @@ namespace EmbeddedProto
 
   //! A template class that actually holds some data.
   /*!
-    This is a seperate class to make it possible to not have the size defined in every function or 
+    This is a separate class to make it possible to not have the size defined in every function or 
     class using this type of object.
   */
   template<class DATA_TYPE, uint32_t MAX_SIZE>
@@ -324,41 +324,6 @@ namespace EmbeddedProto
       DATA_TYPE data_[MAX_SIZE];
   };
 
-/*
-  template<class DATA_TYPE>
-  bool serialize(uint32_t field_number, const RepeatedField<DATA_TYPE>& x, WriteBufferInterface& buffer)
-  {
-    const uint32_t size_x = x.serialized_size();
-    bool result = (size_x < buffer.get_available_size());
-    if(result && (0 < size_x))
-    {
-      uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-      result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-      result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-      result = result && x.serialize(buffer);
-    }
-    return result;
-  }
-
-  template<class DATA_TYPE>
-  bool serialize(const RepeatedField<DATA_TYPE>& x, WriteBufferInterface& buffer)
-  {
-    const uint32_t size_x = x.serialized_size();
-    bool result = (size_x < buffer.get_available_size());
-    if(result && (0 < size_x))
-    {
-      result = ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-      result = result && x.serialize(buffer);
-    }
-    return result;
-  }
-
-  template<class DATA_TYPE>
-  inline bool deserialize(ReadBufferInterface& buffer, RepeatedField<DATA_TYPE>& x)
-  {
-      return x.deserialize(buffer);
-  }
-*/
 } // End of namespace EmbeddedProto
 
 #endif // End of _DYNAMIC_BUFFER_H_

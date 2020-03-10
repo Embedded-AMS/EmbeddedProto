@@ -58,7 +58,7 @@ What is required to be able to generate the source files:
 5. Git if you do not have it already.
 
 ## Linux
-Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule. If you intent to run the PC unit tests of EmbeddedProto it is suggested that you pull in the submodules as well. 
+Install the required software and continue with checking out the repository. For PC unit testing GTest is used which is included as a git submodule. If you intent to run the PC unit tests of EmbeddedProto it is suggested that you pull in the submodules as well. 
 ```bash
 git clone --recursive URL_TO_EMBEDDED_AMS
 ```

@@ -19,7 +19,7 @@ void init_{{_oneof.name}}(const id field_id)
     clear_{{_oneof.name}}();
   }
 
-  // C++11 unions only support non-trivial members when you explicitly call the placement new statement.
+  // C++11 unions only support nontrivial members when you explicitly call the placement new statement.
   switch(field_id)
   {
     {% for field in _oneof.fields() %}
@@ -437,7 +437,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
  *  You should have received a copy of the GNU General Public License
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
- *  For commercial and closed source application please vist:
+ *  For commercial and closed source application please visit:
  *  <https://EmbeddedProto.com/license/>.
  *
  *  Embedded AMS B.V.
