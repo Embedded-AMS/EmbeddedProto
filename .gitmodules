@@ -1,6 +1,3 @@
 [submodule "googletest"]
 	path = external/googletest
 	url = https://github.com/google/googletest.git
-[submodule "external/protobuf"]
-	path = external/protobuf
-	url = https://github.com/protocolbuffers/protobuf.git

@@ -1,3 +1,33 @@
+/*
+ *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://EmbeddedProto.com/license/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal adress:
+ *    Johan Huizingalaan 763a
+ *    1066 VH, Amsterdam
+ *    the Netherlands
+ */
+
 #ifndef _FIELDS_H_
 #define _FIELDS_H_
 
@@ -14,7 +44,7 @@ namespace EmbeddedProto
       Field() = default;
       virtual ~Field() = default;
 
-      virtual bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
+      virtual bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
 
       virtual bool serialize(WriteBufferInterface& buffer) const = 0;
 
@@ -83,7 +113,7 @@ namespace EmbeddedProto
 
       ~int32() override = default;
 
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -97,7 +127,7 @@ namespace EmbeddedProto
 
       ~int64() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -111,7 +141,7 @@ namespace EmbeddedProto
 
       ~uint32() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -125,7 +155,7 @@ namespace EmbeddedProto
 
       ~uint64() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffe) final; 
   };
@@ -139,7 +169,7 @@ namespace EmbeddedProto
 
       ~sint32() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -153,7 +183,7 @@ namespace EmbeddedProto
 
       ~sint64() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -167,7 +197,7 @@ namespace EmbeddedProto
 
       ~boolean() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -181,7 +211,7 @@ namespace EmbeddedProto
 
       ~fixed32() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -195,7 +225,7 @@ namespace EmbeddedProto
 
       ~fixed64() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -209,7 +239,7 @@ namespace EmbeddedProto
 
       ~sfixed32() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -223,7 +253,7 @@ namespace EmbeddedProto
 
       ~sfixed64() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -237,7 +267,7 @@ namespace EmbeddedProto
 
       ~floatfixed() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -251,7 +281,7 @@ namespace EmbeddedProto
 
       ~doublefixed() override = default;
       
-      bool serialize(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
       bool serialize(WriteBufferInterface& buffer) const final;
       bool deserialize(ReadBufferInterface& buffer) final; 
   };

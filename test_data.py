@@ -1,3 +1,32 @@
+#
+# Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+#
+# This file is part of Embedded Proto.
+#
+# Embedded Proto is open source software: you can redistribute it and/or 
+# modify it under the terms of the GNU General Public License as published 
+# by the Free Software Foundation, version 3 of the license.
+#
+# Embedded Proto  is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial and closed source application please visit:
+# <https://EmbeddedProto.com/license/>.
+#
+# Embedded AMS B.V.
+# Info:
+#   info at EmbeddedProto dot com
+#
+# Postal adress:
+#   Johan Huizingalaan 763a
+#   1066 VH, Amsterdam
+#   the Netherlands
+#
 
 from sys import path
 path.append('./build/python/')
@@ -165,10 +194,9 @@ def test_repeated_message():
 def test_oneof_fields():
     msg = of.message_oneof()
 
-    msg.a = 1
-    msg.b = 1
-    msg.x = 1
-    msg.v = 1
+    msg.msg_DEF.varD = 1
+    msg.msg_DEF.varE = 22
+    msg.msg_DEF.varF = 333
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -209,5 +237,5 @@ def test_included_proto():
 #test_repeated_fields()
 #test_repeated_message()
 #test_nested_message()
-#test_oneof_fields()
-test_included_proto()
+test_oneof_fields()
+#test_included_proto()
