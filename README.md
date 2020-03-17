@@ -42,27 +42,17 @@ fixed64 | Full
 sfixed32 | Full
 sfixed64 | Full
 bool | Full
-<<<<<<< HEAD
-string | Under Development
-bytes | Under Development
-=======
 string | Design phase
 bytes | Design phase
->>>>>>> develop
 
 | Feature | Support |
 | --- | --- |
 Enum | Full
 Other Messages | Full
 oneof | Full
-<<<<<<< HEAD
-singular | No support
-repeated | Full
-=======
 singular | Full
 repeated | Full
-maps | Under sonisderation
->>>>>>> develop
+maps | Under conisderation
 
 All features mentioned abover are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
