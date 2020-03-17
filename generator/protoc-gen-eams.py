@@ -325,9 +325,10 @@ def main_plugin():
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
 
-    # Write the requests to a file for easy debugging.
-    with open("./debug_request.bin", 'wb') as file:
-        file.write(request.SerializeToString())
+    if '--debug' in sys.argv:
+        # Write the requests to a file for easy debugging.
+        with open("./debug_embbeded_proto.bin", 'wb') as file:
+            file.write(request.SerializeToString())
 
     # Create response
     response = plugin.CodeGeneratorResponse()
@@ -346,7 +347,7 @@ def main_cli():
     # The main function when running from the command line and debugging.  Instead of receiving data from protoc this
     # will read in a binary file stored the previous time main_plugin() is ran.
 
-    with open("debug_request.bin", 'rb') as file:
+    with open("debug_embbeded_proto.bin", 'rb') as file:
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
 
