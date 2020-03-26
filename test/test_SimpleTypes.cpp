@@ -58,7 +58,7 @@ TEST(SimpleTypes, zero)
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -107,7 +107,7 @@ TEST(SimpleTypes, serialize_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(58, msg.serialized_size());
 }
@@ -156,7 +156,7 @@ TEST(SimpleTypes, serialize_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(100, msg.serialized_size());
 }
 
@@ -197,7 +197,7 @@ TEST(SimpleTypes, serialize_min)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
   
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(62, msg.serialized_size());
 }
 
@@ -221,7 +221,7 @@ TEST(SimpleTypes, serialize_smalest_real)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
   
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(14, msg.serialized_size());
 }
 
@@ -232,7 +232,7 @@ TEST(SimpleTypes, deserialize_zero)
   ::Test_Simple_Types msg;
 
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(0, msg.get_a_int32());   
   EXPECT_EQ(0, msg.get_a_int64());     
@@ -279,7 +279,7 @@ TEST(SimpleTypes, deserialize_one)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a_int32());   
   EXPECT_EQ(1, msg.get_a_int64());     
@@ -326,7 +326,7 @@ TEST(SimpleTypes, deserialize_max)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<int32_t>::max(),  msg.get_a_int32());   
   EXPECT_EQ(std::numeric_limits<int64_t>::max(),  msg.get_a_int64());     
@@ -367,7 +367,7 @@ TEST(SimpleTypes, deserialize_min)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<int32_t>::min(),  msg.get_a_int32());   
   EXPECT_EQ(std::numeric_limits<int64_t>::min(),  msg.get_a_int64());     
@@ -400,7 +400,7 @@ TEST(SimpleTypes, deserialize_smalest_real)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
   
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<double>::min(), msg.get_a_double());
   EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());

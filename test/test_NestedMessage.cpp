@@ -33,6 +33,7 @@
 #include <WireFormatter.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
+#include <Errors.h>
 
 #include <cstdint>    
 #include <limits> 
@@ -58,7 +59,7 @@ TEST(NestedMessage, serialize_zero)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -97,7 +98,7 @@ TEST(NestedMessage, serialize_one)
   }
 
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(22, msg.serialized_size());
 }
@@ -136,7 +137,7 @@ TEST(NestedMessage, serialize_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(39, msg.serialized_size());
 }
@@ -178,7 +179,7 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(NestedMessage, deserialize_one) 
@@ -203,7 +204,7 @@ TEST(NestedMessage, deserialize_one)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(1, msg.get_nested_a().get_x());
@@ -235,7 +236,7 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<double>::max(), msg.get_nested_b().get_u());
   EXPECT_EQ(std::numeric_limits<int32_t>::max(), msg.get_nested_b().get_nested_a().get_x());

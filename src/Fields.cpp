@@ -40,201 +40,266 @@ namespace EmbeddedProto
     return calcBuffer.get_size();
   }
 
-  bool int32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error int32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool int64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error int64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool uint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error uint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool uint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error uint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool sint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool sint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool boolean::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error boolean::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool fixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error fixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool fixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error fixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool sfixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sfixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool sfixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sfixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool floatfixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error floatfixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
-  bool doublefixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error doublefixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
   { 
-    return WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer) && serialize(buffer);
+    Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
+    if(Error::NO_ERRORS == return_value)
+    {
+      return_value = serialize(buffer);
+    }
+    return return_value;
   }
 
 
 
-  bool int32::serialize(WriteBufferInterface& buffer) const
+  Error int32::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
   }
 
-  bool int64::serialize(WriteBufferInterface& buffer) const
+  Error int64::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer);
   }
 
-  bool uint32::serialize(WriteBufferInterface& buffer) const
+  Error uint32::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(get(), buffer);
   }
 
-  bool uint64::serialize(WriteBufferInterface& buffer) const
+  Error uint64::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(get(), buffer);
   }
 
-  bool sint32::serialize(WriteBufferInterface& buffer) const
+  Error sint32::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
   }
 
-  bool sint64::serialize(WriteBufferInterface& buffer) const
+  Error sint64::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
   }
 
-  bool boolean::serialize(WriteBufferInterface& buffer) const
+  Error boolean::serialize(WriteBufferInterface& buffer) const
   {
-    return buffer.push(get() ? 0x01 : 0x00);
+    return buffer.push(get() ? 0x01 : 0x00) ? Error::NO_ERRORS : Error::BUFFER_FULL;
   }
 
-  bool fixed32::serialize(WriteBufferInterface& buffer) const
-  {
-    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
-  }
-
-  bool fixed64::serialize(WriteBufferInterface& buffer) const
+  Error fixed32::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerialzieFixedNoTag(get(), buffer);
   }
 
-  bool sfixed32::serialize(WriteBufferInterface& buffer) const
+  Error fixed64::serialize(WriteBufferInterface& buffer) const
+  {
+    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
+  }
+
+  Error sfixed32::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerialzieSFixedNoTag(get(), buffer);
   }
 
-  bool sfixed64::serialize(WriteBufferInterface& buffer) const
+  Error sfixed64::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerialzieSFixedNoTag(get(), buffer);
   }
 
-  bool floatfixed::serialize(WriteBufferInterface& buffer) const
+  Error floatfixed::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerialzieFloatNoTag(get(), buffer);
   }
 
-  bool doublefixed::serialize(WriteBufferInterface& buffer) const
+  Error doublefixed::serialize(WriteBufferInterface& buffer) const
   {
     return WireFormatter::SerialzieDoubleNoTag(get(), buffer);
   }
 
 
 
-  bool int32::deserialize(ReadBufferInterface& buffer) 
+  Error int32::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeInt(buffer, get());
   }
 
-  bool int64::deserialize(ReadBufferInterface& buffer) 
+  Error int64::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeInt(buffer, get());
   }
 
-  bool uint32::deserialize(ReadBufferInterface& buffer) 
+  Error uint32::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeUInt(buffer, get());
   }
 
-  bool uint64::deserialize(ReadBufferInterface& buffer) 
+  Error uint64::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeUInt(buffer, get());
   }
 
-  bool sint32::deserialize(ReadBufferInterface& buffer) 
+  Error sint32::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeSInt(buffer, get());
   }
 
-  bool sint64::deserialize(ReadBufferInterface& buffer) 
+  Error sint64::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeSInt(buffer, get());
   }
 
-  bool boolean::deserialize(ReadBufferInterface& buffer) 
+  Error boolean::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeBool(buffer, get());
   }
 
-  bool fixed32::deserialize(ReadBufferInterface& buffer) 
+  Error fixed32::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeFixed(buffer, get());
   }
 
-  bool fixed64::deserialize(ReadBufferInterface& buffer) 
+  Error fixed64::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeFixed(buffer, get());
   }
 
-  bool sfixed32::deserialize(ReadBufferInterface& buffer) 
+  Error sfixed32::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeSFixed(buffer, get());
   }
 
-  bool sfixed64::deserialize(ReadBufferInterface& buffer) 
+  Error sfixed64::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeSFixed(buffer, get());
   }
 
-  bool floatfixed::deserialize(ReadBufferInterface& buffer) 
+  Error floatfixed::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeFloat(buffer, get());
   }
 
-  bool doublefixed::deserialize(ReadBufferInterface& buffer) 
+  Error doublefixed::deserialize(ReadBufferInterface& buffer) 
   { 
     return WireFormatter::DeserializeDouble(buffer, get());
   }

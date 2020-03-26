@@ -64,7 +64,7 @@ TEST(IncludeOtherFiles, zero)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).WillRepeatedly(Return(99));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -109,7 +109,7 @@ TEST(IncludeOtherFiles, set)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }   
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
 }
 

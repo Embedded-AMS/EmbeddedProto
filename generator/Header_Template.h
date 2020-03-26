@@ -202,26 +202,26 @@ inline {{_field.type}}::FIELD_TYPE get_{{_field.name}}() const { return {{_field
 {# #}
 {% macro field_serialize_macro(_field) %}
 {% if _field.is_repeated_field %}
-if(result)
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
-  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  return_value = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_message %}
-if(result)
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
-  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  return_value = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% elif _field.of_type_enum %}
-if(({{_field.default_value}} != {{_field.variable_full_name}}) && result)
+if(({{_field.default_value}} != {{_field.variable_full_name}}) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {
   EmbeddedProto::uint32 value;
   value.set(static_cast<uint32_t>({{_field.variable_full_name}}));
-  result = value.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  return_value = value.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 }
 {% else %}
-if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && result)
+if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {
-  result = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
+  return_value = {{_field.variable_full_name}}.serialize_with_id(static_cast<uint32_t>(id::{{_field.variable_id_name}}), buffer);
 } {% endif %} {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
@@ -230,31 +230,34 @@ if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && result)
 {% if _field.is_repeated_field %}
 if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type)
 {
-  result = {{_field.variable_full_name}}.deserialize(buffer);
+  return_value = {{_field.variable_full_name}}.deserialize(buffer);
 }
 {% else %}
 if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
 {
   {% if _field.of_type_message %}
   uint32_t size;
-  result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+  return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
   ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
   {% if _field.oneof_name is defined %}
   init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
   {% endif %}
-  result = result && {{_field.variable_full_name}}.deserialize(bufferSection);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    return_value = {{_field.variable_full_name}}.deserialize(bufferSection);
+  }
   {% elif _field.of_type_enum %}
   uint32_t value;
-  result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
-  if(result)
+  return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   {
     set_{{_field.name}}(static_cast<{{_field.type}}>(value));
   }
   {% else %}
-  result = {{_field.variable_full_name}}.deserialize(buffer);
+  return_value = {{_field.variable_full_name}}.deserialize(buffer);
   {% endif %}
    {% if _field.which_oneof is defined %}
-  if(result)
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   {
     {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   }
@@ -263,8 +266,8 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
 {% endif %}
 else
 {
-  // TODO Error wire type does not match field.
-  result = false;
+  // Wire type does not match field.
+  return_value = ::EmbeddedProto::Error::INVALID_WIRETYPE;
 } {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
@@ -316,9 +319,9 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
     {{ field_get_set_macro(field)|indent(4) }}
     {% endfor %}
     {% endfor %}
-    bool serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
+    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
-      bool result = true;
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
 
       {% for field in msg.fields() %}
       {{ field_serialize_macro(field)|indent(6) }}
@@ -338,16 +341,17 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       }
 
       {% endfor %}
-      return result;
+      return return_value;
     };
 
-    bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
     {
-      bool result = true;
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
       ::EmbeddedProto::WireFormatter::WireType wire_type;
       uint32_t id_number = 0;
 
-      while(result && ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number))
+      ::EmbeddedProto::Error tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+      while((::EmbeddedProto::Error::NO_ERRORS == return_value) && (::EmbeddedProto::Error::NO_ERRORS == tag_value))
       {
         switch(id_number)
         {
@@ -372,8 +376,23 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
           default:
             break;
         }
+        
+        if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+        {
+            // Read the next tag.
+            tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+        }
       }
-      return result;
+
+      // When an error was detect while reading the tag but no other errors where found, set it in the return value.
+      if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+         && (::EmbeddedProto::Error::NO_ERRORS != tag_value)
+         && (::EmbeddedProto::Error::END_OF_BUFFER != tag_value)) // The end of the buffer is not an array in this case.
+      {
+        return_value = tag_value;
+      }
+
+      return return_value;
     };
 
     void clear() final
@@ -462,6 +481,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
 #include <RepeatedField.h>
+#include <Errors.h>
 {% endif %}
 {% if dependencies %}
 
