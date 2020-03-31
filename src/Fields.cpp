@@ -204,7 +204,8 @@ namespace EmbeddedProto
 
   Error boolean::serialize(WriteBufferInterface& buffer) const
   {
-    return buffer.push(get() ? 0x01 : 0x00) ? Error::NO_ERRORS : Error::BUFFER_FULL;
+    const uint8_t byte = get() ? 0x01 : 0x00;
+    return buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL;
   }
 
   Error fixed32::serialize(WriteBufferInterface& buffer) const

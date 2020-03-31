@@ -168,7 +168,8 @@ namespace EmbeddedProto
         Error return_value = SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          return_value = buffer.push(value ? 0x01 : 0x00) ? Error::NO_ERRORS : Error::BUFFER_FULL;
+          const uint8_t byte = value ? 0x01 : 0x00;
+          return_value = buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL;
         }
         return return_value;
       }
