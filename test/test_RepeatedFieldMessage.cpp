@@ -308,6 +308,21 @@ TEST(RepeatedFieldMessage, serialize_max)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
+TEST(RepeatedFieldMessage, serialize_fault_buffer_full)
+{
+  Mocks::WriteBufferMock buffer;
+
+  repeated_fields<Y_SIZE> msg;
+  msg.add_y(1);
+  msg.add_y(1);
+  msg.add_y(1);                 
+  
+  // Need 5 bytes but got only three.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(3));
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
+}
+
 TEST(RepeatedFieldMessage, deserialize_empty_array) 
 {
   repeated_fields<Y_SIZE> msg;

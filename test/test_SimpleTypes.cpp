@@ -225,6 +225,28 @@ TEST(SimpleTypes, serialize_smalest_real)
   EXPECT_EQ(14, msg.serialized_size());
 }
 
+TEST(SimpleTypes, serialize_fault_buffer_full_varint)
+{
+    InSequence s;
+  
+  // Using a protobuf message and the google protobuf implementation test is serialization is 
+  // correct.
+  ::Test_Simple_Types msg;
+  Mocks::WriteBufferMock buffer;
+
+  // Just set some large value.
+  msg.set_a_uint32(std::numeric_limits<uint32_t>::max());
+
+  // Allow for some bytes to be serialized
+  EXPECT_CALL(buffer, push(_)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(_)).Times(1).WillOnce(Return(true));  
+  // And then fail
+  EXPECT_CALL(buffer, push(_)).Times(2).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
+
+}
+
 TEST(SimpleTypes, deserialize_zero) 
 {
   InSequence s;
@@ -404,6 +426,44 @@ TEST(SimpleTypes, deserialize_smalest_real)
 
   EXPECT_EQ(std::numeric_limits<double>::min(), msg.get_a_double());
   EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());
+}
+
+TEST(SimpleTypes, deserialize_fault_end_of_buffer_fixed)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(58));
+
+  ::Test_Simple_Types msg;
+
+  uint8_t referee[] = {0x40, 0x80, 0xA8, 0xD6}; // End half way through a fixed size value.
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+}
+
+TEST(SimpleTypes, deserialize_fault_end_of_buffer_bool)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(58));
+
+  ::Test_Simple_Types msg;
+
+  uint8_t referee[] = {0x38}; // Just the tag of a bool but no data
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
 }
 
 } // End of namespace test_EmbeddedAMS_SimpleTypes
