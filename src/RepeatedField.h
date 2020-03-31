@@ -224,9 +224,10 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      //! Calculate the size of this message when serialized.
+      //! Calculate the size of this field when serialized.
       /*!
-          \return The number of bytes this message will require once serialized.
+          The calculation only includes the data, not the size required by the tag and 
+          \return The number of bytes this field will require once serialized.
       */
       uint32_t serialized_size_packed(int32_t field_number) const 
       {
@@ -235,9 +236,9 @@ namespace EmbeddedProto
         return calcBuffer.get_size();
       }
 
-      //! Calculate the size of this message when serialized.
+      //! Calculate the size of this field when serialized.
       /*!
-          \return The number of bytes this message will require once serialized.
+          \return The number of bytes this field will require once serialized.
       */
       uint32_t serialized_size_unpacked(int32_t field_number) const 
       {
