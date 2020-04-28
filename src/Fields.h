@@ -56,6 +56,9 @@ namespace EmbeddedProto
           \return The number of bytes this message will require once serialized.
       */
       uint32_t serialized_size() const;
+
+      //! Reset the field to it's initial value.
+      virtual void clear() = 0;
   };
 
   template<class TYPE>
@@ -98,6 +101,8 @@ namespace EmbeddedProto
       bool operator>=(const FieldTemplate<TYPE_RHS>& rhs) { return value_ >= rhs.get(); }
       template<class TYPE_RHS>
       bool operator<=(const FieldTemplate<TYPE_RHS>& rhs) { return value_ <= rhs.get(); }
+
+      void clear() override { value_ = static_cast<TYPE>(0); }
 
     private:
 

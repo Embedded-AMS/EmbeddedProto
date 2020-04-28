@@ -123,4 +123,17 @@ TEST(RepeatedField, set_element)
   EXPECT_EQ(3, x.get(2));
 }
 
+TEST(RepeatedField, clear) 
+{
+  static constexpr uint32_t SIZE = 3;
+  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  x.add(1);
+  x.add(2);
+  x.clear();
+  EXPECT_EQ(0U, x.get(0));
+  EXPECT_EQ(0U, x.get(1));
+  EXPECT_EQ(0U, x.get_length());
+}
+
+
 } // End namespace test_EmbeddedAMS_RepeatedField

@@ -354,6 +354,10 @@ namespace EmbeddedProto
 
       void clear() override 
       {
+        for(uint32_t i = 0; i < current_size_; ++i)
+        {
+          data_[i].clear();
+        }
         current_size_ = 0;
       }
 

@@ -73,7 +73,6 @@ TEST(IncludeOtherFiles, set)
 {
   InSequence s;
 
-  // See if an empty message results in no data been pushed.
   ::IncludedMessages<RF_SIZE> msg;
   Mocks::WriteBufferMock buffer;
 
@@ -111,6 +110,41 @@ TEST(IncludeOtherFiles, set)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
+}
+
+TEST(IncludeOtherFiles, get) 
+{
+  InSequence s;
+
+  ::IncludedMessages<RF_SIZE> msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = { 0x08, 0x01, // state
+                       // cmsg
+                       0x12, 0x07, 
+                       0x08, 0x01, // msg.a
+                       0x15, 0x00, 0x00, 0x80, 0x3f, // msg.b
+                       // rf
+                       0x1a, 0x09, 
+                       0x08, 0x01, // rf.x
+                       0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
+                       0x18, 0x01}; // rf.z
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));    
+  
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.msg().a());
+  EXPECT_EQ(1.0F, msg.msg().b());
+
+  EXPECT_EQ(1, msg.rf().x());
+  EXPECT_EQ(1, msg.rf().y(0));
+  EXPECT_EQ(1, msg.rf().y(1));
+  EXPECT_EQ(1, msg.rf().y(2));
+  EXPECT_EQ(1, msg.rf().z());
 }
 
 
