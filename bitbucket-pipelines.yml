@@ -1,4 +1,8 @@
 image: atlassian/default-image:2
+
+clone: 
+  depth: full
+
 pipelines:
   default:
     - step:    

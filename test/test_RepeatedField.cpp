@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -36,6 +36,8 @@
 namespace test_EmbeddedAMS_RepeatedField
 {
 
+static constexpr int32_t UINT32_SIZE = sizeof(::EmbeddedProto::uint32);
+
 TEST(RepeatedField, construction) 
 {
   static constexpr uint32_t SIZE = 3;
@@ -47,27 +49,64 @@ TEST(RepeatedField, size_uint32_t)
   static constexpr uint32_t SIZE = 3;
   EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
 
-  static constexpr int32_t UINT32_SIZE = sizeof(::EmbeddedProto::uint32);
+  auto size = x.get_size();
+  EXPECT_EQ(0, size);
 
-  EXPECT_EQ(0, x.get_size());
-  EXPECT_EQ(SIZE*UINT32_SIZE, x.get_max_size());
-  EXPECT_EQ(0, x.get_length());
-  EXPECT_EQ(SIZE, x.get_max_length());
+  auto max_size = x.get_max_size();
+  EXPECT_EQ(SIZE*UINT32_SIZE, max_size);
+
+  auto length = x.get_length();
+  EXPECT_EQ(0, length);
+
+  auto max_length = x.get_max_length();
+  EXPECT_EQ(SIZE, max_length);
+}
+
+TEST(RepeatedField, add_data) 
+{  
+  static constexpr uint32_t SIZE = 3;
+  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
 
   x.add(1);
   x.add(2);
   EXPECT_EQ(2*UINT32_SIZE, x.get_size());
   EXPECT_EQ(2, x.get_length());
 
-  x.add(3);
+  auto result = x.add(3);
+  EXPECT_EQ(EmbeddedProto::Error::NO_ERRORS, result);
 
   EXPECT_EQ(SIZE*UINT32_SIZE, x.get_size());
   EXPECT_EQ(SIZE*UINT32_SIZE, x.get_max_size());
   EXPECT_EQ(SIZE, x.get_length());
   EXPECT_EQ(SIZE, x.get_max_length());
+
+  // Check if we can add more than the limit.
+  result = x.add(4);
+  EXPECT_EQ(EmbeddedProto::Error::ARRAY_FULL, result);
 }
 
-TEST(RepeatedField, set) 
+TEST(RepeatedField, set_data_array) 
+{  
+  static constexpr uint32_t SIZE = 3;
+  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+
+  EmbeddedProto::uint32 data3[] = {1, 2, 3};
+
+  auto result = x.set_data(&(data3[0]), 3U);
+  EXPECT_EQ(EmbeddedProto::Error::NO_ERRORS, result);  
+
+  EXPECT_EQ(SIZE*UINT32_SIZE, x.get_size());
+  EXPECT_EQ(SIZE*UINT32_SIZE, x.get_max_size());
+  EXPECT_EQ(SIZE, x.get_length());
+  EXPECT_EQ(SIZE, x.get_max_length());
+
+  // Check if we can add more than the limit.
+  EmbeddedProto::uint32 data4[] = {1, 2, 3, 4};
+  result = x.set_data(&(data4[0]), 4U);
+  EXPECT_EQ(EmbeddedProto::Error::ARRAY_FULL, result);
+}
+
+TEST(RepeatedField, set_element) 
 {
   static constexpr uint32_t SIZE = 3;
   EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
@@ -83,5 +122,18 @@ TEST(RepeatedField, set)
   x.set(2, 3);
   EXPECT_EQ(3, x.get(2));
 }
+
+TEST(RepeatedField, clear) 
+{
+  static constexpr uint32_t SIZE = 3;
+  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  x.add(1);
+  x.add(2);
+  x.clear();
+  EXPECT_EQ(0U, x.get(0));
+  EXPECT_EQ(0U, x.get(1));
+  EXPECT_EQ(0U, x.get_length());
+}
+
 
 } // End namespace test_EmbeddedAMS_RepeatedField

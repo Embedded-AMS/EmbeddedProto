@@ -28,12 +28,22 @@
  *    the Netherlands
  */
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#ifndef _ERRORS_H_
+#define _ERRORS_H_
 
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  ::testing::InitGoogleMock(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+namespace EmbeddedProto 
+{
 
+  //! This enumeration defines errors which can occur during serialization and deserialization. 
+  enum class Error
+  {
+    NO_ERRORS        = 0, //!< No errors have occurred.
+    END_OF_BUFFER    = 1, //!< While trying to read from the buffer we ran out of bytes tor read.
+    BUFFER_FULL      = 2, //!< The write buffer is full, unable to push more bytes in to it.
+    INVALID_WIRETYPE = 3, //!< When reading a Wiretype from the tag we got an invalid value.
+    ARRAY_FULL       = 4, //!< The array is full, it is not possible to push more items in it.
+  };
+
+}; // End of namespace EmbeddedProto
+
+#endif // End of _ERRORS_H_

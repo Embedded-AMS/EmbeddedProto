@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -35,6 +35,7 @@
 
 #include "WireFormatter.h"
 #include "Fields.h"
+#include "Errors.h"
 
 namespace EmbeddedProto 
 {
@@ -48,7 +49,7 @@ class MessageInterface : public ::EmbeddedProto::Field
     virtual ~MessageInterface() = default;
 
     // TODO doc
-    bool serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
+    Error serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
 
     //! Clear the content of this message and set it to it's default state.
     /*!
