@@ -324,12 +324,11 @@ namespace EmbeddedProto
 
       Error set_data(const DATA_TYPE* data, const uint32_t length) override 
       {
-        const uint32_t size = length * BYTES_PER_ELEMENT;
         Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE >= size) 
+        if(MAX_SIZE >= length) 
         {
-          current_size_ = size;
-          memcpy(data_, data, size);
+          current_size_ = length;
+          memcpy(data_, data, length * BYTES_PER_ELEMENT);
         }
         else 
         {
@@ -341,7 +340,7 @@ namespace EmbeddedProto
       Error add(const DATA_TYPE& value) override 
       {
         Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE >= current_size_) 
+        if(MAX_SIZE > current_size_) 
         {
           data_[current_size_] = value;
           ++current_size_;
