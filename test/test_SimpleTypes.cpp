@@ -437,7 +437,7 @@ TEST(SimpleTypes, deserialize_fault_end_of_buffer_fixed)
 
   ::Test_Simple_Types msg;
 
-  uint8_t referee[] = {0x40, 0x80, 0xA8, 0xD6}; // End half way through a fixed size value.
+  uint8_t referee[] = {0x49, 0xFF, 0xFF}; // End half way through a fixed size value.
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
