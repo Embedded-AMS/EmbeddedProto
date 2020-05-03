@@ -28,11 +28,9 @@
  *    the Netherlands
  */
 
-#ifndef _DYNAMIC_BUFFER_H_
-#define _DYNAMIC_BUFFER_H_
+#ifndef _REPEATED_FIELD_H_
+#define _REPEATED_FIELD_H_
 
-#include <cstring>
-#include <algorithm>    // std::min
 #include <type_traits>
 
 #include "Fields.h"
@@ -282,94 +280,7 @@ namespace EmbeddedProto
 
   };
 
-  //! A template class that actually holds some data.
-  /*!
-    This is a separate class to make it possible to not have the size defined in every function or 
-    class using this type of object.
-  */
-  template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class RepeatedFieldSize : public RepeatedField<DATA_TYPE>
-  { 
-      static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
-
-    public:
-
-      RepeatedFieldSize()
-        : current_size_(0),
-          data_{}
-      {
-
-      }  
-
-      ~RepeatedFieldSize() override = default;
-
-      uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
-
-      uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_SIZE; }
-
-      uint32_t get_length() const override { return current_size_; }
-
-      uint32_t get_max_length() const override { return MAX_SIZE; }
-
-      DATA_TYPE* get_data() { return data_; }
-
-      DATA_TYPE& get(uint32_t index) override { return data_[index]; }
-      const DATA_TYPE& get(uint32_t index) const override { return data_[index]; }
-
-      void set(uint32_t index, const DATA_TYPE& value) override 
-      { 
-        data_[index] = value;
-        current_size_ = std::max(index+1, current_size_); 
-      }
-
-      Error set_data(const DATA_TYPE* data, const uint32_t length) override 
-      {
-        Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE >= length) 
-        {
-          current_size_ = length;
-          memcpy(data_, data, length * BYTES_PER_ELEMENT);
-        }
-        else 
-        {
-          return_value = Error::ARRAY_FULL;
-        }
-        return return_value;
-      }
-
-      Error add(const DATA_TYPE& value) override 
-      {
-        Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE > current_size_) 
-        {
-          data_[current_size_] = value;
-          ++current_size_;
-        }
-        else 
-        {
-          return_value = Error::ARRAY_FULL;
-        }
-        return return_value;
-      }
-
-      void clear() override 
-      {
-        for(uint32_t i = 0; i < current_size_; ++i)
-        {
-          data_[i].clear();
-        }
-        current_size_ = 0;
-      }
-
-    private:
-
-      //! Number of item in the data array.
-      uint32_t current_size_;
-
-      //! The actual data 
-      DATA_TYPE data_[MAX_SIZE];
-  };
 
 } // End of namespace EmbeddedProto
 
-#endif // End of _DYNAMIC_BUFFER_H_
+#endif // End of _REPEATED_FIELD_H_
