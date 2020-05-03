@@ -56,17 +56,17 @@ namespace EmbeddedProto
       RepeatedField() = default;
       virtual ~RepeatedField() = default;
 
-      //! Obtain the total number of bytes currently stored in the array.
-      virtual uint32_t get_size() const = 0;
-
-      //! Obtain the maximum number of bytes which can at most be stored in the array.
-      virtual uint32_t get_max_size() const = 0;
-
       //! Obtain the total number of DATA_TYPE items in the array.
       virtual uint32_t get_length() const = 0;
 
       //! Obtain the maximum number of DATA_TYPE items which can at most be stored in the array.
       virtual uint32_t get_max_length() const = 0;
+      
+      //! Obtain the total number of bytes currently stored in the array.
+      virtual uint32_t get_size() const = 0;
+
+      //! Obtain the maximum number of bytes which can at most be stored in the array.
+      virtual uint32_t get_max_size() const = 0;
 
       //! Get a pointer to the first element in the array.
       virtual DATA_TYPE* get_data() = 0;

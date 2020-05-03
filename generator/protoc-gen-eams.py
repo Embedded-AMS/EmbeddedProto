@@ -168,8 +168,8 @@ class FieldTemplateParameters:
 
         if self.is_repeated_field:
             self.repeated_type = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.type + ", " + self.variable_name \
-                                 + "SIZE>"
-            self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE"})
+                                 + "LENGTH>"
+            self.templates.append({"type": "uint32_t", "name": self.variable_name + "LENGTH"})
 
 
 # -----------------------------------------------------------------------------

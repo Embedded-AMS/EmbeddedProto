@@ -45,7 +45,7 @@ namespace EmbeddedProto
     This is a separate class to make it possible to not have the size defined in every function or 
     class using this type of object.
   */
-  template<class DATA_TYPE, uint32_t MAX_SIZE>
+  template<class DATA_TYPE, uint32_t MAX_LENGTH>
   class RepeatedFieldFixedSize : public RepeatedField<DATA_TYPE>
   { 
       static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
@@ -53,7 +53,7 @@ namespace EmbeddedProto
     public:
 
       RepeatedFieldFixedSize()
-        : current_size_(0),
+        : current_length_(0),
           data_{}
       {
 
@@ -61,13 +61,17 @@ namespace EmbeddedProto
 
       ~RepeatedFieldFixedSize() override = default;
 
-      uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
+      //! Obtain the total number of DATA_TYPE items in the array.
+      uint32_t get_length() const override { return current_length_; }
 
-      uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_SIZE; }
+      //! Obtain the maximum number of DATA_TYPE items which can at most be stored in the array.
+      uint32_t get_max_length() const override { return MAX_LENGTH; }
 
-      uint32_t get_length() const override { return current_size_; }
+      //! Obtain the total number of bytes currently stored in the array.
+      uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_length_; }
 
-      uint32_t get_max_length() const override { return MAX_SIZE; }
+      //! Obtain the maximum number of bytes which can at most be stored in the array.
+      uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_LENGTH; }
 
       DATA_TYPE* get_data() { return data_; }
 
@@ -77,15 +81,15 @@ namespace EmbeddedProto
       void set(uint32_t index, const DATA_TYPE& value) override 
       { 
         data_[index] = value;
-        current_size_ = std::max(index+1, current_size_); 
+        current_length_ = std::max(index+1, current_length_); 
       }
 
       Error set_data(const DATA_TYPE* data, const uint32_t length) override 
       {
         Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE >= length) 
+        if(MAX_LENGTH >= length) 
         {
-          current_size_ = length;
+          current_length_ = length;
           memcpy(data_, data, length * BYTES_PER_ELEMENT);
         }
         else 
@@ -98,10 +102,10 @@ namespace EmbeddedProto
       Error add(const DATA_TYPE& value) override 
       {
         Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE > current_size_) 
+        if(MAX_LENGTH > current_length_) 
         {
-          data_[current_size_] = value;
-          ++current_size_;
+          data_[current_length_] = value;
+          ++current_length_;
         }
         else 
         {
@@ -112,20 +116,20 @@ namespace EmbeddedProto
 
       void clear() override 
       {
-        for(uint32_t i = 0; i < current_size_; ++i)
+        for(uint32_t i = 0; i < current_length_; ++i)
         {
           data_[i].clear();
         }
-        current_size_ = 0;
+        current_length_ = 0;
       }
 
     private:
 
       //! Number of item in the data array.
-      uint32_t current_size_;
+      uint32_t current_length_;
 
       //! The actual data 
-      DATA_TYPE data_[MAX_SIZE];
+      DATA_TYPE data_[MAX_LENGTH];
   };
 
 } // End of namespace EmbeddedProto
