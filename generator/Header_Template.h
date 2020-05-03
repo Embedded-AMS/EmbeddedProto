@@ -480,7 +480,7 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <Fields.h>
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
-#include <RepeatedField.h>
+#include <RepeatedFieldFixedSize.h>
 #include <Errors.h>
 {% endif %}
 {% if dependencies %}

@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 
 #include <Fields.h>
-#include <RepeatedField.h>
+#include <RepeatedFieldFixedSize.h>
 
 namespace test_EmbeddedAMS_RepeatedField
 {
@@ -41,13 +41,13 @@ static constexpr int32_t UINT32_SIZE = sizeof(::EmbeddedProto::uint32);
 TEST(RepeatedField, construction) 
 {
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
 }
 
 TEST(RepeatedField, size_uint32_t) 
 {  
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
 
   auto size = x.get_size();
   EXPECT_EQ(0, size);
@@ -65,7 +65,7 @@ TEST(RepeatedField, size_uint32_t)
 TEST(RepeatedField, add_data) 
 {  
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
 
   x.add(1);
   x.add(2);
@@ -88,7 +88,7 @@ TEST(RepeatedField, add_data)
 TEST(RepeatedField, set_data_array) 
 {  
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
 
   EmbeddedProto::uint32 data3[] = {1, 2, 3};
 
@@ -109,7 +109,7 @@ TEST(RepeatedField, set_data_array)
 TEST(RepeatedField, set_element) 
 {
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
 
   // First add a value in the middle and see if we have a size of two.
   x.set(1, 2);
@@ -126,7 +126,7 @@ TEST(RepeatedField, set_element)
 TEST(RepeatedField, clear) 
 {
   static constexpr uint32_t SIZE = 3;
-  EmbeddedProto::RepeatedFieldSize<::EmbeddedProto::uint32, SIZE> x;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, SIZE> x;
   x.add(1);
   x.add(2);
   x.clear();

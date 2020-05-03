@@ -46,20 +46,20 @@ namespace EmbeddedProto
     class using this type of object.
   */
   template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class RepeatedFieldSize : public RepeatedField<DATA_TYPE>
+  class RepeatedFieldFixedSize : public RepeatedField<DATA_TYPE>
   { 
       static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
 
     public:
 
-      RepeatedFieldSize()
+      RepeatedFieldFixedSize()
         : current_size_(0),
           data_{}
       {
 
       }  
 
-      ~RepeatedFieldSize() override = default;
+      ~RepeatedFieldFixedSize() override = default;
 
       uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
 

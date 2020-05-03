@@ -167,7 +167,7 @@ class FieldTemplateParameters:
             self.default_value = self.type_to_default_value[self.field_proto.type]
 
         if self.is_repeated_field:
-            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " + self.variable_name \
+            self.repeated_type = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.type + ", " + self.variable_name \
                                  + "SIZE>"
             self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE"})
 
