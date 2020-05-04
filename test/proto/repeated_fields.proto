@@ -56,3 +56,8 @@ message nested_repeated_message
 {
     repeated_message rm = 1;
 }
+
+message text
+{
+  string txt = 1;
+}

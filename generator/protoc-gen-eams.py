@@ -84,7 +84,7 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_FIXED64:  "EmbeddedProto::fixed64",
                         FieldDescriptorProto.TYPE_FIXED32:  "EmbeddedProto::fixed32",
                         FieldDescriptorProto.TYPE_BOOL:     "EmbeddedProto::boolean",
-                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_STRING:   "char",
                         FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
                         FieldDescriptorProto.TYPE_UINT32:   "EmbeddedProto::uint32",
                         FieldDescriptorProto.TYPE_SFIXED32: "EmbeddedProto::sfixed32",
@@ -136,7 +136,8 @@ class FieldTemplateParameters:
             self.type = self.type_to_cpp_type[field_proto.type]
 
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
-        self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
+        self.is_repeated_field = FieldDescriptorProto.LABEL_REPEATED == field_proto.label
+        self.is_string = FieldDescriptorProto.TYPE_STRING == field_proto.type
 
         self.default_value = None
         self.repeated_type = None
@@ -169,6 +170,11 @@ class FieldTemplateParameters:
         if self.is_repeated_field:
             self.repeated_type = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.type + ", " + self.variable_name \
                                  + "LENGTH>"
+
+        if self.is_string:
+            self.repeated_type = "::EmbeddedProto::FieldString<" + self.variable_name + "LENGTH>"
+
+        if self.is_repeated_field or self.is_string:
             self.templates.append({"type": "uint32_t", "name": self.variable_name + "LENGTH"})
 
 

@@ -467,4 +467,48 @@ TEST(RepeatedFieldMessage, deserialize_max)
 
 }
 
+
+TEST(RepeatedFieldMessage_string, serialize) 
+{
+  InSequence s;
+
+  text<10> msg;
+  Mocks::WriteBufferMock buffer;
+
+  msg.mutable_txt() = "Foo bar";
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+
+  uint8_t expected[] = {0x0a, 0x07};
+  for(auto e : expected) 
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+
+TEST(RepeatedFieldMessage_string, deserialize) 
+{
+  InSequence s;
+
+  text<10> msg;
+  Mocks::ReadBufferMock buffer;
+
+  uint8_t referee[] = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_STREQ(msg.get_txt(), "Foo bar");
+}
+
+
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage

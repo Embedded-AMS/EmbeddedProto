@@ -190,6 +190,21 @@ def test_repeated_message():
     print(str)
     print()
 
+def test_string():
+    msg = rf.text()
+
+    msg.txt = "Foo bar"
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
 
 def test_oneof_fields():
     msg = of.message_oneof()
@@ -236,6 +251,8 @@ def test_included_proto():
 
 #test_repeated_fields()
 #test_repeated_message()
+test_string()
 #test_nested_message()
-test_oneof_fields()
+#test_oneof_fields()
 #test_included_proto()
+
