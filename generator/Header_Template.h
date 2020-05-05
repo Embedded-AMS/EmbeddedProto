@@ -24,7 +24,7 @@ void init_{{_oneof.name}}(const id field_id)
   {
     {% for field in _oneof.fields() %}
     case id::{{field.variable_id_name}}:
-      {% if field.of_type_message or field.is_repeated_field or fields.is_string%}
+      {% if field.of_type_message or field.is_repeated_field or field.is_string%}
       new(&{{field.variable_full_name}}) {{field.type}};
       {{_oneof.which_oneof}} = id::{{field.variable_id_name}};
       {% endif %}
