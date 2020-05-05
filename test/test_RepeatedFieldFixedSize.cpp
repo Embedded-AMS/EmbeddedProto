@@ -33,18 +33,18 @@
 #include <Fields.h>
 #include <RepeatedFieldFixedSize.h>
 
-namespace test_EmbeddedAMS_RepeatedField
+namespace test_EmbeddedAMS_RepeatedFieldFixedSize
 {
 
 static constexpr int32_t UINT32_SIZE = sizeof(::EmbeddedProto::uint32);
 
-TEST(RepeatedField, construction) 
+TEST(RepeatedFieldFixedSize, construction) 
 {
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
 }
 
-TEST(RepeatedField, size_uint32_t) 
+TEST(RepeatedFieldFixedSize, size_uint32_t) 
 {  
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
@@ -62,7 +62,7 @@ TEST(RepeatedField, size_uint32_t)
   EXPECT_EQ(LENGTH, max_length);
 }
 
-TEST(RepeatedField, add_data) 
+TEST(RepeatedFieldFixedSize, add_data) 
 {  
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
@@ -85,7 +85,7 @@ TEST(RepeatedField, add_data)
   EXPECT_EQ(EmbeddedProto::Error::ARRAY_FULL, result);
 }
 
-TEST(RepeatedField, set_data_array) 
+TEST(RepeatedFieldFixedSize, set_data_array) 
 {  
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
@@ -106,7 +106,7 @@ TEST(RepeatedField, set_data_array)
   EXPECT_EQ(EmbeddedProto::Error::ARRAY_FULL, result);
 }
 
-TEST(RepeatedField, set_element) 
+TEST(RepeatedFieldFixedSize, set_element) 
 {
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
@@ -123,7 +123,7 @@ TEST(RepeatedField, set_element)
   EXPECT_EQ(3, x.get(2));
 }
 
-TEST(RepeatedField, clear) 
+TEST(RepeatedFieldFixedSize, clear) 
 {
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
