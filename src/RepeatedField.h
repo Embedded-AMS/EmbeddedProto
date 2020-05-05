@@ -68,9 +68,6 @@ namespace EmbeddedProto
       //! Obtain the maximum number of bytes which can at most be stored in the array.
       virtual uint32_t get_max_size() const = 0;
 
-      //! Get a pointer to the first element in the array.
-      virtual DATA_TYPE* get_data() = 0;
-
       //! Get a reference to the value at the given index. 
       /*!
         \param[in] index The desired index to return.
@@ -83,7 +80,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      virtual const DATA_TYPE& get(uint32_t index) const = 0;
+      virtual const DATA_TYPE& get_const(uint32_t index) const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
@@ -97,7 +94,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      const DATA_TYPE& operator[](uint32_t index) const { return this->get(index); }
+      const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
       //! Set the value at the given index.
       /*!
@@ -252,7 +249,7 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          return_value = this->get(i).serialize(buffer);
+          return_value = this->get_const(i).serialize(buffer);
         }
         return return_value;
       }
@@ -262,7 +259,7 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          const uint32_t size_x = this->get(i).serialized_size();
+          const uint32_t size_x = this->get_const(i).serialized_size();
           uint32_t tag = WireFormatter::MakeTag(field_number, 
                                     WireFormatter::WireType::LENGTH_DELIMITED);
           return_value = WireFormatter::SerializeVarint(tag, buffer);
@@ -271,7 +268,7 @@ namespace EmbeddedProto
             return_value = WireFormatter::SerializeVarint(size_x, buffer);
             if((Error::NO_ERRORS == return_value) && (0 < size_x)) 
             {
-              return_value = this->get(i).serialize(buffer);
+              return_value = this->get_const(i).serialize(buffer);
             }
           }
         }

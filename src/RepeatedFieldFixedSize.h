@@ -73,15 +73,30 @@ namespace EmbeddedProto
       //! Obtain the maximum number of bytes which can at most be stored in the array.
       uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_LENGTH; }
 
-      DATA_TYPE* get_data() { return data_; }
+      DATA_TYPE& get(uint32_t index) override 
+      { 
+        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        // Check if we need to update the number of elements in the array.
+        if(limited_index >= current_length_) {
+          current_length_ = limited_index + 1;
+        }
+        return data_[limited_index]; 
+      }
 
-      DATA_TYPE& get(uint32_t index) override { return data_[index]; }
-      const DATA_TYPE& get(uint32_t index) const override { return data_[index]; }
+      const DATA_TYPE& get_const(uint32_t index) const override 
+      { 
+        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        return data_[limited_index]; 
+      }
 
       void set(uint32_t index, const DATA_TYPE& value) override 
       { 
-        data_[index] = value;
-        current_length_ = std::max(index+1, current_length_); 
+        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        // Check if we need to update the number of elements in the array.
+        if(limited_index >= current_length_) {
+          current_length_ = limited_index + 1;
+        }
+        data_[limited_index] = value;  
       }
 
       Error set_data(const DATA_TYPE* data, const uint32_t length) override 

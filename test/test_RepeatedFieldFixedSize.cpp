@@ -85,6 +85,26 @@ TEST(RepeatedFieldFixedSize, add_data)
   EXPECT_EQ(EmbeddedProto::Error::ARRAY_FULL, result);
 }
 
+TEST(RepeatedFieldFixedSize, get) 
+{  
+  static constexpr uint32_t LENGTH = 3;
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
+
+  // Get (non-const) should modify the number of items in the array.
+
+  // Set the second element
+  x.get(1) = 1;
+  EXPECT_EQ(2, x.get_length());
+  EXPECT_EQ(0, x.get_const(0));
+  EXPECT_EQ(1, x.get_const(1));
+
+  // When going out of bound the last element should be returned.
+  EXPECT_EQ(0, x.get_const(2));
+  x.get(3) = 3;
+  EXPECT_EQ(3, x.get_const(2));
+  EXPECT_EQ(3, x.get_const(3));
+}
+
 TEST(RepeatedFieldFixedSize, set_data_array) 
 {  
   static constexpr uint32_t LENGTH = 3;
@@ -113,14 +133,14 @@ TEST(RepeatedFieldFixedSize, set_element)
 
   // First add a value in the middle and see if we have a size of two.
   x.set(1, 2);
-  EXPECT_EQ(2, x.get(1));
+  EXPECT_EQ(2, x.get_const(1));
   EXPECT_EQ(2, x.get_length());
 
   x.set(0, 1);
-  EXPECT_EQ(1, x.get(0));
+  EXPECT_EQ(1, x.get_const(0));
 
   x.set(2, 3);
-  EXPECT_EQ(3, x.get(2));
+  EXPECT_EQ(3, x.get_const(2));
 }
 
 TEST(RepeatedFieldFixedSize, clear) 
@@ -130,8 +150,8 @@ TEST(RepeatedFieldFixedSize, clear)
   x.add(1);
   x.add(2);
   x.clear();
-  EXPECT_EQ(0U, x.get(0));
-  EXPECT_EQ(0U, x.get(1));
+  EXPECT_EQ(0U, x.get_const(0));
+  EXPECT_EQ(0U, x.get_const(1));
   EXPECT_EQ(0U, x.get_length());
 }
 
