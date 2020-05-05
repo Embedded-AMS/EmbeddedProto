@@ -80,20 +80,14 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}()
   }
   return {{_field.variable_full_name}};
 }
-inline const char* get_{{_field.name}}() const
-{
-  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
-  {
-    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
-  }
-  return {{_field.variable_full_name}}.get();
-}
+inline const char* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get(); }
 {% else %}
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 inline const char* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get(); }
 {% endif %}
 {% elif _field.is_bytes %}
+inline const {{_field.repeated_type}}& {{_field.name}}() const { return {{_field.variable_full_name}}; }
 {% if _field.which_oneof is defined %}
 inline void clear_{{_field.name}}()
 {
@@ -120,7 +114,6 @@ inline const uint8_t* get_{{_field.name}}() const
   return {{_field.variable_full_name}}.get();
 }
 {% else %}
-inline const {{_field.repeated_type}}& {{_field.name}}() const { return {{_field.variable_full_name}}; }
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 inline const uint8_t* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get(); }
@@ -291,7 +284,7 @@ if(({{_field.default_value}} != {{_field.variable_full_name}}.get()) && (::Embed
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
 {% macro field_deserialize_macro(_field) %}
-{% if _field.is_repeated_field or _field.is_string %}
+{% if _field.is_repeated_field %}
 if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type)
 {
   return_value = {{_field.variable_full_name}}.deserialize(buffer);
@@ -303,13 +296,12 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   uint32_t size;
   return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
   ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
-  {% if _field.oneof_name is defined %}
-  init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
-  {% endif %}
   if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   {
-    return_value = {{_field.variable_full_name}}.deserialize(bufferSection);
+    return_value = mutable_{{_field.name}}().deserialize(bufferSection);
   }
+  {% elif _field.is_string or _field.is_bytes %}
+  return_value = mutable_{{_field.name}}().deserialize(buffer);
   {% elif _field.of_type_enum %}
   uint32_t value;
   return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
@@ -320,7 +312,7 @@ if(::EmbeddedProto::WireFormatter::WireType::{{_field.wire_type}} == wire_type)
   {% else %}
   return_value = {{_field.variable_full_name}}.deserialize(buffer);
   {% endif %}
-   {% if _field.which_oneof is defined %}
+  {% if _field.which_oneof is defined %}
   if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   {
     {{_field.which_oneof}} = id::{{_field.variable_id_name}};
