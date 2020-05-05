@@ -28,8 +28,8 @@
  *    the Netherlands
  */
 
-#ifndef _FIELD_STRING_H_
-#define _FIELD_STRING_H_
+#ifndef _FIELD_BYTES_H_
+#define _FIELD_BYTES_H_
 
 #include "Fields.h"
 #include "Errors.h"
@@ -40,18 +40,18 @@ namespace EmbeddedProto
 {
 
   template<uint32_t MAX_LENGTH>
-  class FieldString : public Field 
+  class FieldBytes : public Field
   {
     public:
 
-      FieldString()
+      FieldBytes()
         : current_length_(0),
-          string_{0}
+          bytes_{0}
       {
 
       }
 
-      virtual ~FieldString()
+      virtual ~FieldBytes()
       {
         clear();
       }
@@ -62,21 +62,71 @@ namespace EmbeddedProto
       //! Obtain the maximum number characters in the string.
       uint32_t get_max_length() const { return MAX_LENGTH; }
 
-      //! Assignment operator for character array's, only use null terminated strings!
-      void operator=(const char* const &&rhs)
-      {
-        const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-        current_length_ = std::min(rhs_MAX_LENGTH, MAX_LENGTH);
-        strncpy(string_, rhs, current_length_);
+      //! Get a constant pointer to the first element in the array.
+      const uint8_t* get_data() const { return bytes_; }
 
-        // Make sure the string is null terminated.
-        if(MAX_LENGTH > current_length_)
-        {
-          string_[current_length_] = 0;
+      //! Get a reference to the value at the given index. 
+      /*!
+        This function will update the number of elements used in the array.
+
+        \param[in] index The desired index to return.
+        \return The reference to the value at the given index. Will return the last element if the 
+                index is out of bounds
+      */
+      uint8_t& get(uint32_t index) 
+      { 
+        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        // Check if we need to update the number of elements in the array.
+        if(limited_index >= current_length_) {
+          current_length_ = limited_index + 1;
         }
+        return bytes_[limited_index]; 
       }
 
-      const char* get() const { return string_; }
+      //! Get a constant reference to the value at the given index. 
+      /*!
+        \param[in] index The desired index to return.
+        \return The reference to the value at the given index. Will return the last element if the 
+                index is out of bounds
+      */
+      const uint8_t& get_const(uint32_t index) const 
+      { 
+        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        return bytes_[limited_index]; 
+      }
+
+      //! Get a reference to the value at the given index. 
+      /*!
+        This function will update the number of elements used in the array.
+
+        \param[in] index The desired index to return.
+        \return The reference to the value at the given index. Will return the last element if the 
+                index is out of bounds
+      */
+      uint8_t& operator[](uint32_t index) { return this->get(index); }
+
+      //! Get a constant reference to the value at the given index. 
+      /*!
+        \param[in] index The desired index to return.
+        \return The reference to the value at the given index. Will return the last element if the 
+                index is out of bounds
+      */
+      const uint8_t& operator[](uint32_t index) const { return this->get_const(index); }
+
+      Error set_data(const uint8_t* data, const uint32_t length) 
+      {
+        Error return_value = Error::NO_ERRORS;
+        if(MAX_LENGTH >= length) 
+        {
+          current_length_ = length;
+          memcpy(bytes_, data, length);
+        }
+        else 
+        {
+          return_value = Error::ARRAY_FULL;
+        }
+        return return_value;
+      }
 
       Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const override 
       {
@@ -108,9 +158,7 @@ namespace EmbeddedProto
         Error return_value = WireFormatter::SerializeVarint(current_length_, buffer);
         if(Error::NO_ERRORS == return_value) 
         {
-          const void* void_pointer = static_cast<const void*>(&(string_[0]));
-          const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
-          if(!buffer.push(byte_pointer, current_length_))
+          if(!buffer.push(bytes_, current_length_))
           {
             return_value = Error::BUFFER_FULL;
           }
@@ -131,7 +179,7 @@ namespace EmbeddedProto
             uint8_t byte;
             while((current_length_ < availiable) && buffer.pop(byte)) 
             {
-              string_[current_length_] = static_cast<char>(byte);
+              bytes_[current_length_] = byte;
               ++current_length_;
             }
 
@@ -157,7 +205,7 @@ namespace EmbeddedProto
       //! Reset the field to it's initial value.
       void clear() override 
       { 
-        memset(string_, 0, current_length_);
+        memset(bytes_, 0, current_length_);
         current_length_ = 0; 
       }
   
@@ -167,9 +215,9 @@ namespace EmbeddedProto
       uint32_t current_length_;
 
       //! The text.
-      char string_[MAX_LENGTH];
+      uint8_t bytes_[MAX_LENGTH];
   };
 
 } // End of namespace EmbeddedProto
 
-#endif // End of _FIELD_STRING_H_
+#endif // End of _FIELD_BYTES_H_

@@ -66,9 +66,9 @@ class FieldTemplateParameters:
                              FieldDescriptorProto.TYPE_FIXED64:  "0U",
                              FieldDescriptorProto.TYPE_FIXED32:  "0U",
                              FieldDescriptorProto.TYPE_BOOL:     "false",
-                             FieldDescriptorProto.TYPE_STRING:   "TODO",    # TODO
+                             FieldDescriptorProto.TYPE_STRING:   "''",
                              FieldDescriptorProto.TYPE_MESSAGE:  "",
-                             FieldDescriptorProto.TYPE_BYTES:    "TODO",    # TODO
+                             FieldDescriptorProto.TYPE_BYTES:    "0U",
                              FieldDescriptorProto.TYPE_UINT32:   "0U",
                              FieldDescriptorProto.TYPE_ENUM:     "0",
                              FieldDescriptorProto.TYPE_SFIXED32: "0",
@@ -85,7 +85,7 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_FIXED32:  "EmbeddedProto::fixed32",
                         FieldDescriptorProto.TYPE_BOOL:     "EmbeddedProto::boolean",
                         FieldDescriptorProto.TYPE_STRING:   "char",
-                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_BYTES:    "uint8_t",
                         FieldDescriptorProto.TYPE_UINT32:   "EmbeddedProto::uint32",
                         FieldDescriptorProto.TYPE_SFIXED32: "EmbeddedProto::sfixed32",
                         FieldDescriptorProto.TYPE_SFIXED64: "EmbeddedProto::sfixed64",
@@ -138,6 +138,7 @@ class FieldTemplateParameters:
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
         self.is_repeated_field = FieldDescriptorProto.LABEL_REPEATED == field_proto.label
         self.is_string = FieldDescriptorProto.TYPE_STRING == field_proto.type
+        self.is_bytes = FieldDescriptorProto.TYPE_BYTES == field_proto.type
 
         self.default_value = None
         self.repeated_type = None
@@ -174,7 +175,10 @@ class FieldTemplateParameters:
         if self.is_string:
             self.repeated_type = "::EmbeddedProto::FieldString<" + self.variable_name + "LENGTH>"
 
-        if self.is_repeated_field or self.is_string:
+        if self.is_bytes:
+            self.repeated_type = "::EmbeddedProto::FieldBytes<" + self.variable_name + "LENGTH>"
+
+        if self.is_repeated_field or self.is_string or self.is_bytes:
             self.templates.append({"type": "uint32_t", "name": self.variable_name + "LENGTH"})
 
 

@@ -28,31 +28,17 @@
  *    the Netherlands
  */
 
-// This file is used to test serializing repeated fields.
+ // This file is used to test the string and bytes fields.
 
 syntax = "proto3";
 
-message repeated_fields 
+message text
 {
-  uint32 x            = 1;
-  repeated uint32 y   = 2;
-  uint32 z            = 3;
+  string txt = 1;
 }
 
-message repeated_nested_message
+message raw_bytes
 {
-  uint32 u = 1;
-  uint32 v = 2;
+  bytes b = 1;
 }
 
-message repeated_message
-{
-  uint32 a                            = 1;
-  repeated repeated_nested_message b  = 2;
-  uint32 c                            = 3;
-}
-
-message nested_repeated_message
-{
-    repeated_message rm = 1;
-}
