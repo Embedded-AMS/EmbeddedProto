@@ -127,18 +127,24 @@ class FieldTemplateParameters:
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
 
-        if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
-            self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
-            self.type = self.type.replace(".", "::")
-            # Store only the type without namespace or class scopes
-            self.short_type = self.type.split("::")[-1]
-        else:
-            self.type = self.type_to_cpp_type[field_proto.type]
-
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
         self.is_repeated_field = FieldDescriptorProto.LABEL_REPEATED == field_proto.label
         self.is_string = FieldDescriptorProto.TYPE_STRING == field_proto.type
         self.is_bytes = FieldDescriptorProto.TYPE_BYTES == field_proto.type
+
+        if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or self.of_type_enum:
+            self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
+            self.type = self.type.replace(".", "::")
+            # Store only the type without namespace or class scopes
+            self.short_type = self.type.split("::")[-1]
+        elif self.is_string:
+            self.type = "::EmbeddedProto::FieldString"
+            self.short_type = "FieldString"
+        elif self.is_bytes:
+            self.type = "::EmbeddedProto::FieldBytes"
+            self.short_type = "FieldBytes"
+        else:
+            self.type = self.type_to_cpp_type[field_proto.type]
 
         self.default_value = None
         self.repeated_type = None
@@ -174,9 +180,11 @@ class FieldTemplateParameters:
 
         if self.is_string:
             self.repeated_type = "::EmbeddedProto::FieldString<" + self.variable_name + "LENGTH>"
+            self.type = self.repeated_type
 
         if self.is_bytes:
             self.repeated_type = "::EmbeddedProto::FieldBytes<" + self.variable_name + "LENGTH>"
+            self.type = self.repeated_type
 
         if self.is_repeated_field or self.is_string or self.is_bytes:
             self.templates.append({"type": "uint32_t", "name": self.variable_name + "LENGTH"})

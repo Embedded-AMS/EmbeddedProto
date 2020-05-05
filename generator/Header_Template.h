@@ -24,7 +24,7 @@ void init_{{_oneof.name}}(const id field_id)
   {
     {% for field in _oneof.fields() %}
     case id::{{field.variable_id_name}}:
-      {% if field.of_type_message or field.is_repeated_field or field.is_string or field.is_bytes%}
+      {% if field.of_type_message or field.is_repeated_field or field.is_string or field.is_bytes %}
       new(&{{field.variable_full_name}}) {{field.type}};
       {{_oneof.which_oneof}} = id::{{field.variable_id_name}};
       {% endif %}
@@ -63,14 +63,68 @@ void clear_{{_oneof.name}}()
 {% macro field_get_set_macro(_field) %}
 {% if _field.is_string %}
 inline const {{_field.repeated_type}}& {{_field.name}}() const { return {{_field.variable_full_name}}; }
+{% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = id::NOT_SET;
+    {{_field.variable_full_name}}.~{{_field.short_type}}();
+  }
+}
+inline {{_field.repeated_type}}& mutable_{{_field.name}}()
+{
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
+  return {{_field.variable_full_name}};
+}
+inline const char* get_{{_field.name}}() const
+{
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
+  return {{_field.variable_full_name}}.get();
+}
+{% else %}
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 inline const char* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get(); }
+{% endif %}
 {% elif _field.is_bytes %}
+{% if _field.which_oneof is defined %}
+inline void clear_{{_field.name}}()
+{
+  if(id::{{_field.variable_id_name}} == {{_field.which_oneof}})
+  {
+    {{_field.which_oneof}} = id::NOT_SET;
+    {{_field.variable_full_name}}.~{{_field.short_type}}();
+  }
+}
+inline {{_field.repeated_type}}& mutable_{{_field.name}}()
+{
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
+  return {{_field.variable_full_name}};
+}
+inline const uint8_t* get_{{_field.name}}() const
+{
+  if(id::{{_field.variable_id_name}} != {{_field.which_oneof}})
+  {
+    init_{{_field.oneof_name}}(id::{{_field.variable_id_name}});
+  }
+  return {{_field.variable_full_name}}.get();
+}
+{% else %}
 inline const {{_field.repeated_type}}& {{_field.name}}() const { return {{_field.variable_full_name}}; }
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 inline const uint8_t* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get(); }
+{% endif %}
 {% elif _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_full_name}}[index]; }
 {% if _field.which_oneof is defined %}

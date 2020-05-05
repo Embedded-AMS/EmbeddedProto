@@ -118,6 +118,31 @@ TEST(FieldBytes, set_get)
 
 }
 
+TEST(FieldString, oneof_serialize)
+{
+  InSequence s;
+
+  string_or_bytes<10, 10> msg;
+  Mocks::WriteBufferMock buffer;
+
+  const auto size = sizeof(msg);
+  msg.mutable_txt() = "Foo bar";
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
+
+  uint8_t expected[] = {0x0a, 0x07};
+  for(auto e : expected) 
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+  EXPECT_EQ(10, msg.txt().get_max_length());
+}
+
+
 TEST(FieldBytes, serialize)
 {
   InSequence s;
@@ -164,5 +189,31 @@ TEST(FieldBytes, deserialize)
   EXPECT_EQ(3, msg.b()[2]);
   EXPECT_EQ(0, msg.b()[3]);
 }
+
+
+TEST(FieldBytes, oneof_serialize)
+{
+  InSequence s;
+
+  string_or_bytes<10, 10> msg;
+  Mocks::WriteBufferMock buffer;
+
+  uint8_t bytes[] = {1u, 2u, 3u, 0u};
+  msg.mutable_b().set_data(bytes, 4);
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+
+  uint8_t expected[] = {0x12, 0x04};
+  for(auto e : expected) 
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+  EXPECT_EQ(10, msg.txt().get_max_length());
+}
+
 
 } // End of namespace test_EmbeddedAMS_string_bytes

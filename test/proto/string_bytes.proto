@@ -42,3 +42,11 @@ message raw_bytes
   bytes b = 1;
 }
 
+message string_or_bytes
+{
+  oneof s_or_b
+  {
+    string txt = 1;
+    bytes b = 2;
+  }
+}
