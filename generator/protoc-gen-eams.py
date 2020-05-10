@@ -138,8 +138,8 @@ class FieldTemplateParameters:
             # Store only the type without namespace or class scopes
             self.short_type = self.type.split("::")[-1]
         elif self.is_string:
-            self.type = "::EmbeddedProto::FieldString"
-            self.short_type = "FieldString"
+            self.type = "::EmbeddedProto::FieldStringB"
+            self.short_type = "FieldStringB"
         elif self.is_bytes:
             self.type = "::EmbeddedProto::FieldBytes"
             self.short_type = "FieldBytes"
@@ -178,12 +178,8 @@ class FieldTemplateParameters:
             self.repeated_type = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.type + ", " + self.variable_name \
                                  + "LENGTH>"
 
-        if self.is_string:
-            self.repeated_type = "::EmbeddedProto::FieldString<" + self.variable_name + "LENGTH>"
-            self.type = self.repeated_type
-
-        if self.is_bytes:
-            self.repeated_type = "::EmbeddedProto::FieldBytes<" + self.variable_name + "LENGTH>"
+        if self. is_string or self.is_bytes:
+            self.repeated_type = self.type + "<" + self.variable_name + "LENGTH>"
             self.type = self.repeated_type
 
         if self.is_repeated_field or self.is_string or self.is_bytes:
