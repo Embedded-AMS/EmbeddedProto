@@ -171,7 +171,7 @@ TEST(FieldBytes, serialize)
   Mocks::WriteBufferMock buffer;
 
   uint8_t bytes[] = {1u, 2u, 3u, 0u};
-  msg.mutable_b().set_data(bytes, 4);
+  msg.mutable_b().set(bytes, 4);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
@@ -219,7 +219,7 @@ TEST(FieldBytes, oneof_serialize)
   Mocks::WriteBufferMock buffer;
 
   uint8_t bytes[] = {1u, 2u, 3u, 0u};
-  msg.mutable_b().set_data(bytes, 4);
+  msg.mutable_b().set(bytes, 4);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 

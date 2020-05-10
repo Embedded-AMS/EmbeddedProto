@@ -138,8 +138,8 @@ class FieldTemplateParameters:
             # Store only the type without namespace or class scopes
             self.short_type = self.type.split("::")[-1]
         elif self.is_string:
-            self.type = "::EmbeddedProto::FieldStringB"
-            self.short_type = "FieldStringB"
+            self.type = "::EmbeddedProto::FieldString"
+            self.short_type = "FieldString"
         elif self.is_bytes:
             self.type = "::EmbeddedProto::FieldBytes"
             self.short_type = "FieldBytes"

@@ -121,7 +121,20 @@ namespace EmbeddedProto
         const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
 
-
+        Error set(const DATA_TYPE* data, const uint32_t length)
+        {
+          Error return_value = Error::NO_ERRORS;
+          if(MAX_LENGTH >= length)
+          {
+            current_length_ = length;
+            memcpy(data_, data, length);
+          }
+          else
+          {
+            return_value = Error::ARRAY_FULL;
+          }
+          return return_value;
+        }
 
 
         Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const override 
@@ -220,11 +233,11 @@ namespace EmbeddedProto
   } // End of namespace internal
 
   template<uint32_t MAX_LENGTH>
-  class FieldStringB : public internal::FieldStringBytes<MAX_LENGTH, char>
+  class FieldString : public internal::FieldStringBytes<MAX_LENGTH, char>
   {
     public:
-      FieldStringB() = default;
-      ~FieldStringB() = default;
+      FieldString() = default;
+      virtual ~FieldString() = default;
 
       void operator=(const char* const &&rhs)
       {
@@ -239,6 +252,15 @@ namespace EmbeddedProto
         }
       }
   };
+
+  template<uint32_t MAX_LENGTH>
+  class FieldBytes : public internal::FieldStringBytes<MAX_LENGTH, uint8_t>
+  {
+    public:
+      FieldBytes() = default;
+      virtual ~FieldBytes() = default; 
+  };
+
 
 } // End of namespace EmbeddedProto
 

@@ -505,8 +505,6 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 #include <MessageSizeCalculator.h>
 #include <ReadBufferSection.h>
 #include <RepeatedFieldFixedSize.h>
-#include <FieldString.h>
-#include <FieldBytes.h>
 #include <FieldStringBytes.h>
 #include <Errors.h>
 {% endif %}
