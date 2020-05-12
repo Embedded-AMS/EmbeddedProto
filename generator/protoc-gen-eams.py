@@ -66,9 +66,9 @@ class FieldTemplateParameters:
                              FieldDescriptorProto.TYPE_FIXED64:  "0U",
                              FieldDescriptorProto.TYPE_FIXED32:  "0U",
                              FieldDescriptorProto.TYPE_BOOL:     "false",
-                             FieldDescriptorProto.TYPE_STRING:   "TODO",    # TODO
+                             FieldDescriptorProto.TYPE_STRING:   "''",
                              FieldDescriptorProto.TYPE_MESSAGE:  "",
-                             FieldDescriptorProto.TYPE_BYTES:    "TODO",    # TODO
+                             FieldDescriptorProto.TYPE_BYTES:    "0U",
                              FieldDescriptorProto.TYPE_UINT32:   "0U",
                              FieldDescriptorProto.TYPE_ENUM:     "0",
                              FieldDescriptorProto.TYPE_SFIXED32: "0",
@@ -84,8 +84,8 @@ class FieldTemplateParameters:
                         FieldDescriptorProto.TYPE_FIXED64:  "EmbeddedProto::fixed64",
                         FieldDescriptorProto.TYPE_FIXED32:  "EmbeddedProto::fixed32",
                         FieldDescriptorProto.TYPE_BOOL:     "EmbeddedProto::boolean",
-                        FieldDescriptorProto.TYPE_STRING:   "TODO",     # TODO
-                        FieldDescriptorProto.TYPE_BYTES:    "TODO",     # TODO
+                        FieldDescriptorProto.TYPE_STRING:   "char",
+                        FieldDescriptorProto.TYPE_BYTES:    "uint8_t",
                         FieldDescriptorProto.TYPE_UINT32:   "EmbeddedProto::uint32",
                         FieldDescriptorProto.TYPE_SFIXED32: "EmbeddedProto::sfixed32",
                         FieldDescriptorProto.TYPE_SFIXED64: "EmbeddedProto::sfixed64",
@@ -127,16 +127,24 @@ class FieldTemplateParameters:
         self.of_type_message = FieldDescriptorProto.TYPE_MESSAGE == field_proto.type
         self.wire_type = self.type_to_wire_type[field_proto.type]
 
-        if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or FieldDescriptorProto.TYPE_ENUM == field_proto.type:
+        self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
+        self.is_repeated_field = FieldDescriptorProto.LABEL_REPEATED == field_proto.label
+        self.is_string = FieldDescriptorProto.TYPE_STRING == field_proto.type
+        self.is_bytes = FieldDescriptorProto.TYPE_BYTES == field_proto.type
+
+        if FieldDescriptorProto.TYPE_MESSAGE == field_proto.type or self.of_type_enum:
             self.type = field_proto.type_name if "." != field_proto.type_name[0] else field_proto.type_name[1:]
             self.type = self.type.replace(".", "::")
             # Store only the type without namespace or class scopes
             self.short_type = self.type.split("::")[-1]
+        elif self.is_string:
+            self.type = "::EmbeddedProto::FieldString"
+            self.short_type = "FieldString"
+        elif self.is_bytes:
+            self.type = "::EmbeddedProto::FieldBytes"
+            self.short_type = "FieldBytes"
         else:
             self.type = self.type_to_cpp_type[field_proto.type]
-
-        self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == field_proto.type
-        self.is_repeated_field = field_proto.label == FieldDescriptorProto.LABEL_REPEATED
 
         self.default_value = None
         self.repeated_type = None
@@ -167,9 +175,15 @@ class FieldTemplateParameters:
             self.default_value = self.type_to_default_value[self.field_proto.type]
 
         if self.is_repeated_field:
-            self.repeated_type = "::EmbeddedProto::RepeatedFieldSize<" + self.type + ", " + self.variable_name \
-                                 + "SIZE>"
-            self.templates.append({"type": "uint32_t", "name": self.variable_name + "SIZE"})
+            self.repeated_type = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.type + ", " + self.variable_name \
+                                 + "LENGTH>"
+
+        if self. is_string or self.is_bytes:
+            self.repeated_type = self.type + "<" + self.variable_name + "LENGTH>"
+            self.type = self.repeated_type
+
+        if self.is_repeated_field or self.is_string or self.is_bytes:
+            self.templates.append({"type": "uint32_t", "name": self.variable_name + "LENGTH"})
 
 
 # -----------------------------------------------------------------------------

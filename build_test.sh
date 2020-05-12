@@ -37,6 +37,7 @@ protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./buil
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/oneof_fields.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/include_other_files.proto
+protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/string_bytes.proto
 
 # For validation and testing generate the same message using python
 mkdir -p ./build/python
@@ -46,6 +47,7 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/repeated_fields.p
 protoc -I./test/proto --python_out=./build/python ./test/proto/oneof_fields.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/include_other_files.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.proto
+protoc -I./test/proto --python_out=./build/python ./test/proto/string_bytes.proto
 
 # Build the tests
 mkdir -p build/test

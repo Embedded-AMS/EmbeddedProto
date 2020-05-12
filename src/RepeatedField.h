@@ -28,11 +28,9 @@
  *    the Netherlands
  */
 
-#ifndef _DYNAMIC_BUFFER_H_
-#define _DYNAMIC_BUFFER_H_
+#ifndef _REPEATED_FIELD_H_
+#define _REPEATED_FIELD_H_
 
-#include <cstring>
-#include <algorithm>    // std::min
 #include <type_traits>
 
 #include "Fields.h"
@@ -58,20 +56,17 @@ namespace EmbeddedProto
       RepeatedField() = default;
       virtual ~RepeatedField() = default;
 
-      //! Obtain the total number of bytes currently stored in the array.
-      virtual uint32_t get_size() const = 0;
-
-      //! Obtain the maximum number of bytes which can at most be stored in the array.
-      virtual uint32_t get_max_size() const = 0;
-
       //! Obtain the total number of DATA_TYPE items in the array.
       virtual uint32_t get_length() const = 0;
 
       //! Obtain the maximum number of DATA_TYPE items which can at most be stored in the array.
       virtual uint32_t get_max_length() const = 0;
+      
+      //! Obtain the total number of bytes currently stored in the array.
+      virtual uint32_t get_size() const = 0;
 
-      //! Get a pointer to the first element in the array.
-      virtual DATA_TYPE* get_data() = 0;
+      //! Obtain the maximum number of bytes which can at most be stored in the array.
+      virtual uint32_t get_max_size() const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
@@ -85,7 +80,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      virtual const DATA_TYPE& get(uint32_t index) const = 0;
+      virtual const DATA_TYPE& get_const(uint32_t index) const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
@@ -99,7 +94,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      const DATA_TYPE& operator[](uint32_t index) const { return this->get(index); }
+      const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
       //! Set the value at the given index.
       /*!
@@ -254,7 +249,7 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          return_value = this->get(i).serialize(buffer);
+          return_value = this->get_const(i).serialize(buffer);
         }
         return return_value;
       }
@@ -264,7 +259,7 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          const uint32_t size_x = this->get(i).serialized_size();
+          const uint32_t size_x = this->get_const(i).serialized_size();
           uint32_t tag = WireFormatter::MakeTag(field_number, 
                                     WireFormatter::WireType::LENGTH_DELIMITED);
           return_value = WireFormatter::SerializeVarint(tag, buffer);
@@ -273,7 +268,7 @@ namespace EmbeddedProto
             return_value = WireFormatter::SerializeVarint(size_x, buffer);
             if((Error::NO_ERRORS == return_value) && (0 < size_x)) 
             {
-              return_value = this->get(i).serialize(buffer);
+              return_value = this->get_const(i).serialize(buffer);
             }
           }
         }
@@ -282,94 +277,7 @@ namespace EmbeddedProto
 
   };
 
-  //! A template class that actually holds some data.
-  /*!
-    This is a separate class to make it possible to not have the size defined in every function or 
-    class using this type of object.
-  */
-  template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class RepeatedFieldSize : public RepeatedField<DATA_TYPE>
-  { 
-      static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
-
-    public:
-
-      RepeatedFieldSize()
-        : current_size_(0),
-          data_{}
-      {
-
-      }  
-
-      ~RepeatedFieldSize() override = default;
-
-      uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
-
-      uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_SIZE; }
-
-      uint32_t get_length() const override { return current_size_; }
-
-      uint32_t get_max_length() const override { return MAX_SIZE; }
-
-      DATA_TYPE* get_data() { return data_; }
-
-      DATA_TYPE& get(uint32_t index) override { return data_[index]; }
-      const DATA_TYPE& get(uint32_t index) const override { return data_[index]; }
-
-      void set(uint32_t index, const DATA_TYPE& value) override 
-      { 
-        data_[index] = value;
-        current_size_ = std::max(index+1, current_size_); 
-      }
-
-      Error set_data(const DATA_TYPE* data, const uint32_t length) override 
-      {
-        Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE >= length) 
-        {
-          current_size_ = length;
-          memcpy(data_, data, length * BYTES_PER_ELEMENT);
-        }
-        else 
-        {
-          return_value = Error::ARRAY_FULL;
-        }
-        return return_value;
-      }
-
-      Error add(const DATA_TYPE& value) override 
-      {
-        Error return_value = Error::NO_ERRORS;
-        if(MAX_SIZE > current_size_) 
-        {
-          data_[current_size_] = value;
-          ++current_size_;
-        }
-        else 
-        {
-          return_value = Error::ARRAY_FULL;
-        }
-        return return_value;
-      }
-
-      void clear() override 
-      {
-        for(uint32_t i = 0; i < current_size_; ++i)
-        {
-          data_[i].clear();
-        }
-        current_size_ = 0;
-      }
-
-    private:
-
-      //! Number of item in the data array.
-      uint32_t current_size_;
-
-      //! The actual data 
-      DATA_TYPE data_[MAX_SIZE];
-  };
 
 } // End of namespace EmbeddedProto
 
-#endif // End of _DYNAMIC_BUFFER_H_
+#endif // End of _REPEATED_FIELD_H_
