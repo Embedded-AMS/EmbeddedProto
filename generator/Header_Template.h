@@ -80,11 +80,14 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}()
   }
   return {{_field.variable_full_name}};
 }
-inline const char* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get_const(); }
 {% else %}
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
+{% endif %}
+{% if _field.is_string %}
 inline const char* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get_const(); }
+{% else %}{# is bytes #}
+inline const uint8_t* get_{{_field.name}}() const { return {{_field.variable_full_name}}.get_const(); }
 {% endif %}
 {% elif _field.is_repeated_field %}
 inline const {{_field.type}}& {{_field.name}}(uint32_t index) const { return {{_field.variable_full_name}}[index]; }
