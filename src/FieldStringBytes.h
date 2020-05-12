@@ -205,10 +205,6 @@ namespace EmbeddedProto
               return_value = Error::ARRAY_FULL;
             }
           }
-          else 
-          {
-            current_length_ = 0;
-          }
 
           return return_value;
         }
