@@ -29,6 +29,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 #include <WireFormatter.h>
 #include <ReadBufferMock.h>
@@ -44,9 +45,26 @@ using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
+using ::testing::ElementsAre;
 
 namespace test_EmbeddedAMS_string_bytes
 {
+
+TEST(FieldString, clear)
+{
+  text<10> msg;  
+  
+  // Clear the field specific.
+  msg.mutable_txt() = "Foo Bar";
+  EXPECT_EQ(7, msg.txt().get_length());
+  msg.clear_txt();
+  EXPECT_EQ(0, msg.txt().get_length());
+
+  // Clear the whole message.
+  msg.mutable_txt() = "Foo Bar";
+  msg.clear();
+  EXPECT_EQ(0, msg.txt().get_length());
+}
 
 TEST(FieldString, serialize) 
 {
@@ -92,6 +110,19 @@ TEST(FieldString, deserialize)
   EXPECT_STREQ(msg.get_txt(), "Foo bar");
 }
 
+TEST(FieldString, deserialize_error_invalid_wiretype) 
+{
+  InSequence s;
+
+  text<10> msg;
+  Mocks::ReadBufferMock buffer;
+
+  // The first byte is an invalid wiretype
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(buffer));
+  EXPECT_EQ(0, msg.txt().get_length());
+}
+
 TEST(FieldString, oneof_serialize)
 {
   InSequence s;
@@ -99,7 +130,6 @@ TEST(FieldString, oneof_serialize)
   string_or_bytes<10, 10> msg;
   Mocks::WriteBufferMock buffer;
 
-  const auto size = sizeof(msg);
   msg.mutable_txt() = "Foo bar";
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
@@ -161,6 +191,28 @@ TEST(FieldBytes, set_get)
   // Check this function out of bound aswell.
   EXPECT_EQ(11, msg.b().get_const(10));
 
+  // Try to set more bytes compared to what will fit.
+  uint8_t big_array[11] = {0};
+  big_array[10] = 11;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.mutable_b().set(big_array, 11));
+}
+
+TEST(FieldBytes, clear)
+{
+  raw_bytes<10> msg;  
+  
+  const uint8_t array[2] = {1 ,2};
+
+  // Clear the field specific.
+  msg.mutable_b().set(array, 2);
+  EXPECT_EQ(2, msg.b().get_length());
+  msg.clear_b();
+  EXPECT_EQ(0, msg.b().get_length());
+
+  // Clear the whole message.
+  msg.mutable_b().set(array, 2);
+  msg.clear();
+  EXPECT_EQ(0, msg.b().get_length());
 }
 
 TEST(FieldBytes, serialize)
@@ -210,6 +262,57 @@ TEST(FieldBytes, deserialize)
   EXPECT_EQ(0, msg.b()[3]);
 }
 
+TEST(FieldBytes, deserialize_error_invalid_wiretype) 
+{
+  InSequence s;
+
+  raw_bytes<10> msg;
+  Mocks::ReadBufferMock buffer;
+
+  // The first byte is an invalid wiretype
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(buffer));
+  EXPECT_EQ(0, msg.b().get_length());
+}
+
+TEST(FieldBytes, oneof_set_get)
+{
+  string_or_bytes<10, 10> msg;  
+  msg.mutable_txt() = "Foo Bar";
+  
+  auto id = string_or_bytes<10, 10>::id::TXT;
+  EXPECT_EQ(id, msg.get_which_s_or_b());
+  EXPECT_STREQ(msg.get_txt(), "Foo Bar");
+
+  // Switch to the array
+  uint8_t array[] = {1, 2, 3, 4, 5};
+  msg.mutable_b().set(array, 5);
+
+  id = string_or_bytes<10, 10>::id::B;
+  EXPECT_EQ(id, msg.get_which_s_or_b());
+  for(uint8_t i = 0; i < 5; ++i)
+  {
+    EXPECT_EQ(i+1, msg.get_b()[i]);
+  }
+}
+
+TEST(FieldBytes, oneof_clear)
+{
+  raw_bytes<10> msg;  
+  
+  const uint8_t array[2] = {1 ,2};
+
+  // Clear the field specific.
+  msg.mutable_b().set(array, 2);
+  EXPECT_EQ(2, msg.b().get_length());
+  msg.clear_b();
+  EXPECT_EQ(0, msg.b().get_length());
+
+  // Clear the whole message.
+  msg.mutable_b().set(array, 2);
+  msg.clear();
+  EXPECT_EQ(0, msg.b().get_length());
+}
 
 TEST(FieldBytes, oneof_serialize)
 {
