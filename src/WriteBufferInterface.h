@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -30,6 +30,9 @@
 
 #ifndef _WRITE_BUFFER_INTERFACE_H_
 #define _WRITE_BUFFER_INTERFACE_H_
+
+#include <cstdint>
+
 
 namespace EmbeddedProto 
 {

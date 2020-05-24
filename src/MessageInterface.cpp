@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -34,20 +34,27 @@
 namespace EmbeddedProto
 {
 
-  bool MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
+  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
     const uint32_t size_x = this->serialized_size();
     bool result = (size_x < buffer.get_available_size());
+    Error return_value = result ? Error::NO_ERRORS : Error::BUFFER_FULL;
     if(result && (0 < size_x))
     {
-      uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
-                              ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-      result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-      result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-      const ::EmbeddedProto::Field* base = static_cast<const ::EmbeddedProto::Field*>(this);
-      result = result && base->serialize(buffer);
+      uint32_t tag = WireFormatter::MakeTag(field_number, 
+                              WireFormatter::WireType::LENGTH_DELIMITED);
+      return_value = WireFormatter::SerializeVarint(tag, buffer);
+      if(Error::NO_ERRORS == return_value)
+      {
+        return_value = WireFormatter::SerializeVarint(size_x, buffer);
+        if(Error::NO_ERRORS == return_value)
+        {
+          const ::EmbeddedProto::Field* base = static_cast<const ::EmbeddedProto::Field*>(this);  
+          return_value = base->serialize(buffer);
+        }
+      }
     }
-    return result;
+    return return_value;
   }
 
 } // End of namespace EmbeddedProto

@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -31,9 +31,13 @@
 #ifndef _FIELDS_H_
 #define _FIELDS_H_
 
+#include "Errors.h"
 #include "WireFormatter.h"
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
+
+#include <cstdint>
+
 
 namespace EmbeddedProto 
 {
@@ -44,17 +48,20 @@ namespace EmbeddedProto
       Field() = default;
       virtual ~Field() = default;
 
-      virtual bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
+      virtual Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
 
-      virtual bool serialize(WriteBufferInterface& buffer) const = 0;
+      virtual Error serialize(WriteBufferInterface& buffer) const = 0;
 
-      virtual bool deserialize(ReadBufferInterface& buffer) = 0;
+      virtual Error deserialize(ReadBufferInterface& buffer) = 0;
 
       //! Calculate the size of this message when serialized.
       /*!
           \return The number of bytes this message will require once serialized.
       */
       uint32_t serialized_size() const;
+
+      //! Reset the field to it's initial value.
+      virtual void clear() = 0;
   };
 
   template<class TYPE>
@@ -98,6 +105,8 @@ namespace EmbeddedProto
       template<class TYPE_RHS>
       bool operator<=(const FieldTemplate<TYPE_RHS>& rhs) { return value_ <= rhs.get(); }
 
+      void clear() override { value_ = static_cast<TYPE>(0); }
+
     private:
 
       TYPE value_;
@@ -113,9 +122,9 @@ namespace EmbeddedProto
 
       ~int32() override = default;
 
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class int64 : public FieldTemplate<int64_t> 
@@ -127,9 +136,9 @@ namespace EmbeddedProto
 
       ~int64() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class uint32 : public FieldTemplate<uint32_t> 
@@ -141,9 +150,9 @@ namespace EmbeddedProto
 
       ~uint32() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class uint64 : public FieldTemplate<uint64_t> 
@@ -155,9 +164,9 @@ namespace EmbeddedProto
 
       ~uint64() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffe) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffe) final; 
   };
 
   class sint32 : public FieldTemplate<int32_t> 
@@ -169,9 +178,9 @@ namespace EmbeddedProto
 
       ~sint32() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sint64 : public FieldTemplate<int64_t> 
@@ -183,9 +192,9 @@ namespace EmbeddedProto
 
       ~sint64() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class boolean : public FieldTemplate<bool> 
@@ -197,9 +206,9 @@ namespace EmbeddedProto
 
       ~boolean() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class fixed32 : public FieldTemplate<uint32_t> 
@@ -211,9 +220,9 @@ namespace EmbeddedProto
 
       ~fixed32() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class fixed64 : public FieldTemplate<uint64_t> 
@@ -225,9 +234,9 @@ namespace EmbeddedProto
 
       ~fixed64() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sfixed32 : public FieldTemplate<int32_t> 
@@ -239,9 +248,9 @@ namespace EmbeddedProto
 
       ~sfixed32() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class sfixed64 : public FieldTemplate<int64_t> 
@@ -253,9 +262,9 @@ namespace EmbeddedProto
 
       ~sfixed64() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class floatfixed : public FieldTemplate<float> 
@@ -267,9 +276,9 @@ namespace EmbeddedProto
 
       ~floatfixed() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
   class doublefixed : public FieldTemplate<double> 
@@ -281,9 +290,9 @@ namespace EmbeddedProto
 
       ~doublefixed() override = default;
       
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
-      bool serialize(WriteBufferInterface& buffer) const final;
-      bool deserialize(ReadBufferInterface& buffer) final; 
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize(WriteBufferInterface& buffer) const final;
+      Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
 } // End of namespace EmbeddedProto.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 #
 # Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
@@ -30,8 +30,10 @@
 #   the Netherlands
 #
 
-# This file is used to invoke protoc-gen-eams.py as a plugin to protoc on 
-# Linux. The reason this has to be used is that protoc expects a binary or
-# terminal script as plugin. Directly calling python scripts is not supported.
+# This script will setup the environment to generate source code in your project.
 
-./venv/bin/python generator/protoc-gen-eams.py --protoc-plugin
+# Setup the virtual envirounment for Python packages
+python3 -m venv venv
+source ./venv/bin/activate
+pip install -r requirements.txt
+

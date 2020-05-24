@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -60,7 +60,7 @@ TEST(OneofField, serialize_zero)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).Times(0);
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OneofField, set_get_clear)
@@ -125,7 +125,7 @@ TEST(OneofField, serialize_ones)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   // Y
   msg.set_y(1);
@@ -137,7 +137,7 @@ TEST(OneofField, serialize_ones)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   // z
   msg.set_z(1);
@@ -149,7 +149,7 @@ TEST(OneofField, serialize_ones)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OneofField, serialize_second_oneof)
@@ -173,7 +173,7 @@ TEST(OneofField, serialize_second_oneof)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OneofField, deserialize) 
@@ -192,7 +192,7 @@ TEST(OneofField, deserialize)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
@@ -217,7 +217,7 @@ TEST(OneofField, deserialize_override)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
@@ -235,7 +235,7 @@ TEST(OneofField, deserialize_failure)
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x30), Return(true)));  // y
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(false))); // This simulates the fialure.
 
-  EXPECT_FALSE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
 
 }
@@ -257,7 +257,7 @@ TEST(OneofField, deserialize_second_oneof)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
@@ -290,7 +290,7 @@ TEST(OneofField, serialize_oneof_msg)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OneofField, deserialize_oneof_msg) 
@@ -300,13 +300,17 @@ TEST(OneofField, deserialize_oneof_msg)
   message_oneof msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
+  static constexpr uint32_t SIZE = 10;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
     for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(message_oneof::id::MSG_DEF, msg.get_which_message());
   EXPECT_EQ(1, msg.get_msg_DEF().get_varD());

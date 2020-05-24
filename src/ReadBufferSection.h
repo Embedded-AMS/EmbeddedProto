@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -31,9 +31,10 @@
 #ifndef _READ_BUFFER_SECTION_H_
 #define _READ_BUFFER_SECTION_H_
 
+#include "ReadBufferInterface.h"
+
 #include <cstdint>
 
-#include "ReadBufferInterface.h"
 
 namespace EmbeddedProto 
 {
@@ -75,7 +76,7 @@ namespace EmbeddedProto
       /*!
         This will not do anything if size zero is reached.
       */
-      bool peak(uint8_t& byte) const override;
+      bool peek(uint8_t& byte) const override;
 
       //! Decrement the size and call advance on the parent buffer.
       /*!

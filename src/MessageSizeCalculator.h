@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -31,9 +31,11 @@
 #ifndef _MESSAGE_SIZE_CALCULATOR_H_
 #define _MESSAGE_SIZE_CALCULATOR_H_
 
+#include "WriteBufferInterface.h"
+
+#include <cstdint>
 #include <limits> 
 
-#include "WriteBufferInterface.h"
 
 namespace EmbeddedProto 
 {
@@ -48,11 +50,7 @@ namespace EmbeddedProto
   class MessageSizeCalculator : public WriteBufferInterface
   {
     public:
-      MessageSizeCalculator()
-        : size_(0)
-      { 
-      };
-
+      MessageSizeCalculator() = default;
       ~MessageSizeCalculator() override = default;
       
       //! Reset the size count of the buffer.
@@ -101,7 +99,7 @@ namespace EmbeddedProto
     private:
 
       //! The calculated size of the buffer.
-      uint32_t size_;
+      uint32_t size_ = 0;
 
   }; // End of class MessageSizeCalculator
 

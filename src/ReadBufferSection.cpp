@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -30,15 +30,18 @@
 
 #include "ReadBufferSection.h"
 
+#include <algorithm>
+
+
 namespace EmbeddedProto 
 {
 
   ReadBufferSection::ReadBufferSection(ReadBufferInterface& buffer, const uint32_t size)
     : buffer_(buffer),
-      size_(size),
-      max_size_(size)
+      size_(std::min(size, buffer.get_size())),
+      max_size_(std::min(size, buffer.get_size()))
   {
-
+    
   }
 
   uint32_t ReadBufferSection::get_size() const
@@ -51,12 +54,12 @@ namespace EmbeddedProto
     return max_size_;
   }
 
-  bool ReadBufferSection::peak(uint8_t& byte) const
+  bool ReadBufferSection::peek(uint8_t& byte) const
   {
     bool result = 0 < size_;
     if(result)
     {
-      result = buffer_.peak(byte);
+      result = buffer_.peek(byte);
     }
     return result;
   }
@@ -66,6 +69,7 @@ namespace EmbeddedProto
     if(0 < size_) 
     {
       buffer_.advance();
+      --size_;
     }
   }
 

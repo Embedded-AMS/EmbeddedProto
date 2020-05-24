@@ -28,12 +28,25 @@
  *    the Netherlands
  */
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+ // This file is used to test the string and bytes fields.
 
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  ::testing::InitGoogleMock(&argc, argv);
-  return RUN_ALL_TESTS();
+syntax = "proto3";
+
+message text
+{
+  string txt = 1;
 }
 
+message raw_bytes
+{
+  bytes b = 1;
+}
+
+message string_or_bytes
+{
+  oneof s_or_b
+  {
+    string txt = 1;
+    bytes b = 2;
+  }
+}

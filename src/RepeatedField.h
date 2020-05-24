@@ -22,23 +22,24 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
  */
 
-#ifndef _DYNAMIC_BUFFER_H_
-#define _DYNAMIC_BUFFER_H_
-
-#include <cstring>
-#include <algorithm>    // std::min
-#include <type_traits>
+#ifndef _REPEATED_FIELD_H_
+#define _REPEATED_FIELD_H_
 
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
 #include "ReadBufferSection.h" 
+#include "Errors.h"
+
+#include <cstdint>
+#include <type_traits>
+
 
 namespace EmbeddedProto
 {
@@ -57,20 +58,17 @@ namespace EmbeddedProto
       RepeatedField() = default;
       virtual ~RepeatedField() = default;
 
-      //! Obtain the total number of bytes currently stored in the array.
-      virtual uint32_t get_size() const = 0;
-
-      //! Obtain the maximum number of bytes which can at most be stored in the array.
-      virtual uint32_t get_max_size() const = 0;
-
       //! Obtain the total number of DATA_TYPE items in the array.
       virtual uint32_t get_length() const = 0;
 
       //! Obtain the maximum number of DATA_TYPE items which can at most be stored in the array.
       virtual uint32_t get_max_length() const = 0;
+      
+      //! Obtain the total number of bytes currently stored in the array.
+      virtual uint32_t get_size() const = 0;
 
-      //! Get a pointer to the first element in the array.
-      virtual DATA_TYPE* get_data() = 0;
+      //! Obtain the maximum number of bytes which can at most be stored in the array.
+      virtual uint32_t get_max_size() const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
@@ -84,7 +82,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      virtual const DATA_TYPE& get(uint32_t index) const = 0;
+      virtual const DATA_TYPE& get_const(uint32_t index) const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
@@ -98,7 +96,7 @@ namespace EmbeddedProto
         \param[in] index The desired index to return.
         \return The constant reference to the value at the given index.
       */
-      const DATA_TYPE& operator[](uint32_t index) const { return this->get(index); }
+      const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
       //! Set the value at the given index.
       /*!
@@ -111,91 +109,122 @@ namespace EmbeddedProto
       /*!
         \param[in] data A pointer the array to copy from.
         \param[in] length The number of value of DATA_TYPE in the array.
-        \return True when copying the data succedded. (Could be false if it does not fit.)
+        \return Error::NO_ERRORS when every was successful. Error::ARRAY_FULL when there is no space left.
       */
-      virtual bool set_data(const DATA_TYPE* data, const uint32_t length) = 0;
+      virtual Error set_data(const DATA_TYPE* data, const uint32_t length) = 0;
 
       //! Append a value to the end of the array.
       /*!
         \param[in] value The data to add.
-        \return False if there was no space to add the value.
+        \return Error::NO_ERRORS when every was successful. Error::ARRAY_FULL when there is no space left.
       */
-      virtual bool add(const DATA_TYPE& value) = 0;
+      virtual Error add(const DATA_TYPE& value) = 0;
 
       //! Remove all data in the array and set it to the default value.
       virtual void clear() = 0;
 
-      bool serialize(WriteBufferInterface& buffer) const final
+      Error serialize(WriteBufferInterface& buffer) const
       {
-        return false;
-      }
+        // This function should not be called on a repeated field.
+        return Error::BUFFER_FULL;
+      };
 
-      bool serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final
+      //! \see Field::serialize_with_id()
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final
       {
-        bool result = true;
+        Error return_value = Error::NO_ERRORS;
 
         if(PACKED)
         {
           const uint32_t size_x = this->serialized_size_packed(field_number);
-          result = (size_x <= buffer.get_available_size());
 
           // Use the packed way of serialization for base fields.
-          if(result && (0 < size_x))
-          {          
-            uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
-                                        ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-            result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-            result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-            result = result && serialize_packed(buffer);
+          if(size_x <= buffer.get_available_size())
+          {
+            if(0 < size_x)
+            {          
+              uint32_t tag = WireFormatter::MakeTag(field_number, 
+                                          WireFormatter::WireType::LENGTH_DELIMITED);
+              return_value = WireFormatter::SerializeVarint(tag, buffer);
+              if(Error::NO_ERRORS == return_value) 
+              {
+                return_value = WireFormatter::SerializeVarint(size_x, buffer);
+                if(Error::NO_ERRORS == return_value) 
+                {
+                  return_value = serialize_packed(buffer);
+                }
+              }
+            }
+          }
+          else
+          {
+            return_value = Error::BUFFER_FULL;
           }
         }
         else 
         {
           const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          result = (size_x <= buffer.get_available_size());
-          result = result && serialize_unpacked(field_number, buffer);
+          return_value = (size_x <= buffer.get_available_size()) ? serialize_unpacked(field_number, buffer) 
+                                                                 : Error::BUFFER_FULL;
         }
 
-        return result;
+        return return_value;
       }
 
       //! Function to deserialize this array.
       /*!
           From a buffer of data fill this array with data.
           \param buffer [in]  The memory from which the message is obtained.
-          \return True when every was successful. 
+          \return Error::NO_ERRORS when every was successful. 
       */
-      bool deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+      Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
       {
-        bool result = true;
+        Error return_value = Error::NO_ERRORS;
         if(PACKED)
         {              
           uint32_t size;
-          result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-          ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+          return_value = WireFormatter::DeserializeVarint(buffer, size);
+          ReadBufferSection bufferSection(buffer, size);
           DATA_TYPE x;
-          while(result && x.deserialize(bufferSection)) 
+          
+          return_value = x.deserialize(bufferSection);
+          while(Error::NO_ERRORS == return_value)
           {
-            result = this->add(x);
+            return_value = this->add(x);
+            if(Error::NO_ERRORS == return_value)
+            {
+              return_value = x.deserialize(bufferSection);
+            }
+          }
+
+          // We expect the buffersection to be empty, in that case everything is fine..
+          if(Error::END_OF_BUFFER == return_value)
+          {
+            return_value = Error::NO_ERRORS;
           }
         }
         else 
         {
           uint32_t size;
-          result = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-          ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
-          DATA_TYPE x;
-          if(result && x.deserialize(bufferSection))
+          return_value = WireFormatter::DeserializeVarint(buffer, size);
+          if(Error::NO_ERRORS == return_value) 
           {
-            result = this->add(x);
+            ReadBufferSection bufferSection(buffer, size);
+            DATA_TYPE x;
+            return_value = x.deserialize(bufferSection);
+            if(Error::NO_ERRORS == return_value)
+            {
+              return_value = this->add(x);
+            }
           }
         }
-        return result;
+        return return_value;
       }
 
-      //! Calculate the size of this message when serialized.
+      //! Calculate the size of this field when serialized.
       /*!
-          \return The number of bytes this message will require once serialized.
+          The calculation only includes the data, not the size required by the tag and 
+          \return The number of bytes this field will require once serialized.
       */
       uint32_t serialized_size_packed(int32_t field_number) const 
       {
@@ -204,9 +233,9 @@ namespace EmbeddedProto
         return calcBuffer.get_size();
       }
 
-      //! Calculate the size of this message when serialized.
+      //! Calculate the size of this field when serialized.
       /*!
-          \return The number of bytes this message will require once serialized.
+          \return The number of bytes this field will require once serialized.
       */
       uint32_t serialized_size_unpacked(int32_t field_number) const 
       {
@@ -217,113 +246,40 @@ namespace EmbeddedProto
 
     private:
 
-      bool serialize_packed(WriteBufferInterface& buffer) const
+      Error serialize_packed(WriteBufferInterface& buffer) const
       {
-        bool result = true;
-        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          result = this->get(i).serialize(buffer);
+          return_value = this->get_const(i).serialize(buffer);
         }
-        return result;
+        return return_value;
       }
 
-      bool serialize_unpacked(uint32_t field_number, WriteBufferInterface& buffer) const
+      Error serialize_unpacked(uint32_t field_number, WriteBufferInterface& buffer) const
       {
-        bool result = true;
-        for(uint32_t i = 0; (i < this->get_length()) && result; ++i)
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          const uint32_t size_x = this->get(i).serialized_size();
-          uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(field_number, 
-                                    ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
-          result = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
-          result = result && ::EmbeddedProto::WireFormatter::SerializeVarint(size_x, buffer);
-          if(result && (0 < size_x)) 
+          const uint32_t size_x = this->get_const(i).serialized_size();
+          uint32_t tag = WireFormatter::MakeTag(field_number, 
+                                    WireFormatter::WireType::LENGTH_DELIMITED);
+          return_value = WireFormatter::SerializeVarint(tag, buffer);
+          if(Error::NO_ERRORS == return_value)
           {
-            result = this->get(i).serialize(buffer);
+            return_value = WireFormatter::SerializeVarint(size_x, buffer);
+            if((Error::NO_ERRORS == return_value) && (0 < size_x)) 
+            {
+              return_value = this->get_const(i).serialize(buffer);
+            }
           }
         }
-        return result;
+        return return_value;
       }
 
   };
 
-  //! A template class that actually holds some data.
-  /*!
-    This is a separate class to make it possible to not have the size defined in every function or 
-    class using this type of object.
-  */
-  template<class DATA_TYPE, uint32_t MAX_SIZE>
-  class RepeatedFieldSize : public RepeatedField<DATA_TYPE>
-  { 
-      static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
-
-    public:
-
-      RepeatedFieldSize()
-        : current_size_(0),
-          data_{}
-      {
-
-      }  
-
-      ~RepeatedFieldSize() override = default;
-
-      uint32_t get_size() const override { return BYTES_PER_ELEMENT * current_size_; }
-
-      uint32_t get_max_size() const override { return BYTES_PER_ELEMENT * MAX_SIZE; }
-
-      uint32_t get_length() const override { return current_size_; }
-
-      uint32_t get_max_length() const override { return MAX_SIZE; }
-
-      DATA_TYPE* get_data() { return data_; }
-
-      DATA_TYPE& get(uint32_t index) override { return data_[index]; }
-      const DATA_TYPE& get(uint32_t index) const override { return data_[index]; }
-
-      void set(uint32_t index, const DATA_TYPE& value) override 
-      { 
-        data_[index] = value;
-        current_size_ = std::max(index+1, current_size_); 
-      }
-
-      bool set_data(const DATA_TYPE* data, const uint32_t length) override 
-      {
-        const uint32_t size = length * BYTES_PER_ELEMENT;
-        const bool result = MAX_SIZE >= size;
-        if(result) 
-        {
-          current_size_ = size;
-          memcpy(data_, data, size);
-        }
-        return result;
-      }
-
-      bool add(const DATA_TYPE& value) override 
-      {
-        const bool result = MAX_SIZE >= current_size_;
-        if(result) 
-        {
-          data_[current_size_] = value;
-          ++current_size_;
-        }
-        return result;
-      }
-
-      void clear() override 
-      {
-        current_size_ = 0;
-      }
-
-    private:
-
-      //! Number of item in the data array.
-      uint32_t current_size_;
-
-      //! The actual data 
-      DATA_TYPE data_[MAX_SIZE];
-  };
 
 } // End of namespace EmbeddedProto
 
-#endif // End of _DYNAMIC_BUFFER_H_
+#endif // End of _REPEATED_FIELD_H_

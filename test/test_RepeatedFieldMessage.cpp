@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -65,7 +65,7 @@ TEST(RepeatedFieldMessage, serialize_empty_fields)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).WillRepeatedly(Return(99));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -79,7 +79,7 @@ TEST(RepeatedFieldMessage, serialize_empty_message)
   EXPECT_CALL(buffer, push(_,_)).Times(0);
   EXPECT_CALL(buffer, get_available_size()).WillRepeatedly(Return(99));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -104,7 +104,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_fields)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, serialize_array_zero_messages)
@@ -133,7 +133,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_messages)
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
@@ -155,7 +155,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
@@ -194,7 +194,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, serialize_array_one)
@@ -216,7 +216,7 @@ TEST(RepeatedFieldMessage, serialize_array_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 
@@ -240,7 +240,7 @@ TEST(RepeatedFieldMessage, serialize_array_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 
@@ -273,7 +273,7 @@ TEST(RepeatedFieldMessage, serialize_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 
@@ -305,7 +305,22 @@ TEST(RepeatedFieldMessage, serialize_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+
+TEST(RepeatedFieldMessage, serialize_fault_buffer_full)
+{
+  Mocks::WriteBufferMock buffer;
+
+  repeated_fields<Y_SIZE> msg;
+  msg.add_y(1);
+  msg.add_y(1);
+  msg.add_y(1);                 
+  
+  // Need 3 bytes but got only 2.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, deserialize_empty_array) 
@@ -316,7 +331,7 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
   EXPECT_CALL(buffer, pop(_)).WillRepeatedly(Return(false));
   EXPECT_CALL(buffer, get_size()).WillRepeatedly(Return(0));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
 }
 
@@ -328,7 +343,7 @@ TEST(RepeatedFieldMessage, deserialize_empty_message_array)
   EXPECT_CALL(buffer, pop(_)).WillRepeatedly(Return(false));
   EXPECT_CALL(buffer, get_size()).WillRepeatedly(Return(0));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 }
 
 TEST(RepeatedFieldMessage, deserialize_one) 
@@ -338,9 +353,13 @@ TEST(RepeatedFieldMessage, deserialize_one)
   repeated_fields<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01, // x
-                       0x12, 0x03, 0x01, 0x01, 0x01, // y
-                       0x18, 0x01}; // z 
+  static constexpr uint32_t SIZE = 9;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0x01, // x
+                            0x12, 0x03, 0x01, 0x01, 0x01, // y
+                            0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -348,7 +367,7 @@ TEST(RepeatedFieldMessage, deserialize_one)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(3, msg.get_y().get_length());
@@ -366,9 +385,13 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
   repeated_message<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01, // x
-                       0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
-                       0x18, 0x01}; // z 
+  static constexpr uint32_t SIZE = 15;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0x01, // x
+                            0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
+                            0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -376,7 +399,7 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(3, msg.get_b().get_length());
@@ -399,11 +422,15 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   repeated_message<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x12, 0x00, // y[0]
-                       0x08, 0x01, // x
-                       0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
-                       0x18, 0x01, // z
-                       0x12, 0x00, }; // y[2] 
+  static constexpr uint32_t SIZE = 14;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x12, 0x00, // y[0]
+                            0x08, 0x01, // x
+                            0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
+                            0x18, 0x01, // z
+                            0x12, 0x00, }; // y[2] 
 
   for(auto r: referee) 
   {
@@ -411,7 +438,7 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(3, msg.get_b().get_length());
@@ -431,9 +458,13 @@ TEST(RepeatedFieldMessage, deserialize_max)
   repeated_fields<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
-                       0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
-                       0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
+  static constexpr uint32_t SIZE = 29;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
+                            0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
+                            0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
 
   for(auto r: referee) 
   {
@@ -441,7 +472,7 @@ TEST(RepeatedFieldMessage, deserialize_max)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<uint32_t>::max(), msg.get_x());
   EXPECT_EQ(3, msg.get_y().get_length());

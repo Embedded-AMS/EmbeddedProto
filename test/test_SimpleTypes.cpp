@@ -22,7 +22,7 @@
  *  Info:
  *    info at EmbeddedProto dot com
  *
- *  Postal adress:
+ *  Postal address:
  *    Johan Huizingalaan 763a
  *    1066 VH, Amsterdam
  *    the Netherlands
@@ -58,7 +58,7 @@ TEST(SimpleTypes, zero)
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
 }
@@ -107,7 +107,7 @@ TEST(SimpleTypes, serialize_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(58, msg.serialized_size());
 }
@@ -156,7 +156,7 @@ TEST(SimpleTypes, serialize_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(100, msg.serialized_size());
 }
 
@@ -197,7 +197,7 @@ TEST(SimpleTypes, serialize_min)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
   
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(62, msg.serialized_size());
 }
 
@@ -221,8 +221,30 @@ TEST(SimpleTypes, serialize_smalest_real)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
   
-  EXPECT_TRUE(msg.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(14, msg.serialized_size());
+}
+
+TEST(SimpleTypes, serialize_fault_buffer_full_varint)
+{
+    InSequence s;
+  
+  // Using a protobuf message and the google protobuf implementation test is serialization is 
+  // correct.
+  ::Test_Simple_Types msg;
+  Mocks::WriteBufferMock buffer;
+
+  // Just set some large value.
+  msg.set_a_uint32(std::numeric_limits<uint32_t>::max());
+
+  // Allow for some bytes to be serialized
+  EXPECT_CALL(buffer, push(_)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(_)).Times(1).WillOnce(Return(true));  
+  // And then fail
+  EXPECT_CALL(buffer, push(_)).Times(2).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
+
 }
 
 TEST(SimpleTypes, deserialize_zero) 
@@ -232,7 +254,7 @@ TEST(SimpleTypes, deserialize_zero)
   ::Test_Simple_Types msg;
 
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(0, msg.get_a_int32());   
   EXPECT_EQ(0, msg.get_a_int64());     
@@ -279,7 +301,7 @@ TEST(SimpleTypes, deserialize_one)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.get_a_int32());   
   EXPECT_EQ(1, msg.get_a_int64());     
@@ -326,7 +348,7 @@ TEST(SimpleTypes, deserialize_max)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<int32_t>::max(),  msg.get_a_int32());   
   EXPECT_EQ(std::numeric_limits<int64_t>::max(),  msg.get_a_int64());     
@@ -367,7 +389,7 @@ TEST(SimpleTypes, deserialize_min)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<int32_t>::min(),  msg.get_a_int32());   
   EXPECT_EQ(std::numeric_limits<int64_t>::min(),  msg.get_a_int64());     
@@ -400,10 +422,48 @@ TEST(SimpleTypes, deserialize_smalest_real)
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
   
-  EXPECT_TRUE(msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(std::numeric_limits<double>::min(), msg.get_a_double());
   EXPECT_EQ(std::numeric_limits<float>::min(),  msg.get_a_float());
+}
+
+TEST(SimpleTypes, deserialize_fault_end_of_buffer_fixed)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(58));
+
+  ::Test_Simple_Types msg;
+
+  uint8_t referee[] = {0x49, 0xFF, 0xFF}; // End half way through a fixed size value.
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+}
+
+TEST(SimpleTypes, deserialize_fault_end_of_buffer_bool)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(58));
+
+  ::Test_Simple_Types msg;
+
+  uint8_t referee[] = {0x38}; // Just the tag of a bool but no data
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
 }
 
 } // End of namespace test_EmbeddedAMS_SimpleTypes
