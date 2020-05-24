@@ -34,8 +34,10 @@
 #include "Fields.h"
 #include "Errors.h"
 
+#include <cstdint>
 #include <string.h>
 #include <type_traits>
+
 
 namespace EmbeddedProto
 {

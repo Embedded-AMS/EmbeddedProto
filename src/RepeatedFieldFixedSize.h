@@ -34,8 +34,10 @@
 #include "RepeatedField.h"
 #include "Errors.h"
 
+#include <cstdint>
 #include <cstring>
-#include <algorithm>    // std::min
+#include <algorithm>
+
 
 namespace EmbeddedProto
 {

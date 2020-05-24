@@ -31,9 +31,10 @@
 #ifndef _READ_BUFFER_SECTION_H_
 #define _READ_BUFFER_SECTION_H_
 
+#include "ReadBufferInterface.h"
+
 #include <cstdint>
 
-#include "ReadBufferInterface.h"
 
 namespace EmbeddedProto 
 {
