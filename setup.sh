@@ -33,7 +33,7 @@
 # This script will setup the environment to generate source code in your project.
 
 # Setup the virtual envirounment for Python packages
-virtualenv venv
+python3 -m venv venv
 source ./venv/bin/activate
 pip install -r requirements.txt
 

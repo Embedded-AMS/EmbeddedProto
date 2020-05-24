@@ -12,8 +12,7 @@ pipelines:
           - add-apt-repository ppa:ubuntu-toolchain-r/test -y
           - apt-get update
           - apt-get install -y jq gcc-9 g++-9 unzip cmake lib32ncurses5 lib32z1 lib32stdc++6 python3-venv
-          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
-          - pip3 install virtualenv
+          - update-alternatives --install 
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
 
