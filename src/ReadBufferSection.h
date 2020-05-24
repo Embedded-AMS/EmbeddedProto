@@ -76,7 +76,7 @@ namespace EmbeddedProto
       /*!
         This will not do anything if size zero is reached.
       */
-      bool peak(uint8_t& byte) const override;
+      bool peek(uint8_t& byte) const override;
 
       //! Decrement the size and call advance on the parent buffer.
       /*!

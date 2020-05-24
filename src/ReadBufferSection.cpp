@@ -54,12 +54,12 @@ namespace EmbeddedProto
     return max_size_;
   }
 
-  bool ReadBufferSection::peak(uint8_t& byte) const
+  bool ReadBufferSection::peek(uint8_t& byte) const
   {
     bool result = 0 < size_;
     if(result)
     {
-      result = buffer_.peak(byte);
+      result = buffer_.peek(byte);
     }
     return result;
   }

@@ -67,12 +67,12 @@ TEST(ReadBufferSection, peek)
 {
   Mocks::ReadBufferMock read_buffer_mock;
   EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(1));
-  EXPECT_CALL(read_buffer_mock, peak(_)).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
+  EXPECT_CALL(read_buffer_mock, peek(_)).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
 
   EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 1);
   
   uint8_t byte = 0;
-  EXPECT_TRUE(read_buffer_section.peak(byte));
+  EXPECT_TRUE(read_buffer_section.peek(byte));
   EXPECT_EQ(1, byte);
 }
 
@@ -135,12 +135,12 @@ TEST(ReadBufferSection, pop)
   EXPECT_EQ(1, byte);
   EXPECT_EQ(0, read_buffer_section.get_size());
 
-  // When attempting to read or peak at more we should not change byte and get a false.
+  // When attempting to read or peek at more we should not change byte and get a false.
   byte = 0;
   EXPECT_FALSE(read_buffer_section.pop(byte));
   EXPECT_EQ(0, byte);
   EXPECT_EQ(0, read_buffer_section.get_size());
-  EXPECT_FALSE(read_buffer_section.peak(byte));
+  EXPECT_FALSE(read_buffer_section.peek(byte));
   EXPECT_EQ(0, byte);
 }
 
