@@ -62,7 +62,7 @@ namespace EmbeddedProto
           \param[out] byte When the buffer is not empty this variable will hold the oldest value.
           \return True when the buffer was not empty.
       */
-      virtual bool peak(uint8_t& byte) const = 0;
+      virtual bool peek(uint8_t& byte) const = 0;
 
       //! Advances the internal read index by one when the buffer is not empty.
       virtual void advance() = 0;
