@@ -70,6 +70,8 @@ TEST(NestedMessage, serialize_one)
 
   ::message_b msg;
   Mocks::WriteBufferMock buffer;
+  ON_CALL(buffer, get_size()).WillByDefault(Return(9));
+
 
   // Test if a nested message can be serialized with values set to one.
   msg.set_u(1.0F);
@@ -189,15 +191,20 @@ TEST(NestedMessage, deserialize_one)
   ::message_b msg;
   Mocks::ReadBufferMock buffer;
 
+
+  static constexpr uint32_t SIZE = 22;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
   // Test if a nested message can be deserialized with values set to one.
 
-  uint8_t referee[] = {0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
-                       0x12, 0x09, // tag and size of nested a
-                       0x08, 0x01, // x
-                       0x15, 0x00, 0x00, 0x80, 0x3F, // y
-                       0x18, 0x02, // z
-                       // And back to the parent message with field v.
-                       0x18, 0x01};
+  uint8_t referee[SIZE] = { 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
+                            0x12, 0x09, // tag and size of nested a
+                            0x08, 0x01, // x
+                            0x15, 0x00, 0x00, 0x80, 0x3F, // y
+                            0x18, 0x02, // z
+                            // And back to the parent message with field v.
+                            0x18, 0x01};
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -220,16 +227,21 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
   ::message_c msg;
   Mocks::ReadBufferMock buffer;
 
+
+  static constexpr uint32_t SIZE = 41;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
   // Test if a double nested message can be deserialized with values set to maximum.
 
-  uint8_t referee[] = { 0x0A, 0x27, // tag and size of nested b
-                        0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F, // u
-                        0x12, 0x16, // tag and size of nested a
-                        0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
-                        0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
-                        0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
-                        // And back to the parent message with field v.
-                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
+  uint8_t referee[SIZE] = { 0x0A, 0x27, // tag and size of nested b
+                            0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F, // u
+                            0x12, 0x16, // tag and size of nested a
+                            0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+                            0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
+                            0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
+                            // And back to the parent message with field v.
+                            0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));

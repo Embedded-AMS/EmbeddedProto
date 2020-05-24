@@ -46,9 +46,9 @@ using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 
+
 namespace test_EmbeddedAMS_IncludeOtherFiles
 {
-
 
 static constexpr uint32_t RF_SIZE = 3;
 
@@ -118,6 +118,7 @@ TEST(IncludeOtherFiles, get)
 
   ::IncludedMessages<RF_SIZE> msg;
   Mocks::ReadBufferMock buffer;
+  ON_CALL(buffer, get_size()).WillByDefault(Return(22));
 
   uint8_t referee[] = { 0x08, 0x01, // state
                        // cmsg

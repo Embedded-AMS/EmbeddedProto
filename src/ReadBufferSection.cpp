@@ -30,15 +30,18 @@
 
 #include "ReadBufferSection.h"
 
+#include <algorithm>
+
+
 namespace EmbeddedProto 
 {
 
   ReadBufferSection::ReadBufferSection(ReadBufferInterface& buffer, const uint32_t size)
     : buffer_(buffer),
-      size_(size),
-      max_size_(size)
+      size_(std::min(size, buffer.get_size())),
+      max_size_(std::min(size, buffer.get_size()))
   {
-
+    
   }
 
   uint32_t ReadBufferSection::get_size() const
