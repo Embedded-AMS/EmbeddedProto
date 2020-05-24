@@ -30,7 +30,7 @@
 #   the Netherlands
 #
 
-./build/test/test_EmbeddedProto
+./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 
 
 if [ $# -eq 0 ]; then
