@@ -50,11 +50,7 @@ namespace EmbeddedProto
   class MessageSizeCalculator : public WriteBufferInterface
   {
     public:
-      MessageSizeCalculator()
-        : size_(0)
-      { 
-      };
-
+      MessageSizeCalculator() = default;
       ~MessageSizeCalculator() override = default;
       
       //! Reset the size count of the buffer.
@@ -103,7 +99,7 @@ namespace EmbeddedProto
     private:
 
       //! The calculated size of the buffer.
-      uint32_t size_;
+      uint32_t size_ = 0;
 
   }; // End of class MessageSizeCalculator
 

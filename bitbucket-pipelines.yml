@@ -17,8 +17,6 @@ pipelines:
           - source bitbucket-pipelines-dependencies.sh
 
           - ./build_test.sh
-          - ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
-
           - ./code_coverage.sh
 
           - cd build/test

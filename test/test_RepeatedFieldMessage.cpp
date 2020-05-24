@@ -353,9 +353,13 @@ TEST(RepeatedFieldMessage, deserialize_one)
   repeated_fields<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01, // x
-                       0x12, 0x03, 0x01, 0x01, 0x01, // y
-                       0x18, 0x01}; // z 
+  static constexpr uint32_t SIZE = 9;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0x01, // x
+                            0x12, 0x03, 0x01, 0x01, 0x01, // y
+                            0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -381,9 +385,13 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
   repeated_message<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01, // x
-                       0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
-                       0x18, 0x01}; // z 
+  static constexpr uint32_t SIZE = 15;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0x01, // x
+                            0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
+                            0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -414,11 +422,15 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   repeated_message<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x12, 0x00, // y[0]
-                       0x08, 0x01, // x
-                       0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
-                       0x18, 0x01, // z
-                       0x12, 0x00, }; // y[2] 
+  static constexpr uint32_t SIZE = 14;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x12, 0x00, // y[0]
+                            0x08, 0x01, // x
+                            0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
+                            0x18, 0x01, // z
+                            0x12, 0x00, }; // y[2] 
 
   for(auto r: referee) 
   {
@@ -446,9 +458,13 @@ TEST(RepeatedFieldMessage, deserialize_max)
   repeated_fields<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
-                       0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
-                       0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
+  static constexpr uint32_t SIZE = 29;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = { 0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
+                            0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
+                            0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
 
   for(auto r: referee) 
   {

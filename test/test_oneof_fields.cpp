@@ -300,7 +300,11 @@ TEST(OneofField, deserialize_oneof_msg)
   message_oneof msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
+  static constexpr uint32_t SIZE = 10;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  uint8_t referee[SIZE] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
     for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
   }
