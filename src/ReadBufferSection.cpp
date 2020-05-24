@@ -69,6 +69,7 @@ namespace EmbeddedProto
     if(0 < size_) 
     {
       buffer_.advance();
+      --size_;
     }
   }
 

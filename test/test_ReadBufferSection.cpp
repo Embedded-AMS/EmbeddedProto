@@ -63,4 +63,85 @@ TEST(ReadBufferSection, construction_limited)
   EXPECT_EQ(1, read_buffer_section.get_size());
 }
 
+TEST(ReadBufferSection, peek) 
+{
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(1));
+  EXPECT_CALL(read_buffer_mock, peak(_)).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 1);
+  
+  uint8_t byte = 0;
+  EXPECT_TRUE(read_buffer_section.peak(byte));
+  EXPECT_EQ(1, byte);
+}
+
+TEST(ReadBufferSection, advance) 
+{
+  InSequence s;
+
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).Times(2).WillRepeatedly(Return(3));
+  EXPECT_CALL(read_buffer_mock, advance());
+  EXPECT_CALL(read_buffer_mock, advance());
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 2);
+  EXPECT_EQ(2, read_buffer_section.get_max_size());
+  EXPECT_EQ(2, read_buffer_section.get_size());
+
+  read_buffer_section.advance();
+  EXPECT_EQ(1, read_buffer_section.get_size());  
+
+  read_buffer_section.advance();
+  EXPECT_EQ(0, read_buffer_section.get_size());  
+
+  // One more advance should still be zero.
+  read_buffer_section.advance();
+  EXPECT_EQ(0, read_buffer_section.get_size());
+
+}
+
+TEST(ReadBufferSection, advance_n) 
+{
+  InSequence s;
+
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).Times(2).WillRepeatedly(Return(3));
+  EXPECT_CALL(read_buffer_mock, advance(2));
+  EXPECT_CALL(read_buffer_mock, advance(1));
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 3);
+  EXPECT_EQ(3, read_buffer_section.get_max_size());
+  EXPECT_EQ(3, read_buffer_section.get_size());
+
+  read_buffer_section.advance(2);
+  EXPECT_EQ(1, read_buffer_section.get_size());  
+
+  // We should not advance beond the max size.
+  read_buffer_section.advance(2);
+  EXPECT_EQ(0, read_buffer_section.get_size()); 
+}
+
+TEST(ReadBufferSection, pop) 
+{
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(1));
+  EXPECT_CALL(read_buffer_mock, pop(_)).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 1);
+  
+  uint8_t byte = 0;
+  EXPECT_TRUE(read_buffer_section.pop(byte));
+  EXPECT_EQ(1, byte);
+  EXPECT_EQ(0, read_buffer_section.get_size());
+
+  // When attempting to read or peak at more we should not change byte and get a false.
+  byte = 0;
+  EXPECT_FALSE(read_buffer_section.pop(byte));
+  EXPECT_EQ(0, byte);
+  EXPECT_EQ(0, read_buffer_section.get_size());
+  EXPECT_FALSE(read_buffer_section.peak(byte));
+  EXPECT_EQ(0, byte);
+}
+
 } // End of namespace ReadBufferSection
