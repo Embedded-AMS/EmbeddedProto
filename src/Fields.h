@@ -36,6 +36,9 @@
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
 
+#include <cstdint>
+
+
 namespace EmbeddedProto 
 {
 
