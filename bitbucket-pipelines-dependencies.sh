@@ -61,6 +61,6 @@ export PATH="$PATH:$PWD/sonar-scanner/bin"
 if [ -d "$PWD/venv" ]; then
   echo "found python virtualenv in cache"
 else
-  source setup.sh
+  ./setup.sh
 fi
 
