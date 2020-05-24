@@ -48,6 +48,10 @@ TEST(MessageSizeCalculator, push)
   EXPECT_EQ(1, msc.get_size());
   EXPECT_TRUE(msc.push(byte));
   EXPECT_EQ(2, msc.get_size());
+
+  // Clear the content
+  msc.clear();
+  EXPECT_EQ(0, msc.get_size());
 }
 
 TEST(MessageSizeCalculator, push_n) 
