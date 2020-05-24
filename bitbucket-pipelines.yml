@@ -26,7 +26,7 @@ pipelines:
           
           - cd -
           - export SONAR_SCANNER_OPTS="-Xmx1024m"
-          - sonar-scanner -Dproject.settings=sonar-project.properties
+          - sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=$SONAR_LOGIN
                  
 definitions:
   caches:
