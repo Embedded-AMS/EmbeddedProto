@@ -31,6 +31,9 @@
 #ifndef _READ_BUFFER_INTERFACE_H_
 #define _READ_BUFFER_INTERFACE_H_
 
+#include <cstdint>
+
+
 namespace EmbeddedProto 
 {
   //! The pure virtual definition of a message buffer to read from.

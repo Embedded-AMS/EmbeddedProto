@@ -31,11 +31,12 @@
 #ifndef _MESSAGE_INTERFACE_H_
 #define _MESSAGE_INTERFACE_H_
 
-#include <cstdint>
-
 #include "WireFormatter.h"
 #include "Fields.h"
 #include "Errors.h"
+
+#include <cstdint>
+
 
 namespace EmbeddedProto 
 {

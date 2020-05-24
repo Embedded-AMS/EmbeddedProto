@@ -31,13 +31,15 @@
 #ifndef _REPEATED_FIELD_H_
 #define _REPEATED_FIELD_H_
 
-#include <type_traits>
-
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
 #include "ReadBufferSection.h" 
 #include "Errors.h"
+
+#include <cstdint>
+#include <type_traits>
+
 
 namespace EmbeddedProto
 {

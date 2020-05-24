@@ -31,6 +31,9 @@
 #ifndef _WRITE_BUFFER_INTERFACE_H_
 #define _WRITE_BUFFER_INTERFACE_H_
 
+#include <cstdint>
+
+
 namespace EmbeddedProto 
 {
   //! The pure virtual definition of a message buffer used for writing .

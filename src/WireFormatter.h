@@ -31,14 +31,15 @@
 #ifndef _WIRE_FORMATTER_H_
 #define _WIRE_FORMATTER_H_
 
+#include "WriteBufferInterface.h"
+#include "ReadBufferInterface.h"
+#include "Errors.h"
+
 #include <cstdint>
 #include <math.h> 
 #include <type_traits>
 #include <limits>
 
-#include "WriteBufferInterface.h"
-#include "ReadBufferInterface.h"
-#include "Errors.h"
 
 namespace EmbeddedProto 
 {
