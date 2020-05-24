@@ -16,6 +16,7 @@ pipelines:
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
 
+          - ./build_test.sh
           - ./code_coverage.sh
 
           - cd build/test
