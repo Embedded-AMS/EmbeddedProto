@@ -128,7 +128,7 @@ namespace EmbeddedProto
       */
       static constexpr uint32_t MakeTag(const uint32_t field_number, const WireType type)
       {
-        return ((static_cast<uint32_t>(field_number) << 3) | static_cast<uint32_t>(type));
+        return ((field_number << 3) | static_cast<uint32_t>(type));
       }
 
       /**
