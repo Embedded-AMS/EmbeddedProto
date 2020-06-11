@@ -303,12 +303,12 @@ def generate_code(request, respones):
         if proto_file.dependency:
             imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in proto_file.dependency]
 
-        namespace_name = ""
+        namespace_names = ""
         if proto_file.package:
-            namespace_name = proto_file.package.replace(".", "::")
+            namespace_names = proto_file.package.split(".")
 
         try:
-            file_str = template.render(filename=filename_str, namespace=namespace_name,
+            file_str = template.render(filename=filename_str, namespaces=namespace_names,
                                        messages=messages_array[number_of_processed_msg:],
                                        enums=enums_generator, dependencies=imported_dependencies)
 
