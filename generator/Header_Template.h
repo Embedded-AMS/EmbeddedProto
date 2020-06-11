@@ -517,12 +517,11 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {% for dependency in dependencies %}
 #include <{{dependency}}>
 {% endfor %}
-{% endif %}
-{% if namespace %}
 
-namespace {{ namespace }}
-{
 {% endif %}
+{% for namespace in namespaces %}
+namespace {{ namespace }} {
+{% endfor %}
 
 {% for enum in enums %}
 {{ enum_macro(enum) }}
@@ -530,8 +529,8 @@ namespace {{ namespace }}
 {% for msg in messages %}
 {{ msg_macro(msg) }}
 {% endfor %}
-{% if namespace %}
+{% for namespace in namespaces %}
 } // End of namespace {{ namespace }}
-{% endif %}
+{% endfor %}
 #endif // _{{filename.upper()}}_H_
 
