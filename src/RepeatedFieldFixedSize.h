@@ -106,8 +106,13 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         if(MAX_LENGTH >= length) 
         {
-          current_length_ = length;
-          memcpy(data_, data, length * BYTES_PER_ELEMENT);
+          const DATA_TYPE* d = data;
+          for(uint32_t i = 0; i < length; ++i) 
+          {
+            data_[i] = *d;
+            ++d;
+          }
+          current_length_ = length;        
         }
         else 
         {
