@@ -29,22 +29,16 @@
  */
 
 // This file is used to test including other proto files.
+// This is the file which is included in "include_other_files.proto".
 
 syntax = "proto3";
 
-// Import something simple
-import "file_to_include.proto";
+//package a.b;
 
-// Import something with variable length
-import "repeated_fields.proto";
+message B {
+  int32 val = 1;
+}
 
-// Import something from a subfolder.
-import "subfolder/file_to_include_from_subfolder.proto";
-
-
-message IncludedMessages {
-  some.external.lib.CommonStates  state = 1;
-  some.external.lib.CommonMessage msg   = 2;
-  repeated_fields rf  = 3;
-  B sub_b = 4;
+message A {
+  B b = 1;
 }

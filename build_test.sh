@@ -37,6 +37,8 @@ protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./buil
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/oneof_fields.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/include_other_files.proto
+# Delibertly do not manually generate file_to_include.proto and subfolder/file_to_include_from_subfolder.proto 
+# to test the automatic generation of files from including them in include_other_files.proto.
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/string_bytes.proto
 
 # For validation and testing generate the same message using python
