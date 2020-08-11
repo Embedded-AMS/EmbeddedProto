@@ -46,5 +46,5 @@ message IncludedMessages {
   some.external.lib.CommonStates  state = 1;
   some.external.lib.CommonMessage msg   = 2;
   repeated_fields rf  = 3;
-  B sub_b = 4;
+  other_folder_msg sub_msg = 4;
 }

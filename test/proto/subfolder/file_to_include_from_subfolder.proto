@@ -28,17 +28,11 @@
  *    the Netherlands
  */
 
-// This file is used to test including other proto files.
-// This is the file which is included in "include_other_files.proto".
+// This file is used to test including other proto files particular from a subfolder.
 
 syntax = "proto3";
 
-//package a.b;
-
-message B {
+message other_folder_msg {
   int32 val = 1;
 }
 
-message A {
-  B b = 1;
-}
