@@ -297,7 +297,8 @@ def generate_code(request, respones):
 
         enums_generator = generate_enums(proto_file.enum_type)
 
-        filename_str = os.path.splitext(proto_file.name)[0]
+        filename_with_folder = os.path.splitext(proto_file.name)[0]
+        filename_without_folder = os.path.basename(filename_with_folder)
 
         imported_dependencies = []
         if proto_file.dependency:
@@ -308,7 +309,7 @@ def generate_code(request, respones):
             namespace_names = proto_file.package.split(".")
 
         try:
-            file_str = template.render(filename=filename_str, namespaces=namespace_names,
+            file_str = template.render(filename=filename_without_folder, namespaces=namespace_names,
                                        messages=messages_array[number_of_processed_msg:],
                                        enums=enums_generator, dependencies=imported_dependencies)
 
@@ -327,7 +328,7 @@ def generate_code(request, respones):
         else:
             number_of_processed_msg = len(messages_array)
             f = respones.file.add()
-            f.name = filename_str + ".h"
+            f.name = filename_with_folder + ".h"
             f.content = file_str
 
 

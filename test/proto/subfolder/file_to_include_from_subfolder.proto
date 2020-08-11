@@ -28,23 +28,11 @@
  *    the Netherlands
  */
 
-// This file is used to test including other proto files.
+// This file is used to test including other proto files particular from a subfolder.
 
 syntax = "proto3";
 
-// Import something simple
-import "file_to_include.proto";
-
-// Import something with variable length
-import "repeated_fields.proto";
-
-// Import something from a subfolder.
-import "subfolder/file_to_include_from_subfolder.proto";
-
-
-message IncludedMessages {
-  some.external.lib.CommonStates  state = 1;
-  some.external.lib.CommonMessage msg   = 2;
-  repeated_fields rf  = 3;
-  other_folder_msg sub_msg = 4;
+message other_folder_msg {
+  int32 val = 1;
 }
+
