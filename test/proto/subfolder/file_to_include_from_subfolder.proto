@@ -32,7 +32,10 @@
 
 syntax = "proto3";
 
+package sub.package;
+
 message other_folder_msg {
   int32 val = 1;
+  repeated int32 array = 2;
 }
 

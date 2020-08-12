@@ -155,7 +155,12 @@ class FieldTemplateParameters:
     def update_templates(self, messages):
         if self.of_type_message:
             for msg in messages:
-                if msg.name == self.type:
+                if msg.namespace:
+                    msg_type = msg.namespace + "::" + msg.name
+                else:
+                    msg_type = msg.name
+
+                if msg_type == self.type:
                     msg_templates = deepcopy(msg.templates)
                     for tmpl in msg_templates:
                         tmpl["name"] = self.variable_name + tmpl["name"]
@@ -214,8 +219,10 @@ class OneofTemplateParameters:
 
 
 class MessageTemplateParameters:
-    def __init__(self, msg_proto):
+    def __init__(self, msg_proto, namespace):
         self.name = msg_proto.name
+        self.namespace = namespace
+
         self.msg_proto = msg_proto
         self.has_fields = len(self.msg_proto.field) > 0
         self.has_oneofs = len(self.msg_proto.oneof_decl) > 0
@@ -291,7 +298,7 @@ def generate_code(request, respones):
             raise Exception(proto_file.name + ": Sorry, proto2 is not supported, please use proto3.")
 
         for msg_type in proto_file.message_type:
-            msg = MessageTemplateParameters(msg_type)
+            msg = MessageTemplateParameters(msg_type, proto_file.package.replace(".", "::"))
             msg.update_templates(messages_array)
             messages_array.append(msg)
 
