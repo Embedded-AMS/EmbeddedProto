@@ -132,6 +132,11 @@ inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value)
   {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_full_name}}.set(index, value);
 }
+inline void set_{{_field.name}}(const {{_field.repeated_type}}& values)
+{
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
+  {{_field.variable_full_name}} = values;
+}
 inline void add_{{_field.name}}(const {{_field.type}}& value)
 {
   {{_field.which_oneof}} = id::{{_field.variable_id_name}};
@@ -146,6 +151,7 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}()
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value) { {{_field.variable_full_name}}.set(index, value); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value) { {{_field.variable_full_name}}.set(index, value); }
+inline void set_{{_field.name}}(const {{_field.repeated_type}}& values) { {{_field.variable_full_name}} = values; }
 inline void add_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_full_name}}.add(value); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 {% endif %}

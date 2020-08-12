@@ -63,6 +63,19 @@ namespace EmbeddedProto
 
       ~RepeatedFieldFixedSize() override = default;
 
+      //! Assign one repieted field to the other, but only when the length and type matches.
+      RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH>& operator=(const 
+                                                RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH>& rhs)
+      {
+        for(uint32_t i = 0; i < rhs.get_length(); ++i) 
+        {
+          data_[i] = rhs.get_const(i);
+        }
+        current_length_ = rhs.get_length();
+        
+        return *this;
+      }
+
       //! Obtain the total number of DATA_TYPE items in the array.
       uint32_t get_length() const override { return current_length_; }
 
