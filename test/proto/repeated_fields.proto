@@ -54,5 +54,5 @@ message repeated_message
 
 message nested_repeated_message
 {
-    repeated_message rm = 1;
+    repeated_fields rf = 1;
 }

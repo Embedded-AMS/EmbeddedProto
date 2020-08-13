@@ -37,6 +37,28 @@ void init_{{_oneof.name}}(const id field_id)
 {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro oneof_assign(_oneof) %}
+if(rhs.get_which_{{_oneof.name}}() != {{_oneof.which_oneof}})
+{
+  // First delete the old object in the oneof.
+  clear_{{_oneof.name}}();
+}
+
+switch(rhs.get_which_{{_oneof.name}}())
+{
+  {% for field in _oneof.fields() %}
+  case id::{{field.variable_id_name}}:
+    set_{{field.name}}(rhs.get_{{field.name}}());
+    break;
+  {% endfor %}
+  default:
+    break;
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
 {% macro oneof_clear(_oneof) %}
 void clear_{{_oneof.name}}()
 {
@@ -110,6 +132,11 @@ inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value)
   {{_field.which_oneof}} = id::{{_field.variable_id_name}};
   {{_field.variable_full_name}}.set(index, value);
 }
+inline void set_{{_field.name}}(const {{_field.repeated_type}}& values)
+{
+  {{_field.which_oneof}} = id::{{_field.variable_id_name}};
+  {{_field.variable_full_name}} = values;
+}
 inline void add_{{_field.name}}(const {{_field.type}}& value)
 {
   {{_field.which_oneof}} = id::{{_field.variable_id_name}};
@@ -124,6 +151,7 @@ inline {{_field.repeated_type}}& mutable_{{_field.name}}()
 inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}& value) { {{_field.variable_full_name}}.set(index, value); }
 inline void set_{{_field.name}}(uint32_t index, const {{_field.type}}&& value) { {{_field.variable_full_name}}.set(index, value); }
+inline void set_{{_field.name}}(const {{_field.repeated_type}}& values) { {{_field.variable_full_name}} = values; }
 inline void add_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_full_name}}.add(value); }
 inline {{_field.repeated_type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }
 {% endif %}
@@ -335,6 +363,18 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
       {{id_set[1]}} = {{id_set[0]}}{{ "," if not loop.last }}
       {% endfor %}
     };
+
+    {{ msg.name }}& operator=(const {{ msg.name }}& rhs)
+    {
+      {% for field in msg.fields() %}
+      set_{{ field.name }}(rhs.get_{{ field.name }}());
+      {% endfor %}
+      {% for oneof in msg.oneofs() %}
+      {{ oneof_assign(oneof)|indent(6) }}
+      {% endfor %}
+
+      return *this;
+    }
 
     {% for field in msg.fields() %}
     {{ field_get_set_macro(field)|indent(4) }}
