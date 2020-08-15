@@ -569,7 +569,7 @@ namespace {{ namespace }} {
 {% for msg in messages %}
 {{ msg_macro(msg) }}
 {% endfor %}
-{% for namespace in namespaces %}
+{% for namespace in namespaces|reverse %}
 } // End of namespace {{ namespace }}
 {% endfor %}
 #endif // _{{filename.upper()}}_H_
