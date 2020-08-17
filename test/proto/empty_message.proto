@@ -28,7 +28,7 @@
  *    the Netherlands
  */
 
-// This file is used to test serializing repeated fields.
+// This file is used to test defining empty messages. This should not cause build errors.
 
 syntax = "proto3";
 

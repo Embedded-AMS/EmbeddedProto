@@ -37,7 +37,8 @@ namespace test_EmbeddedAMS_empty_messages
 {
 
 TEST(EmptyMessages, construction)
-{
+{ 
+  // Test if using a message with no fields or enums cause build errors. 
   empty_message empty;
 }
 
