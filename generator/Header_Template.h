@@ -336,7 +336,8 @@ else
 class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ msg.name }}() :
+    {{ msg.name }}(){% if (msg.has_fields or msg.has_oneofs) %} :
+    {% endif %}
     {% for field in msg.fields() %}
         {% if field.of_type_enum %}
         {{field.variable_full_name}}({{field.default_value}}){{"," if not loop.last}}
