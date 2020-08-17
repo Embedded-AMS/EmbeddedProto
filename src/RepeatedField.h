@@ -51,7 +51,8 @@ namespace EmbeddedProto
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
-    static constexpr bool PACKED = !std::is_base_of<MessageInterface, DATA_TYPE>::value;
+    static constexpr bool REPEATED_FIELD_IS_PACKED = !std::is_base_of<MessageInterface, 
+                                                                      DATA_TYPE>::value;
 
     public:
 
@@ -134,7 +135,7 @@ namespace EmbeddedProto
       {
         Error return_value = Error::NO_ERRORS;
 
-        if(PACKED)
+        if(REPEATED_FIELD_IS_PACKED)
         {
           const uint32_t size_x = this->serialized_size_packed(field_number);
 
@@ -180,7 +181,7 @@ namespace EmbeddedProto
       Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
       {
         Error return_value = Error::NO_ERRORS;
-        if(PACKED)
+        if(REPEATED_FIELD_IS_PACKED)
         {              
           uint32_t size;
           return_value = WireFormatter::DeserializeVarint(buffer, size);
