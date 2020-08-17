@@ -306,6 +306,7 @@ def generate_code(request, respones):
 
         filename_with_folder = os.path.splitext(proto_file.name)[0]
         filename_without_folder = os.path.basename(filename_with_folder)
+        file_header_guard = filename_with_folder.replace("/", "_").upper()
 
         imported_dependencies = []
         if proto_file.dependency:
@@ -316,8 +317,8 @@ def generate_code(request, respones):
             namespace_names = proto_file.package.split(".")
 
         try:
-            file_str = template.render(filename=filename_without_folder, namespaces=namespace_names,
-                                       messages=messages_array[number_of_processed_msg:],
+            file_str = template.render(filename=filename_without_folder, header_guard=file_header_guard,
+                                       namespaces=namespace_names, messages=messages_array[number_of_processed_msg:],
                                        enums=enums_generator, dependencies=imported_dependencies)
 
         except jinja2.TemplateError as e:
