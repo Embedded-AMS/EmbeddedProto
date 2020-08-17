@@ -537,8 +537,8 @@ class {{ msg.name }} final: public ::EmbeddedProto::MessageInterface
  */
 
 // This file is generated. Please do not edit!
-#ifndef _{{filename.upper()}}_H_
-#define _{{filename.upper()}}_H_
+#ifndef _{{header_guard}}_H_
+#define _{{header_guard}}_H_
 
 #include <cstdint>
 {% if messages %}
@@ -572,5 +572,5 @@ namespace {{ namespace }} {
 {% for namespace in namespaces|reverse %}
 } // End of namespace {{ namespace }}
 {% endfor %}
-#endif // _{{filename.upper()}}_H_
+#endif // _{{header_guard}}_H_
 
