@@ -28,6 +28,9 @@
 #   the Netherlands
 #
 
+from .Field import Field
+from .Oneof import Oneof
+
 
 # This class deal with the scope in which definitions and field are located. It is used to keep track of template
 # parameters required for a given scope.
@@ -50,6 +53,14 @@ class Scope:
     def add_child_scope(self, child_scope):
         self.child_scopes.append(child_scope)
 
+    def get_scope_str(self):
+        scope_str = ""
+        if self.parent:
+            scope_str = self.parent.get_scope_str() + "::" + self.name
+        else:
+            scope_str = self.name
+
+        return scope_str
 
 # -----------------------------------------------------------------------------
 
@@ -58,7 +69,6 @@ class TypeDefinition:
         self.descriptor = proto_descriptor
         self.name = proto_descriptor.name
         self.scope = Scope(self.name, parent_scope)
-
 
 # -----------------------------------------------------------------------------
 
@@ -77,3 +87,51 @@ class EnumDefinition(TypeDefinition):
 class MessageDefinition(TypeDefinition):
     def __init__(self, proto_descriptor, parent_scope):
         super().__init__(proto_descriptor, parent_scope)
+
+        self.nested_enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
+        self.nested_msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.nested_type]
+
+        # Store the id numbers of all the fields to create the ID enum.
+        self.field_ids = []
+
+        # Store all the variable fields in this message.
+        self.fields_array = []
+        for f in self.descriptor.field:
+            if not f.HasField('oneof_index'):
+                new_field = Field.factory(f, self)
+                self.fields_array.append(new_field)
+                self.field_ids.append((new_field.variable_id, new_field.variable_id_name))
+
+        # Store all the oneof definitions in this message.
+        self.oneof_fields = []
+        for index, oneof in enumerate(self.descriptor.oneof_decl):
+            new_oneof = Oneof(oneof, index, proto_descriptor, self)
+            self.oneof_fields.append(new_oneof)
+            for oneof_field in oneof.fields():
+                self.field_ids.append((oneof_field.variable_id, oneof_field.variable_id_name))
+
+        # Sort the field id's such they will appear in order in the id enum.
+        self.field_ids.sort()
+
+    # Obtain a dictionary with references to all nested enums and messages
+    def get_all_nested_types(self):
+        nested_types = {"enums": self.nested_enum_definitions, "messages": []}
+        for msg in self.nested_msg_definitions:
+            nt = msg.get_all_nested_types()
+            nested_types["enums"].extend(nt["enums"])
+            nested_types["messages"].extend(nt["messages"])
+            nested_types["messages"].append(msg)
+
+        return nested_types
+
+    def match_fields_with_definitions(self, all_types_definitions):
+        # Resolve the types of the nested messages.
+        for msg in self.nested_msg_definitions:
+            msg.match_fields_with_definitions(all_types_definitions)
+
+        # Resolve the types of the fields defined in this message.
+        for field in self.fields_array:
+            field.match_field_with_definitions(all_types_definitions)
+
+        for oneof in self.oneof_fields:
+            oneof.match_field_with_definitions(all_types_definitions)

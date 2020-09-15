@@ -30,8 +30,29 @@
 
 import io
 import sys
-
+from generator.eams.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
+
+
+# -----------------------------------------------------------------------------
+
+
+def generate_code(request, respones):
+    # Create definitions for al proto files in the request.
+    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file]
+
+    # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
+    # create template parameters.
+    all_types_definitions = {"enums": [], "messages": []}
+    for fd in file_definitions:
+        nt = fd.get_all_nested_types()
+        all_types_definitions["enums"].extend(nt["enums"])
+        all_types_definitions["messages"].extend(nt["messages"])
+
+    # Match all fields with their respective type definition.
+    for fd in file_definitions:
+        fd.match_fields_with_definitions(all_types_definitions)
+
 
 # -----------------------------------------------------------------------------
 
