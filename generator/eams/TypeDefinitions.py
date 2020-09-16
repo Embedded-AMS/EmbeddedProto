@@ -49,12 +49,9 @@ class Scope:
         if self.parent:
             self.parent.add_child_scope(self)
 
-    # Each scope should register with it's parent scope.
-    def add_child_scope(self, child_scope):
-        self.child_scopes.append(child_scope)
+        self.fields_with_templates = []
 
     def get_scope_str(self):
-        scope_str = ""
         if self.parent:
             scope_str = self.parent.get_scope_str() + "::" + self.name
         else:
@@ -62,13 +59,18 @@ class Scope:
 
         return scope_str
 
+    def register_template_parameters(self, field):
+        self.fields_with_templates.append(field)
+
 # -----------------------------------------------------------------------------
+
 
 class TypeDefinition:
     def __init__(self, proto_descriptor, parent_scope):
         self.descriptor = proto_descriptor
         self.name = proto_descriptor.name
         self.scope = Scope(self.name, parent_scope)
+
 
 # -----------------------------------------------------------------------------
 
@@ -113,6 +115,13 @@ class MessageDefinition(TypeDefinition):
         # Sort the field id's such they will appear in order in the id enum.
         self.field_ids.sort()
 
+        # Not all template parameters for this message definition have been registered with the scope. This is
+        # most likely due to a message defined later in the proto file.
+        self.all_parameters_registered = False
+
+        # Does this message definition contains fields with template parameters.
+        self.contains_template_parameters = False
+
     # Obtain a dictionary with references to all nested enums and messages
     def get_all_nested_types(self):
         nested_types = {"enums": self.nested_enum_definitions, "messages": []}
@@ -135,3 +144,24 @@ class MessageDefinition(TypeDefinition):
 
         for oneof in self.oneof_fields:
             oneof.match_field_with_definitions(all_types_definitions)
+
+    # TODO This function will fail to return True if this definitions contains it self as a nested field.
+    def register_template_parameters(self):
+        self.all_parameters_registered = True
+        # First resolve the template parameters for all nested message definitions.
+        for nested_msg in self.nested_enum_definitions:
+            self.all_parameters_registered = nested_msg.register_template_parameters() \
+                                             and self.all_parameters_registered
+
+        # Next see if we our self have any fields that have template parameters.
+        for field in self.fields_array:
+            self.all_parameters_registered = field.register_template_parameters() and self.all_parameters_registered
+
+        for oneof in self.oneof_fields:
+            self.all_parameters_registered = oneof.register_template_parameters() and self.all_parameters_registered
+
+        return self.all_parameters_registered
+
+    def register_child_with_template(self, child):
+        self.scope.register_template_parameters(child)
+        self.contains_template_parameters = True

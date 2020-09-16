@@ -59,3 +59,9 @@ class Oneof:
     def match_field_with_definitions(self, all_types_definitions):
         for field in self.fields_array:
             field.match_field_with_definitions(all_types_definitions)
+
+    def register_template_parameters(self):
+        all_parameters_registered = True
+        for field in self.fields_array:
+            all_parameters_registered = field.register_template_parameters() and all_parameters_registered
+        return all_parameters_registered

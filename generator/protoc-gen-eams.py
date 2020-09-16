@@ -30,7 +30,7 @@
 
 import io
 import sys
-from generator.eams.ProtoFile import ProtoFile
+from eams.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
 
 
@@ -52,6 +52,17 @@ def generate_code(request, respones):
     # Match all fields with their respective type definition.
     for fd in file_definitions:
         fd.match_fields_with_definitions(all_types_definitions)
+
+    # Add template parameters to the fields that need them.
+    all_parameters_registered = True
+    for _ in range(3):
+        for fd in file_definitions:
+            all_parameters_registered = fd.register_template_parameters() and all_parameters_registered
+        if all_parameters_registered:
+            break
+
+    if not all_parameters_registered:
+        raise Exception("Unable to register all template parameters")
 
 
 # -----------------------------------------------------------------------------
@@ -80,6 +91,7 @@ def main_plugin():
 
     # Write to stdout
     io.open(sys.stdout.fileno(), "wb").write(output)
+
 
 # -----------------------------------------------------------------------------
 

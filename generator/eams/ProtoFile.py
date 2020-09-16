@@ -56,6 +56,8 @@ class ProtoFile:
         self.enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
         self.msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.message_type]
 
+        self.all_parameters_registered = False
+
     def get_dependencies(self):
         imported_dependencies = []
         if self.descriptor.dependency:
@@ -80,3 +82,9 @@ class ProtoFile:
     def match_fields_with_definitions(self, all_types_definitions):
         for msg in self.msg_definitions:
             msg.match_fields_with_definitions(all_types_definitions)
+
+    def register_template_parameters(self):
+        all_parameters_registered = True
+        for msg in self.msg_definitions:
+            all_parameters_registered = msg.register_template_parameters() and all_parameters_registered
+        return all_parameters_registered

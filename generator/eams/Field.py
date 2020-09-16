@@ -90,6 +90,9 @@ class Field:
     def match_field_with_definitions(self, all_types_definitions):
         pass
 
+    def register_template_parameters(self):
+        return True
+
 # -----------------------------------------------------------------------------
 
 
@@ -181,6 +184,10 @@ class FieldString(Field):
     def get_template_parameters(self):
         return [{"name": self.template_param_str, "type": "uint32_t"}]
 
+    def register_template_parameters(self):
+        self.parent.scope.register_template_parameters(self)
+        return True
+
 # -----------------------------------------------------------------------------
 
 
@@ -206,6 +213,10 @@ class FieldBytes(Field):
 
     def get_template_parameters(self):
         return [{"name": self.template_param_str, "type": "uint32_t"}]
+
+    def register_template_parameters(self):
+        self.parent.register_child_with_template(self)
+        return True
 
 # -----------------------------------------------------------------------------
 
@@ -265,11 +276,11 @@ class FieldMessage(Field):
     def get_type(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
-            type = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
-            type = type.replace(".", "::")
+            type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
+            type_name = type_name.replace(".", "::")
         else:
-            type = "TODO"
-        return type
+            type_name = "TODO"
+        return type_name
 
     def get_short_type(self):
         return self.get_type().split("::")[-1]
@@ -287,11 +298,20 @@ class FieldMessage(Field):
         for msg_defs in all_types_definitions["messages"]:
             other_scope = msg_defs.scope.get_scope_str()
             if my_type == other_scope:
+                self.definition = msg_defs
                 found = True
                 break
 
         if not found:
             raise Exception("Unable to match enum type for: " + self.name)
+
+    def register_template_parameters(self):
+        if self.definition.all_parameters_registered:
+            if self.definition.contains_template_parameters:
+                self.parent.register_child_with_template(self)
+            return True
+        else:
+            return False
 
 # -----------------------------------------------------------------------------
 
@@ -326,3 +346,7 @@ class FieldRepeated(Field):
 
     def match_field_with_definitions(self, all_types_definitions):
         self.actual_type.match_field_with_definitions(all_types_definitions)
+
+    def register_template_parameters(self):
+        self.parent.register_child_with_template(self)
+        return True
