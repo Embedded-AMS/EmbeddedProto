@@ -30,7 +30,7 @@
 
 import io
 import sys
-from eams.ProtoFile import ProtoFile
+from support.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
 
 
