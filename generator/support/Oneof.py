@@ -28,7 +28,6 @@
 #   the Netherlands
 #
 
-from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 from .Field import Field
 
 
