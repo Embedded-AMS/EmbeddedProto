@@ -30,8 +30,10 @@
 
 import io
 import sys
+import os
 from support.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
+import jinja2
 
 
 # -----------------------------------------------------------------------------
@@ -63,6 +65,19 @@ def generate_code(request, respones):
 
     if not all_parameters_registered:
         raise Exception("Unable to register all template parameters")
+
+    filepath = os.path.dirname(os.path.abspath(__file__)) + "\\templates"
+    template_loader = jinja2.FileSystemLoader(searchpath=filepath)
+    template_env = jinja2.Environment(loader=template_loader, trim_blocks=True, lstrip_blocks=True)
+
+    for fd in file_definitions:
+        file_str = fd.render(template_env)
+        if file_str:
+            f = respones.file.add()
+            f.name = fd.filename_with_folder + ".h"
+            f.content = file_str
+        else:
+            break
 
 
 # -----------------------------------------------------------------------------

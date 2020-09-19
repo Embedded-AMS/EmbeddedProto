@@ -30,6 +30,7 @@
 
 from .TypeDefinitions import *
 import os
+import jinja2
 
 
 class ProtoFile:
@@ -65,6 +66,13 @@ class ProtoFile:
                                      self.descriptor.dependency]
         return imported_dependencies
 
+    def get_namespaces(self):
+        if self.scope:
+            result = self.scope.get_list_of_scope_str()
+        else:
+            result = []
+        return result
+
     def get_header_guard(self):
         return self.filename_with_folder.replace("/", "_").upper()
 
@@ -88,3 +96,24 @@ class ProtoFile:
         for msg in self.msg_definitions:
             all_parameters_registered = msg.register_template_parameters() and all_parameters_registered
         return all_parameters_registered
+
+    def render(self, jinja_environment):
+        template_file = "Header.h"
+        template = jinja_environment.get_template(template_file)
+        try:
+            file_str = template.render(proto_file=self, environment=jinja_environment)
+
+        except jinja2.UndefinedError as e:
+            print("UndefinedError exception: " + str(e))
+        except jinja2.TemplateRuntimeError as e:
+            print("TemplateRuntimeError exception: " + str(e))
+        except jinja2.TemplateAssertionError as e:
+            print("TemplateAssertionError exception: " + str(e))
+        except jinja2.TemplateSyntaxError as e:
+            print("TemplateSyntaxError exception: " + str(e))
+        except jinja2.TemplateError as e:
+            print("TemplateError exception: " + str(e))
+        except Exception as e:
+            print("Template renderer exception: " + str(e))
+        else:
+            return file_str

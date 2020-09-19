@@ -1,0 +1,67 @@
+/*
+ *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://EmbeddedProto.com/license/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Johan Huizingalaan 763a
+ *    1066 VH, Amsterdam
+ *    the Netherlands
+ */
+
+// This file is generated. Please do not edit!
+#ifndef _{{proto_file.get_header_guard()}}_H_
+#define _{{proto_file.get_header_guard()}}_H_
+
+#include <cstdint>
+{% if proto_file.msg_definitions %}
+#include <MessageInterface.h>
+#include <WireFormatter.h>
+#include <Fields.h>
+#include <MessageSizeCalculator.h>
+#include <ReadBufferSection.h>
+#include <RepeatedFieldFixedSize.h>
+#include <FieldStringBytes.h>
+#include <Errors.h>
+{% endif %}
+{% if dependencies %}
+
+// Include external proto definitions
+{% for dependency in proto_file.get_dependencies() %}
+#include <{{dependency}}>
+{% endfor %}
+
+{% endif %}
+{% for namespace in proto_file.get_namespaces() %}
+namespace {{ namespace }} {
+{% endfor %}
+
+{% for enum in proto_file.enum_definitions %}
+{{ enum.render(environment) }}
+{% endfor %}
+{% for msg in proto_file.msg_definitions %}
+{{ msg.render(environment) }}
+{% endfor %}
+{% for namespace in namespaces|reverse %}
+} // End of namespace {{ namespace }}
+{% endfor %}
+#endif // _{{proto_file.get_header_guard()}}_H_

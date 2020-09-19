@@ -30,6 +30,7 @@
 
 from .Field import Field
 from .Oneof import Oneof
+import jinja2
 
 
 # This class deal with the scope in which definitions and field are located. It is used to keep track of template
@@ -47,9 +48,16 @@ class Scope:
 
         # Register this object with it's parent.
         if self.parent:
-            self.parent.add_child_scope(self)
+            self.parent.child_scopes.append(self)
 
         self.fields_with_templates = []
+
+    def get_list_of_scope_str(self):
+        if self.parent:
+            result = self.parent.get_scope_str().append(self.name)
+        else:
+            result = [self.name]
+        return result
 
     def get_scope_str(self):
         if self.parent:
@@ -66,17 +74,37 @@ class Scope:
 
 
 class TypeDefinition:
-    def __init__(self, proto_descriptor, parent_scope):
+    def __init__(self, proto_descriptor, parent_scope, template_filename):
         self.descriptor = proto_descriptor
         self.name = proto_descriptor.name
         self.scope = Scope(self.name, parent_scope)
+        self.template_file = template_filename
 
+    def render(self, jinja_environment):
+        template = jinja_environment.get_template(self.template_file)
+        try:
+            render_result = template.render(typedef=self, environment=jinja_environment)
+
+        except jinja2.UndefinedError as e:
+            print("UndefinedError exception: " + str(e))
+        except jinja2.TemplateRuntimeError as e:
+            print("TemplateRuntimeError exception: " + str(e))
+        except jinja2.TemplateAssertionError as e:
+            print("TemplateAssertionError exception: " + str(e))
+        except jinja2.TemplateSyntaxError as e:
+            print("TemplateSyntaxError exception: " + str(e))
+        except jinja2.TemplateError as e:
+            print("TemplateError exception: " + str(e))
+        except Exception as e:
+            print("Template renderer exception: " + str(e))
+        else:
+            return render_result
 
 # -----------------------------------------------------------------------------
 
 class EnumDefinition(TypeDefinition):
     def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope)
+        super().__init__(proto_descriptor, parent_scope, "TypeDefEnum.h")
 
     # Loop through the values defined in the enum.
     def values(self):
@@ -88,7 +116,7 @@ class EnumDefinition(TypeDefinition):
 
 class MessageDefinition(TypeDefinition):
     def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope)
+        super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h")
 
         self.nested_enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
         self.nested_msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.nested_type]
@@ -97,18 +125,18 @@ class MessageDefinition(TypeDefinition):
         self.field_ids = []
 
         # Store all the variable fields in this message.
-        self.fields_array = []
+        self.fields = []
         for f in self.descriptor.field:
             if not f.HasField('oneof_index'):
                 new_field = Field.factory(f, self)
-                self.fields_array.append(new_field)
+                self.fields.append(new_field)
                 self.field_ids.append((new_field.variable_id, new_field.variable_id_name))
 
         # Store all the oneof definitions in this message.
-        self.oneof_fields = []
+        self.oneofs = []
         for index, oneof in enumerate(self.descriptor.oneof_decl):
             new_oneof = Oneof(oneof, index, proto_descriptor, self)
-            self.oneof_fields.append(new_oneof)
+            self.oneofs.append(new_oneof)
             for oneof_field in oneof.fields():
                 self.field_ids.append((oneof_field.variable_id, oneof_field.variable_id_name))
 
@@ -139,25 +167,25 @@ class MessageDefinition(TypeDefinition):
             msg.match_fields_with_definitions(all_types_definitions)
 
         # Resolve the types of the fields defined in this message.
-        for field in self.fields_array:
+        for field in self.fields:
             field.match_field_with_definitions(all_types_definitions)
 
-        for oneof in self.oneof_fields:
+        for oneof in self.oneofs:
             oneof.match_field_with_definitions(all_types_definitions)
 
     # TODO This function will fail to return True if this definitions contains it self as a nested field.
     def register_template_parameters(self):
         self.all_parameters_registered = True
         # First resolve the template parameters for all nested message definitions.
-        for nested_msg in self.nested_enum_definitions:
+        for nested_msg in self.nested_msg_definitions:
             self.all_parameters_registered = nested_msg.register_template_parameters() \
                                              and self.all_parameters_registered
 
         # Next see if we our self have any fields that have template parameters.
-        for field in self.fields_array:
+        for field in self.fields:
             self.all_parameters_registered = field.register_template_parameters() and self.all_parameters_registered
 
-        for oneof in self.oneof_fields:
+        for oneof in self.oneofs:
             self.all_parameters_registered = oneof.register_template_parameters() and self.all_parameters_registered
 
         return self.all_parameters_registered
