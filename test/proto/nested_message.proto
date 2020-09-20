@@ -32,9 +32,11 @@
 
 syntax = "proto3";
 
+package demo.namespace;
+
 message message_a 
 {
-  int32 x   = 1;
+  repeated int32 x   = 1;
   float y   = 2;
   sint64 z  = 3;
 }

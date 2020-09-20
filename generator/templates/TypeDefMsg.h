@@ -27,10 +27,20 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
+{% for tmpl_param in typedef.get_templates() %}
+{{"template<" if loop.first}}{{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{">" if loop.last}}
+{% endfor %}
 class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ typedef.name }}()
+    {{ typedef.name }}(){% if (typedef.fields or typedef.oneofs) %} :
+    {% endif %}
+    {% for field in typedef.fields %}
+        {{field.variable_name}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
+    {% endfor %}
+    {% for oneof in typedef.oneofs %}
+        {{oneof.which_oneof}}(id::NOT_SET){{"," if not loop.last}}
+    {% endfor %}
     {
 
     };
@@ -53,4 +63,9 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     };
 
+    private:
+
+      {% for field in typedef.fields %}
+      {{field.get_type()}} {{field.variable_name}};
+      {% endfor %}
 };

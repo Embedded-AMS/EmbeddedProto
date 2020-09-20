@@ -52,13 +52,17 @@ class Scope:
 
         self.fields_with_templates = []
 
+    # This function is used
     def get_list_of_scope_str(self):
         if self.parent:
-            result = self.parent.get_scope_str().append(self.name)
+            result = self.parent.get_list_of_scope_str()
+            result.append(self.name)
         else:
             result = [self.name]
         return result
 
+    # When searching for the definition of a field this function returns a scope string equal to the type defined by
+    # protobuf.
     def get_scope_str(self):
         if self.parent:
             scope_str = self.parent.get_scope_str() + "::" + self.name
@@ -69,6 +73,26 @@ class Scope:
 
     def register_template_parameters(self, field):
         self.fields_with_templates.append(field)
+
+    # Return the list of template parameters required for this scope alone.
+    def get_template_parameters(self):
+        result = []
+        for field in self.fields_with_templates:
+            result.extend(field.get_template_parameters())
+        return result
+
+    # Return a full list of the scope, parent scopes and their templates
+    def get(self):
+        result = []
+        if self.parent:
+            result.extend(self.parent.get())
+        result.extend([{"name": self.name, "templates": self.get_template_parameters()}])
+        return result
+
+    # Given two scopes, return scope that is uncommon for this object.
+    def reduced(self, other_scope):
+        pass
+
 
 # -----------------------------------------------------------------------------
 
@@ -99,6 +123,7 @@ class TypeDefinition:
             print("Template renderer exception: " + str(e))
         else:
             return render_result
+
 
 # -----------------------------------------------------------------------------
 
@@ -193,3 +218,9 @@ class MessageDefinition(TypeDefinition):
     def register_child_with_template(self, child):
         self.scope.register_template_parameters(child)
         self.contains_template_parameters = True
+
+    def get_templates(self):
+        return self.scope.get_template_parameters()
+
+    def get_type(self):
+        return self.scope.get_scope_str()

@@ -57,9 +57,11 @@ namespace {{ namespace }} {
 
 {% for enum in proto_file.enum_definitions %}
 {{ enum.render(environment) }}
+
 {% endfor %}
 {% for msg in proto_file.msg_definitions %}
 {{ msg.render(environment) }}
+
 {% endfor %}
 {% for namespace in namespaces|reverse %}
 } // End of namespace {{ namespace }}

@@ -29,7 +29,7 @@
 #
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
-
+import copy
 
 # This class is the base class for any kind of field used in protobuf messages.
 class Field:
@@ -279,18 +279,35 @@ class FieldMessage(Field):
             type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
             type_name = type_name.replace(".", "::")
         else:
-            type_name = "TODO"
+            scopes = self.get_reduced_scope()
+            type_name = ""
+            for scope in scopes:
+                type_name += scope["name"] + "::"
+            # Remove the last ::
+            type_name = type_name[:-2]
+
+            tmpl_param = self.get_template_parameters()
+            type_name += "<"
+            for param in tmpl_param:
+                type_name += param["name"] + ", "
+            type_name = type_name[:-2] + ">"
+
         return type_name
 
     def get_short_type(self):
         return self.get_type().split("::")[-1]
 
     def get_default_value(self):
+        # Just call the default constructor.
         return ""
 
     def get_template_parameters(self):
-        # TODO
-        return []
+        # Get the template names used by the definition.
+        templates = copy.deepcopy(self.definition.get_templates())
+        # Next add our variable name to make them unique.
+        for tmp in templates:
+            tmp["name"] = self.variable_name + tmp["name"]
+        return templates
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
@@ -312,6 +329,15 @@ class FieldMessage(Field):
             return True
         else:
             return False
+
+    # Get the whole scope of the definition of this field.
+    def get_scope(self):
+        return self.definition.scope.get()
+
+    # Get the scope relevant compared to the scope this field is used in.
+    def get_reduced_scope(self):
+        return self.get_scope()
+
 
 # -----------------------------------------------------------------------------
 
@@ -338,11 +364,10 @@ class FieldRepeated(Field):
         return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_short_type() + ", " + \
                self.template_param_str + ">"
 
-    def get_default_value(self):
-        return self.actual_type.get_default_value()
-
     def get_template_parameters(self):
-        return [{"name": self.template_param_str, "type": "uint32_t"}]
+        result = [{"name": self.template_param_str, "type": "uint32_t"}]
+        result.extend(self.actual_type.get_template_parameters())
+        return result
 
     def match_field_with_definitions(self, all_types_definitions):
         self.actual_type.match_field_with_definitions(all_types_definitions)
