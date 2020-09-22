@@ -99,17 +99,17 @@ def test_simple_types():
 def test_nested_message():
     msg = nm.message_b()
 
-    # msg.u = 1.0
-    # msg.v = 1.0
-    # msg.nested_a.x = 1
-    # msg.nested_a.y = 1.0
-    # msg.nested_a.z = 1
+    #msg.u = 1.0
+    #msg.v = 1
+    #msg.nested_a.x.append(1)
+    #msg.nested_a.y = 1.0
+    #msg.nested_a.z = 1
 
-    msg.u = 0 #pow(2, 1023)
-    msg.v = 0 #pow(2, 1023)
-    #msg.nested_a.x = 0#pow(2, 31) - 1
-    #msg.nested_a.y = 0 #1.0
-    #msg.nested_a.z = 0 #1
+    msg.u = 1.7976931348623157e+308         # Max double 1.7976931348623157e+308
+    msg.v = pow(2, 31) - 1                  # Max int32
+    msg.nested_a.x.append(pow(2, 31) - 1)   # Max int32
+    msg.nested_a.y = 3.40282347e+38         # Max float
+    msg.nested_a.z = 9223372036854775807    # Max sint64
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -269,8 +269,8 @@ def test_included_proto():
 #test_repeated_fields()
 #test_repeated_message()
 #test_string()
-test_bytes()
-#test_nested_message()
+#test_bytes()
+test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
 

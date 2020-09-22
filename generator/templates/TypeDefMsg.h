@@ -124,7 +124,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           }
 
           {% endfor %}
-{#        {% for oneof in typedef.oneofs %}
+          {% for oneof in typedef.oneofs %}
           {% for field in oneof.fields() %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
           {
@@ -133,7 +133,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           }
 
           {% endfor %}
-          {% endfor %} #}
+          {% endfor %}
           default:
             break;
         }

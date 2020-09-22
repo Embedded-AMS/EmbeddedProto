@@ -270,7 +270,7 @@ class FieldBytes(Field):
         return True
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldBytes_Bytes.h", jinja_environment=jinja_env)
+        return self.render("FieldBytes_GetSet.h", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
@@ -432,7 +432,7 @@ class FieldRepeated(Field):
         self.template_param_str = self.variable_name + "LENGTH"
 
     def get_wire_type_str(self):
-        return self.actual_type.get_wire_type_str()
+        return "LENGTH_DELIMITED"
 
     def get_type(self):
         return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", " + \
@@ -441,6 +441,10 @@ class FieldRepeated(Field):
     def get_short_type(self):
         return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_short_type() + ", " + \
                self.template_param_str + ">"
+
+    # As this is a repeated field we need a function to get the type we are repeating.
+    def get_base_type(self):
+        return self.actual_type.get_type()
 
     def get_template_parameters(self):
         result = [{"name": self.template_param_str, "type": "uint32_t"}]
