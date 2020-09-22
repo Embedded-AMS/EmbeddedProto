@@ -27,6 +27,7 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
+{% import 'TypeOneof.h' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
 {{"template<" if loop.first}}{{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{">" if loop.last}}
 {% endfor %}
@@ -54,7 +55,6 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
     {{ msg.render(environment)|indent(4) }}
     {% endfor %}
 
-
     enum class id
     {
       NOT_SET = 0,
@@ -62,6 +62,22 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
       {{id_set[1]}} = {{id_set[0]}}{{ "," if not loop.last }}
       {% endfor %}
     };
+
+    {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.name }}(rhs.get_{{ field.name }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+
+      return *this;
+    }
+
+    {% for field in typedef.fields %}
+    {{ field.render_get_set(environment)|indent(4) }}
+    {% endfor %}
 
     private:
 

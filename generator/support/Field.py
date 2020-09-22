@@ -30,10 +30,12 @@
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 import copy
+import jinja2
+
 
 # This class is the base class for any kind of field used in protobuf messages.
 class Field:
-    def __init__(self, proto_descriptor, parent_msg, oneof=None):
+    def __init__(self, proto_descriptor, parent_msg, template_filename, oneof=None):
         # A reference to the FieldDescriptorProto object which defines this field.
         self.descriptor = proto_descriptor
 
@@ -47,6 +49,8 @@ class Field:
         self.variable_name = self.name + "_"
         self.variable_id_name = self.name.upper()
         self.variable_id = self.descriptor.number
+        self.template_file = template_filename
+
 
     @staticmethod
     # This function create the appropriate field object for a variable defined in the message.
@@ -92,6 +96,20 @@ class Field:
 
     def register_template_parameters(self):
         return True
+
+    def render_get_set(self, jinja_environment):
+        r = "{% macro get_set(_field) %}" \
+            "inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }" \
+            "inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_full_name}} = value; }" \
+            "inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_full_name}} = value; }" \
+            "inline {{_field.type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }" \
+            "inline const {{_field.type}}& get_{{_field.name}}() const { return {{_field.variable_full_name}}; }" \
+            "inline {{_field.type}}::FIELD_TYPE {{_field.name}}() const { return {{_field.variable_full_name}}.get(); }" \
+            "{% endmacro %}" \
+            "{{ get_set(field) }}"
+
+        return r
+
 
 # -----------------------------------------------------------------------------
 
@@ -144,7 +162,7 @@ class FieldBasic(Field):
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldBasic.h", oneof)
 
     def get_wire_type_str(self):
         return self.type_to_wire_type[self.descriptor.type]
@@ -164,7 +182,7 @@ class FieldBasic(Field):
 # This class defines a string field
 class FieldString(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldString.h", oneof)
 
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.variable_name + "LENGTH"
@@ -194,7 +212,7 @@ class FieldString(Field):
 # This class defines a bytes array field
 class FieldBytes(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldBytes.h", oneof)
 
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.variable_name + "LENGTH"
@@ -224,7 +242,7 @@ class FieldBytes(Field):
 # This class is used to wrap around any enum used as a field.
 class FieldEnum(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldEnum.h", oneof)
 
         # Reserve a member variable for the reference to the enum definition used for this field.
         self.definition = None
@@ -265,7 +283,7 @@ class FieldEnum(Field):
 # This class is used to wrap around any type of message used as a field.
 class FieldMessage(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldMsg.h", oneof)
 
         # Reserve a member variable for the reference to the message definition used for this field.
         self.definition = None
@@ -345,7 +363,7 @@ class FieldMessage(Field):
 # This class wraps around any other type of field which is repeated.
 class FieldRepeated(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldRepeated.h", oneof)
 
         # To make use of the field object actual type create one of their objects.
         self.actual_type = Field.factory(proto_descriptor, parent_msg, oneof, already_nested=True)
