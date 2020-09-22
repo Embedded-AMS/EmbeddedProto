@@ -66,7 +66,8 @@ def generate_code(request, respones):
     if not all_parameters_registered:
         raise Exception("Unable to register all template parameters")
 
-    filepath = os.path.dirname(os.path.abspath(__file__)) + "\\templates"
+    curr_location = os.path.dirname(os.path.abspath(__file__))
+    filepath =  os.path.join(curr_location, "templates")
     template_loader = jinja2.FileSystemLoader(searchpath=filepath)
     template_env = jinja2.Environment(loader=template_loader, trim_blocks=True, lstrip_blocks=True)
 

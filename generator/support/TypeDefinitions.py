@@ -104,6 +104,9 @@ class TypeDefinition:
         self.scope = Scope(self.name, parent_scope)
         self.template_file = template_filename
 
+    def get_name(self):
+        return self.name
+
     def render(self, jinja_environment):
         template = jinja_environment.get_template(self.template_file)
         try:

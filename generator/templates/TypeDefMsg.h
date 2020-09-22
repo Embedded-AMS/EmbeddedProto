@@ -31,13 +31,13 @@ Postal address:
 {% for tmpl_param in typedef.get_templates() %}
 {{"template<" if loop.first}}{{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{">" if loop.last}}
 {% endfor %}
-class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
+class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ typedef.name }}(){% if (typedef.fields or typedef.oneofs) %} :
+    {{ typedef.get_name() }}(){% if (typedef.fields or typedef.oneofs) %} :
     {% endif %}
     {% for field in typedef.fields %}
-        {{field.variable_name}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
+        {{field.get_variable_name()}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
     {% endfor %}
     {% for oneof in typedef.oneofs %}
         {{oneof.which_oneof}}(id::NOT_SET){{"," if not loop.last}}
@@ -45,7 +45,7 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
     {
 
     };
-    ~{{ typedef.name }}() override = default;
+    ~{{ typedef.get_name() }}() override = default;
 
     {% for enum in typedef.nested_enum_definitions %}
     {{ enum.render(environment)|indent(4) }}
@@ -66,7 +66,7 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
     {
       {% for field in typedef.fields %}
-      set_{{ field.name }}(rhs.get_{{ field.name }}());
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}
@@ -77,11 +77,98 @@ class {{ typedef.name }} final: public ::EmbeddedProto::MessageInterface
 
     {% for field in typedef.fields %}
     {{ field.render_get_set(environment)|indent(4) }}
+
     {% endfor %}
+
+    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
+    {
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+
+      {% for field in typedef.fields %}
+      {{ field.render_serialize(environment)|indent(6) }}
+
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      switch({{oneof.which_oneof}})
+      {
+        {% for field in oneof.fields() %}
+        case id::{{field.variable_id_name}}:
+          {{ field_serialize_macro(field)|indent(12) }}
+          break;
+
+        {% endfor %}
+        default:
+          break;
+      }
+
+      {% endfor %}
+      return return_value;
+    };
+
+    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+    {
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      ::EmbeddedProto::WireFormatter::WireType wire_type;
+      uint32_t id_number = 0;
+
+      ::EmbeddedProto::Error tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+      while((::EmbeddedProto::Error::NO_ERRORS == return_value) && (::EmbeddedProto::Error::NO_ERRORS == tag_value))
+      {
+        switch(id_number)
+        {
+          {% for field in typedef.fields %}
+          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
+          {
+            {{ field.render_deserialize(environment)|indent(12) }}
+            break;
+          }
+
+          {% endfor %}
+{#        {% for oneof in typedef.oneofs %}
+          {% for field in oneof.fields() %}
+          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
+          {
+            {{ field_deserialize_macro(field)|indent(12) }}
+            break;
+          }
+
+          {% endfor %}
+          {% endfor %} #}
+          default:
+            break;
+        }
+
+        if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+        {
+            // Read the next tag.
+            tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+        }
+      }
+
+      // When an error was detect while reading the tag but no other errors where found, set it in the return value.
+      if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+         && (::EmbeddedProto::Error::NO_ERRORS != tag_value)
+         && (::EmbeddedProto::Error::END_OF_BUFFER != tag_value)) // The end of the buffer is not an array in this case.
+      {
+        return_value = tag_value;
+      }
+
+      return return_value;
+    };
+
+    void clear() final
+    {
+      {% for field in typedef.fields %}
+      clear_{{field.get_name()}}();
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      clear_{{oneof.name}}();
+      {% endfor %}
+    }
 
     private:
 
       {% for field in typedef.fields %}
-      {{field.get_type()}} {{field.variable_name}};
+      {{field.get_type()}} {{field.get_variable_name()}};
       {% endfor %}
 };

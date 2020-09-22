@@ -85,6 +85,15 @@ class Field:
     def get_default_value(self):
         return ""
 
+    def get_name(self):
+        return self.name
+
+    def get_variable_name(self):
+        return self.variable_name
+
+    def get_variable_id_name(self):
+        return self.variable_id_name
+
     # Returns a list with a dictionaries for each template parameter this field had. The dictionary holds the parameter
     # name and its type.
     def get_template_parameters(self):
@@ -97,19 +106,25 @@ class Field:
     def register_template_parameters(self):
         return True
 
-    def render_get_set(self, jinja_environment):
-        r = "{% macro get_set(_field) %}" \
-            "inline void clear_{{_field.name}}() { {{_field.variable_full_name}}.clear(); }" \
-            "inline void set_{{_field.name}}(const {{_field.type}}& value) { {{_field.variable_full_name}} = value; }" \
-            "inline void set_{{_field.name}}(const {{_field.type}}&& value) { {{_field.variable_full_name}} = value; }" \
-            "inline {{_field.type}}& mutable_{{_field.name}}() { return {{_field.variable_full_name}}; }" \
-            "inline const {{_field.type}}& get_{{_field.name}}() const { return {{_field.variable_full_name}}; }" \
-            "inline {{_field.type}}::FIELD_TYPE {{_field.name}}() const { return {{_field.variable_full_name}}.get(); }" \
-            "{% endmacro %}" \
-            "{{ get_set(field) }}"
+    def render(self, filename, jinja_environment):
+        template = jinja_environment.get_template(filename)
+        try:
+            rendered_str = template.render(field=self, environment=jinja_environment)
 
-        return r
-
+        except jinja2.UndefinedError as e:
+            print("UndefinedError exception: " + str(e))
+        except jinja2.TemplateRuntimeError as e:
+            print("TemplateRuntimeError exception: " + str(e))
+        except jinja2.TemplateAssertionError as e:
+            print("TemplateAssertionError exception: " + str(e))
+        except jinja2.TemplateSyntaxError as e:
+            print("TemplateSyntaxError exception: " + str(e))
+        except jinja2.TemplateError as e:
+            print("TemplateError exception: " + str(e))
+        except Exception as e:
+            print("Template renderer exception: " + str(e))
+        else:
+            return rendered_str
 
 # -----------------------------------------------------------------------------
 
@@ -176,6 +191,15 @@ class FieldBasic(Field):
     def get_default_value(self):
         return self.type_to_default_value[self.descriptor.type]
 
+    def render_get_set(self, jinja_env):
+        return self.render("FieldBasic_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldBasic_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
@@ -206,6 +230,15 @@ class FieldString(Field):
         self.parent.scope.register_template_parameters(self)
         return True
 
+    def render_get_set(self, jinja_env):
+        return self.render("FieldString_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
@@ -235,6 +268,15 @@ class FieldBytes(Field):
     def register_template_parameters(self):
         self.parent.register_child_with_template(self)
         return True
+
+    def render_get_set(self, jinja_env):
+        return self.render("FieldBytes_Bytes.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -277,6 +319,15 @@ class FieldEnum(Field):
         if not found:
             raise Exception("Unable to match enum type for: " + self.name)
 
+    def render_get_set(self, jinja_env):
+        return self.render("FieldEnum_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldEnum_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldEnum_Deserialize.h", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
@@ -305,10 +356,11 @@ class FieldMessage(Field):
             type_name = type_name[:-2]
 
             tmpl_param = self.get_template_parameters()
-            type_name += "<"
-            for param in tmpl_param:
-                type_name += param["name"] + ", "
-            type_name = type_name[:-2] + ">"
+            if tmpl_param:
+                type_name += "<"
+                for param in tmpl_param:
+                    type_name += param["name"] + ", "
+                type_name = type_name[:-2] + ">"
 
         return type_name
 
@@ -356,6 +408,14 @@ class FieldMessage(Field):
     def get_reduced_scope(self):
         return self.get_scope()
 
+    def render_get_set(self, jinja_env):
+        return self.render("FieldMsg_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldMsg_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldMsg_Deserialize.h", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -393,3 +453,12 @@ class FieldRepeated(Field):
     def register_template_parameters(self):
         self.parent.register_child_with_template(self)
         return True
+
+    def render_get_set(self, jinja_env):
+        return self.render("FieldRepeated_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
+
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
