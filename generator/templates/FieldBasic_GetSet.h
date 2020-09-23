@@ -32,3 +32,4 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{fiel
 inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value) { {{field.get_variable_name()}} = value; }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+inline {{field.get_type()}}::FIELD_TYPE {{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
