@@ -165,7 +165,7 @@ class MessageDefinition(TypeDefinition):
         for index, oneof in enumerate(self.descriptor.oneof_decl):
             new_oneof = Oneof(oneof, index, proto_descriptor, self)
             self.oneofs.append(new_oneof)
-            for oneof_field in oneof.fields():
+            for oneof_field in new_oneof.get_fields():
                 self.field_ids.append((oneof_field.variable_id, oneof_field.variable_id_name))
 
         # Sort the field id's such they will appear in order in the id enum.

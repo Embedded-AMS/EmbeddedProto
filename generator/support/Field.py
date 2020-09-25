@@ -106,6 +106,11 @@ class Field:
     def register_template_parameters(self):
         return True
 
+    # Returns true if in oneof.init the new& function needs to be call to initialize already allocated memory.
+    def oneof_allocation_required(self):
+        return (type(self) is FieldMessage) or (type(self) is FieldRepeated) or (type(self) is FieldString) or \
+               (type(self) is FieldBytes)
+
     def render(self, filename, jinja_environment):
         template = jinja_environment.get_template(filename)
         try:

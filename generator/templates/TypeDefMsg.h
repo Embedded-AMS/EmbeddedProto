@@ -40,7 +40,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
         {{field.get_variable_name()}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
     {% endfor %}
     {% for oneof in typedef.oneofs %}
-        {{oneof.which_oneof}}(id::NOT_SET){{"," if not loop.last}}
+        {{oneof.get_which_oneof()}}(id::NOT_SET){{"," if not loop.last}}
     {% endfor %}
     {
 
@@ -71,7 +71,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}
       {% endfor %}
-
       return *this;
     }
 
@@ -89,11 +88,11 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {% endfor %}
       {% for oneof in typedef.oneofs %}
-      switch({{oneof.which_oneof}})
+      switch({{oneof.get_which_oneof()}})
       {
-        {% for field in oneof.fields() %}
+        {% for field in oneof.get_fields() %}
         case id::{{field.variable_id_name}}:
-          {{ field_serialize_macro(field)|indent(12) }}
+          {{ field.render_serialize(environment)|indent(10) }}
           break;
 
         {% endfor %}
@@ -125,10 +124,10 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
-          {% for field in oneof.fields() %}
+          {% for field in oneof.get_fields() %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
           {
-            {{ field_deserialize_macro(field)|indent(12) }}
+            {{ field.render_deserialize(environment)|indent(12) }}
             break;
           }
 
@@ -162,13 +161,30 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       clear_{{field.get_name()}}();
       {% endfor %}
       {% for oneof in typedef.oneofs %}
-      clear_{{oneof.name}}();
+      clear_{{oneof.get_name()}}();
       {% endfor %}
+
     }
 
     private:
 
       {% for field in typedef.fields %}
       {{field.get_type()}} {{field.get_variable_name()}};
+      {% endfor %}
+
+      {% for oneof in typedef.oneofs %}
+      id {{oneof.get_which_oneof()}};
+      union {{oneof.get_name()}}
+      {
+        {{oneof.get_name()}}() {}
+        ~{{oneof.get_name()}}() {}
+        {% for field in oneof.fields %}
+        {{field.get_type()}} {{field.get_variable_name()}};
+        {% endfor %}
+      };
+      {{oneof.get_name()}} {{oneof.get_name()}}_;
+
+      {{ TypeOneof.init(oneof)|indent(4) }}
+      {{ TypeOneof.clear(oneof)|indent(4) }}
       {% endfor %}
 };

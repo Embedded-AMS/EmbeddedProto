@@ -28,20 +28,71 @@ Postal address:
   the Netherlands
 #}
 {% macro assign(_oneof) %}
-if(rhs.get_which_{{_oneof.name}}() != {{_oneof.which_oneof}})
+if(rhs.get_which_{{_oneof.get_name()}}() != {{_oneof.get_which_oneof()}})
 {
   // First delete the old object in the oneof.
-  clear_{{_oneof.name}}();
+  clear_{{_oneof.get_name()}}();
 }
 
-switch(rhs.get_which_{{_oneof.name}}())
+switch(rhs.get_which_{{_oneof.get_name()}}())
 {
-  {% for field in _oneof.fields() %}
-  case id::{{field.variable_id_name}}:
-    set_{{field.name}}(rhs.get_{{field.name}}());
+  {% for field in _oneof.get_fields() %}
+  case id::{{field.get_variable_id_name()}}:
+    set_{{field.get_name()}}(rhs.get_{{field.name}}());
     break;
   {% endfor %}
   default:
     break;
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro init(_oneof) %}
+void init_{{_oneof.get_name()}}(const id field_id)
+{
+  if(id::NOT_SET != {{_oneof.get_which_oneof()}})
+  {
+    // First delete the old object in the oneof.
+    clear_{{_oneof.get_name()}}();
+  }
+
+  // C++11 unions only support nontrivial members when you explicitly call the placement new statement.
+  switch(field_id)
+  {
+    {% for field in _oneof.get_fields() %}
+    case id::{{field.get_variable_id_name()}}:
+      {% if field.oneof_allocation_required() %}
+      new(&{{field.variable_full_name}}) {{field.type}};
+      {{_oneof.get_which_oneof()}} = id::{{field.get_variable_id_name()}};
+      {% endif %}
+      break;
+    {% endfor %}
+    default:
+      break;
+   }
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro clear(_oneof) %}
+void clear_{{_oneof.get_name()}}()
+{
+  switch({{_oneof.get_which_oneof()}})
+  {
+    {% for field in _oneof.get_fields() %}
+    case id::{{field.get_variable_id_name()}}:
+      {% if field.oneof_allocation_required() %}
+      {{field.get_variable_name()}}.~{{field.get_short_type()}}();
+      {% else %}
+      {{field.get_variable_name()}}.set(0);
+      {% endif %}
+      break;
+    {% endfor %}
+    default:
+      break;
+  }
+  {{_oneof.get_which_oneof()}} = id::NOT_SET;
 }
 {% endmacro %}
