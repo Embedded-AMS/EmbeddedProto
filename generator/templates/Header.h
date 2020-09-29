@@ -42,9 +42,9 @@
 #include <RepeatedFieldFixedSize.h>
 #include <FieldStringBytes.h>
 #include <Errors.h>
-{% endif %}
-{% if dependencies %}
 
+{% endif %}
+{% if proto_file.get_dependencies() is defined %}
 // Include external proto definitions
 {% for dependency in proto_file.get_dependencies() %}
 #include <{{dependency}}>
@@ -63,7 +63,7 @@ namespace {{ namespace }} {
 {{ msg.render(environment) }}
 
 {% endfor %}
-{% for namespace in namespaces|reverse %}
+{% for namespace in proto_file.get_namespaces()|reverse %}
 } // End of namespace {{ namespace }}
 {% endfor %}
 #endif // _{{proto_file.get_header_guard()}}_H_
