@@ -49,6 +49,9 @@ class Oneof:
     def get_name(self):
         return self.descriptor.name
 
+    def get_variable_name(self):
+        return self.get_name() + "_"
+
     def get_which_oneof(self):
         return "which_" + self.get_name() + "_"
 
@@ -64,3 +67,12 @@ class Oneof:
         for field in self.fields:
             all_parameters_registered = field.register_template_parameters() and all_parameters_registered
         return all_parameters_registered
+
+    # Returns true if in oneof.init the new& function needs to be call to initialize already allocated memory.
+    def oneof_allocation_required(self):
+        result = False
+        for field in self.fields:
+            result = field.oneof_allocation_required()
+            if result:
+                break
+        return result
