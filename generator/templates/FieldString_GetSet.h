@@ -36,7 +36,7 @@ inline void clear_{{field.get_name()}}()
     {{field.get_variable_name()}}.~{{field.get_short_type()}}();
   }
 }
-inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
+inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 {
   if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {

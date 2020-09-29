@@ -230,13 +230,10 @@ class FieldString(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        return "::EmbeddedProto::FieldString"
+        return "::EmbeddedProto::FieldString<" + self.template_param_str + ">"
 
     def get_short_type(self):
         return "FieldString"
-
-    def get_default_value(self):
-        return "''"
 
     def get_template_parameters(self):
         return [{"name": self.template_param_str, "type": "uint32_t"}]
@@ -269,13 +266,10 @@ class FieldBytes(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        return "::EmbeddedProto::FieldBytes"
+        return "::EmbeddedProto::FieldBytes<" + self.template_param_str + ">"
 
     def get_short_type(self):
         return "FieldBytes"
-
-    def get_default_value(self):
-        return "0U"
 
     def get_template_parameters(self):
         return [{"name": self.template_param_str, "type": "uint32_t"}]

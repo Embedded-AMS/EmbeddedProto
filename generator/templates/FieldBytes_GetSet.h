@@ -33,10 +33,10 @@ inline void clear_{{field.get_name()}}()
   if(id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
   {
     {{field.get_which_oneof()}} = id::NOT_SET;
-    {{field.get_variable_name()}}.~{{field.get_type()}}();
+    {{field.get_variable_name()}}.~{{field.get_short_type()}}();
   }
 }
-inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
+inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 {
   if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
