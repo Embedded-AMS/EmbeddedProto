@@ -35,12 +35,6 @@ if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wi
   {
     set_{{field.get_name()}}(static_cast<{{field.get_type()}}>(value));
   }
-  {% if field.which_oneof is defined %}
-  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
-  {
-    {{field.which_oneof}} = id::{{field.get_variable_id_name()}};
-  }
-  {% endif %}
 }
 else
 {

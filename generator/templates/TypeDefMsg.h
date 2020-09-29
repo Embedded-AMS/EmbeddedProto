@@ -78,6 +78,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ field.render_get_set(environment)|indent(4) }}
 
     {% endfor %}
+    {% for oneof in typedef.oneofs %}
+    id get_which_{{oneof.get_name()}}() const { return {{oneof.get_which_oneof()}}; }
+
+    {% for field in oneof.fields %}
+    {{ field.render_get_set(environment)|indent(4) }}
+
+    {% endfor %}
+    {% endfor %}
 
     ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
     {
@@ -179,12 +187,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
         {{oneof.get_name()}}() {}
         ~{{oneof.get_name()}}() {}
         {% for field in oneof.fields %}
-        {{field.get_type()}} {{field.get_variable_name()}};
+        {# Here we use the field name variable instead of the get_ function as the get function will add the oneof
+           name. This is the only place where this is required. #}
+        {{field.get_type()}} {{field.variable_name}};
         {% endfor %}
       };
-      {{oneof.get_name()}} {{oneof.get_name()}}_;
+      {{oneof.get_name()}} {{oneof.get_variable_name()}};
 
-      {{ TypeOneof.init(oneof)|indent(4) }}
-      {{ TypeOneof.clear(oneof)|indent(4) }}
+      {{ TypeOneof.init(oneof)|indent(6) }}
+      {{ TypeOneof.clear(oneof)|indent(6) }}
       {% endfor %}
 };

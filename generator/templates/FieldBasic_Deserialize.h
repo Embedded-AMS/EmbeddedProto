@@ -29,11 +29,17 @@ Postal address:
 #}
 if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wire_type)
 {
-  return_value = {{field.get_variable_name()}}.deserialize(buffer);
-  {% if field.which_oneof is defined %}
-  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {% if field.oneof is not none %}
+  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    {{field.which_oneof}} = id::{{field.get_variable_id_name()}};
+    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+  }
+  {% endif %}
+  return_value = {{field.get_variable_name()}}.deserialize(buffer);
+  {% if field.oneof is not none %}
+  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
+  {
+    clear_{{field.get_name()}}();
   }
   {% endif %}
 }

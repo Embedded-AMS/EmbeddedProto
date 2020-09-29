@@ -40,6 +40,7 @@ switch(rhs.get_which_{{_oneof.get_name()}}())
   case id::{{field.get_variable_id_name()}}:
     set_{{field.get_name()}}(rhs.get_{{field.name}}());
     break;
+
   {% endfor %}
   default:
     break;
@@ -57,20 +58,25 @@ void init_{{_oneof.get_name()}}(const id field_id)
     clear_{{_oneof.get_name()}}();
   }
 
+  {% if _oneof.oneof_allocation_required() %}
   // C++11 unions only support nontrivial members when you explicitly call the placement new statement.
   switch(field_id)
   {
     {% for field in _oneof.get_fields() %}
+    {% if field.oneof_allocation_required() %}
     case id::{{field.get_variable_id_name()}}:
-      {% if field.oneof_allocation_required() %}
-      new(&{{field.variable_full_name}}) {{field.type}};
+      new(&{{field.get_variable_name()}}) {{field.get_type()}};
       {{_oneof.get_which_oneof()}} = id::{{field.get_variable_id_name()}};
-      {% endif %}
       break;
+
+    {% endif %}
     {% endfor %}
     default:
       break;
    }
+
+   {% endif %}
+   {{_oneof.get_which_oneof()}} = field_id;
 }
 {% endmacro %}
 {# #}

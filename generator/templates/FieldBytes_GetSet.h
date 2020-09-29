@@ -27,9 +27,26 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
+{% if field.oneof is not none %}
+inline void clear_{{field.get_name()}}()
+{
+  if(id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
+  {
+    {{field.get_which_oneof()}} = id::NOT_SET;
+    {{field.get_variable_name()}}.~{{field.get_type()}}();
+  }
+}
+inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
+{
+  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  {
+    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+  }
+  return {{field.get_variable_name()}};
+}
+{% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{field.get_variable_name()}} = value; }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value) { {{field.get_variable_name()}} = value; }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
-inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+{% endif %}
 inline const {{field.get_type()}}& {{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+inline const uint8_t* get_{{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }

@@ -36,10 +36,10 @@ if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wi
   {
     return_value = mutable_{{field.get_name()}}().deserialize(bufferSection);
   }
-  {% if field.which_oneof is defined %}
-  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {% if field.oneof is not none %}
+  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
   {
-    {{field.which_oneof}} = id::{{field.get_variable_id_name()}};
+    clear_{{field.get_name()}}();
   }
   {% endif %}
 }

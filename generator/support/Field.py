@@ -89,7 +89,11 @@ class Field:
         return self.name
 
     def get_variable_name(self):
-        return self.variable_name
+        var_name = ""
+        if self.oneof:
+            var_name = self.oneof.get_variable_name() + "."
+        var_name += self.variable_name
+        return var_name
 
     def get_variable_id_name(self):
         return self.variable_id_name
@@ -110,6 +114,12 @@ class Field:
     def oneof_allocation_required(self):
         return (type(self) is FieldMessage) or (type(self) is FieldRepeated) or (type(self) is FieldString) or \
                (type(self) is FieldBytes)
+
+    def get_oneof_name(self):
+        return self.oneof.get_name()
+
+    def get_which_oneof(self):
+        return self.oneof.get_which_oneof()
 
     def render(self, filename, jinja_environment):
         template = jinja_environment.get_template(filename)
