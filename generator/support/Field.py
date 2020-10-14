@@ -438,7 +438,7 @@ class FieldRepeated(Field):
         self.actual_type = Field.factory(proto_descriptor, parent_msg, oneof, already_nested=True)
 
         # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "LENGTH"
+        self.template_param_str = self.variable_name + "REP_LENGTH"
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
