@@ -34,7 +34,8 @@
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
-#include "ReadBufferSection.h" 
+#include "ReadBufferSection.h"
+#include "FieldStringBytes.h"
 #include "Errors.h"
 
 #include <cstdint>
@@ -51,8 +52,9 @@ namespace EmbeddedProto
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
-    static constexpr bool REPEATED_FIELD_IS_PACKED = !std::is_base_of<MessageInterface, 
-                                                                      DATA_TYPE>::value;
+    static constexpr bool REPEATED_FIELD_IS_PACKED = 
+          !(std::is_base_of<MessageInterface, DATA_TYPE>::value 
+            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
 
     public:
 
@@ -165,8 +167,14 @@ namespace EmbeddedProto
         else 
         {
           const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          return_value = (size_x <= buffer.get_available_size()) ? serialize_unpacked(field_number, buffer) 
-                                                                 : Error::BUFFER_FULL;
+          if(size_x <= buffer.get_available_size()) 
+          {
+            return_value = serialize_unpacked(field_number, buffer);
+          }
+          else 
+          {
+            return_value = Error::BUFFER_FULL;
+          }
         }
 
         return return_value;

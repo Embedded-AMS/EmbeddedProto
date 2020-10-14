@@ -36,7 +36,8 @@ import nested_message_pb2 as nm
 import repeated_fields_pb2 as rf
 import oneof_fields_pb2 as of
 import file_to_include_pb2 as fti
-import include_other_files_pb2 as iof
+#import include_other_files_pb2 as iof
+import string_bytes_pb2 as sb
 
 
 def test_simple_types():
@@ -192,7 +193,7 @@ def test_repeated_message():
 
 
 def test_string():
-    msg = rf.text()
+    msg = sb.text()
 
     msg.txt = "Foo bar"
 
@@ -208,9 +209,27 @@ def test_string():
 
 
 def test_bytes():
-    msg = rf.raw_bytes()
+    msg = sb.raw_bytes()
 
     msg.b = b'\x01\x02\x03\x00'
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+
+def test_repeated_string_bytes():
+    msg = sb.repeated_string_bytes()
+
+    msg.array_of_txt.append("Foo bar 1")
+    msg.array_of_txt.append("")
+    msg.array_of_txt.append("Foo bar 3")
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -270,7 +289,8 @@ def test_included_proto():
 #test_repeated_message()
 #test_string()
 #test_bytes()
-test_nested_message()
+test_repeated_string_bytes()
+#test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
 

@@ -362,4 +362,74 @@ TEST(FieldBytes, oneof_deserialize)
   EXPECT_EQ(0, msg.b()[3]);
 }
 
+TEST(RepeatedStringBytes, empty) 
+{ 
+  repeated_string_bytes<3, 10, 3, 10> msg;
+  Mocks::WriteBufferMock buffer;
+  EXPECT_CALL(buffer, get_available_size()).Times(2).WillRepeatedly(Return(99));  
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+
+TEST(RepeatedStringBytes, get_set) 
+{ 
+  repeated_string_bytes<3, 15, 3, 15> msg;
+
+  ::EmbeddedProto::FieldString<15> str;
+  msg.add_array_of_txt(str);
+  msg.mutable_array_of_txt(0) = "Foo bar 1";
+  msg.add_array_of_txt(str);
+  msg.mutable_array_of_txt(1) = "Foo bar 2";
+
+  str = "Foo bar 3";
+  msg.add_array_of_txt(str);
+  
+  EXPECT_EQ(3, msg.array_of_txt().get_length());
+  EXPECT_EQ(0, msg.array_of_bytes().get_length());
+  EXPECT_STREQ(msg.array_of_txt(0).get_const(), "Foo bar 1");
+  EXPECT_STREQ(msg.array_of_txt(1).get_const(), "Foo bar 2");
+  EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3");
+}
+
+
+TEST(RepeatedStringBytes, serialize) 
+{ 
+  InSequence s;
+
+  repeated_string_bytes<3, 15, 3, 15> msg;
+  Mocks::WriteBufferMock buffer;
+
+  ::EmbeddedProto::FieldString<15> str;
+  msg.add_array_of_txt(str);
+  msg.mutable_array_of_txt(0) = "Foo bar 1";
+  msg.add_array_of_txt(str);
+  msg.mutable_array_of_txt(1) = "";
+  msg.add_array_of_txt(str);
+  msg.mutable_array_of_txt(2) = "Foo bar 3";
+
+  // We need 24 bytes to serialze the strings above.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(24));
+
+  // The first string.
+  // Id and size of array of txt.
+  EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+  // The string is pushed as an array, we do not know the pointer value so use _, but we do know 
+  // the size.
+  EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
+  
+
+  // The empty string
+  EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+  
+  // The last string
+  EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+
 } // End of namespace test_EmbeddedAMS_string_bytes

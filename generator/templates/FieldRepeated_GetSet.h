@@ -84,6 +84,7 @@ inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_base_type
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& values) { {{field.get_variable_name()}} = values; }
 inline void add_{{field.get_name()}}(const {{field.get_base_type()}}& value) { {{field.get_variable_name()}}.add(value); }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
+inline {{field.get_base_type()}}& mutable_{{field.get_name()}}(uint32_t index) { return {{field.get_variable_name()}}[index]; }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
 inline const {{field.get_type()}}& {{field.get_name()}}() const { return {{field.get_variable_name()}}; }

@@ -45,8 +45,10 @@ namespace EmbeddedProto
   namespace internal
   {
 
+    class BaseStringBytes : public Field {};
+
     template<uint32_t MAX_LENGTH, class DATA_TYPE>
-    class FieldStringBytes : public Field
+    class FieldStringBytes : public BaseStringBytes
     {
       static_assert(std::is_same<uint8_t, DATA_TYPE>::value || std::is_same<char, DATA_TYPE>::value, 
                     "This class only supports unit8_t or chars.");
@@ -152,6 +154,10 @@ namespace EmbeddedProto
               return_value = WireFormatter::SerializeVarint(tag, buffer);
               if(Error::NO_ERRORS == return_value) 
               {
+                return_value = WireFormatter::SerializeVarint(current_length_, buffer);
+              }
+              if(Error::NO_ERRORS == return_value) 
+              {
                 return_value = serialize(buffer);
               }
             }
@@ -166,15 +172,12 @@ namespace EmbeddedProto
 
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
-          Error return_value = WireFormatter::SerializeVarint(current_length_, buffer);
-          if(Error::NO_ERRORS == return_value) 
+          Error return_value = Error::NO_ERRORS;
+          const void* void_pointer = static_cast<const void*>(&(data_[0]));
+          const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          if(!buffer.push(byte_pointer, current_length_))
           {
-            const void* void_pointer = static_cast<const void*>(&(data_[0]));
-            const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
-            if(!buffer.push(byte_pointer, current_length_))
-            {
-              return_value = Error::BUFFER_FULL;
-            }
+            return_value = Error::BUFFER_FULL;
           }
           return return_value;
         }
