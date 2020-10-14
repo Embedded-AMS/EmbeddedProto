@@ -49,13 +49,13 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
     {% for enum in typedef.nested_enum_definitions %}
     {{ enum.render(environment)|indent(4) }}
-    {% endfor %}
 
+    {% endfor %}
     {% for msg in typedef.nested_msg_definitions %}
     {{ msg.render(environment)|indent(4) }}
-    {% endfor %}
 
-    enum class id
+    {% endfor %}
+        enum class id
     {
       NOT_SET = 0,
       {% for id_set in typedef.field_ids %}
