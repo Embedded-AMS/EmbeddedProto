@@ -415,7 +415,16 @@ class FieldMessage(Field):
 
     # Get the scope relevant compared to the scope this field is used in.
     def get_reduced_scope(self):
-        return self.get_scope()
+        parent_scope = self.parent.scope.get()
+        def_scope = self.definition.scope.get()
+        start_index = 0
+        for ds, ps in zip(def_scope[:-1], parent_scope):
+            if ds == ps:
+                start_index += 1
+            else:
+                break
+        reduced_scope = def_scope[start_index:]
+        return reduced_scope
 
     def render_get_set(self, jinja_env):
         return self.render("FieldMsg_GetSet.h", jinja_environment=jinja_env)

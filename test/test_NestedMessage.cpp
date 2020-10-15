@@ -50,12 +50,13 @@ namespace test_EmbeddedAMS_NestedMessage
 {
 
 constexpr uint32_t SIZE_MSG_A = 3;
+constexpr uint32_t SIZE_MSG_D = 5;
 
 TEST(NestedMessage, serialize_zero) 
 {
   // Test if a unset message results in zero bytes in the buffer.
 
-  ::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A> msg;
   Mocks::WriteBufferMock buffer;
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
@@ -70,7 +71,7 @@ TEST(NestedMessage, serialize_one)
 {
   InSequence s;
 
-  ::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A> msg;
   Mocks::WriteBufferMock buffer;
   ON_CALL(buffer, get_size()).WillByDefault(Return(25));
 
@@ -117,7 +118,7 @@ TEST(NestedMessage, serialize_max)
 {
   InSequence s;
 
-  ::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A> msg;
   Mocks::WriteBufferMock buffer;
 
   // Test if a nested message can be serialized with values set to one.
@@ -163,7 +164,7 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
 {
   InSequence s;
 
-  ::message_c<SIZE_MSG_A> msg;
+  ::demo::space::message_c<SIZE_MSG_A, SIZE_MSG_D> msg;
   Mocks::WriteBufferMock buffer;
 
   // Test if a nested message in a nested message with some data works.
@@ -209,7 +210,7 @@ TEST(NestedMessage, deserialize_one)
 {
   InSequence s;
 
-  ::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A> msg;
   Mocks::ReadBufferMock buffer;
 
 
@@ -246,7 +247,7 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
 {
   InSequence s;
 
-  ::message_c<SIZE_MSG_A> msg;
+  ::demo::space::message_c<SIZE_MSG_A, SIZE_MSG_D> msg;
   Mocks::ReadBufferMock buffer;
 
 
