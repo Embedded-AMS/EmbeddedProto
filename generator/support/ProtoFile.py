@@ -100,20 +100,5 @@ class ProtoFile:
     def render(self, jinja_environment):
         template_file = "Header.h"
         template = jinja_environment.get_template(template_file)
-        try:
-            file_str = template.render(proto_file=self, environment=jinja_environment)
-
-        except jinja2.UndefinedError as e:
-            print("UndefinedError exception: " + str(e))
-        except jinja2.TemplateRuntimeError as e:
-            print("TemplateRuntimeError exception: " + str(e))
-        except jinja2.TemplateAssertionError as e:
-            print("TemplateAssertionError exception: " + str(e))
-        except jinja2.TemplateSyntaxError as e:
-            print("TemplateSyntaxError exception: " + str(e))
-        except jinja2.TemplateError as e:
-            print("TemplateError exception: " + str(e))
-        except Exception as e:
-            print("Template renderer exception: " + str(e))
-        else:
-            return file_str
+        file_str = template.render(proto_file=self, environment=jinja_environment)
+        return file_str

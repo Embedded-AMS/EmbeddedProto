@@ -30,7 +30,6 @@
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 import copy
-import jinja2
 
 
 # This class is the base class for any kind of field used in protobuf messages.
@@ -121,25 +120,23 @@ class Field:
     def get_which_oneof(self):
         return self.oneof.get_which_oneof()
 
+    # Get the scope relevant compared to the scope this field is used in.
+    def get_reduced_scope(self):
+        parent_scope = self.parent.scope.get()
+        def_scope = self.definition.scope.get()
+        start_index = 0
+        for ds, ps in zip(def_scope[:-1], parent_scope):
+            if ds == ps:
+                start_index += 1
+            else:
+                break
+        reduced_scope = def_scope[start_index:]
+        return reduced_scope
+
     def render(self, filename, jinja_environment):
         template = jinja_environment.get_template(filename)
-        try:
-            rendered_str = template.render(field=self, environment=jinja_environment)
-
-        except jinja2.UndefinedError as e:
-            print("UndefinedError exception: " + str(e))
-        except jinja2.TemplateRuntimeError as e:
-            print("TemplateRuntimeError exception: " + str(e))
-        except jinja2.TemplateAssertionError as e:
-            print("TemplateAssertionError exception: " + str(e))
-        except jinja2.TemplateSyntaxError as e:
-            print("TemplateSyntaxError exception: " + str(e))
-        except jinja2.TemplateError as e:
-            print("TemplateError exception: " + str(e))
-        except Exception as e:
-            print("Template renderer exception: " + str(e))
-        else:
-            return rendered_str
+        rendered_str = template.render(field=self, environment=jinja_environment)
+        return rendered_str
 
 # -----------------------------------------------------------------------------
 
@@ -304,11 +301,24 @@ class FieldEnum(Field):
     def get_type(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
-            type = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
-            type = type.replace(".", "::")
+            type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
+            type_name = type_name.replace(".", "::")
         else:
-            type = "TODO"
-        return type
+            scopes = self.get_reduced_scope()
+            type_name = ""
+            for scope in scopes:
+                if scope["templates"]:
+                    raise Exception("You are trying to use a field with the type: \"" + self.descriptor.type_name +
+                                    "\". It is defined in different scope as where you are using it. But the scope of "
+                                    "definition includes template parameters for repeated, string or byte fields. It "
+                                    "is there for not possible to define the field where you are using it as we do not "
+                                    "know the template value. Try defining the field in the main scope or the one you "
+                                    "are using it in.")
+
+                type_name += scope["name"] + "::"
+            # Remove the last ::
+            type_name = type_name[:-2]
+        return type_name
 
     def get_short_type(self):
         return self.get_type().split("::")[-1]
@@ -322,11 +332,12 @@ class FieldEnum(Field):
         for enum_defs in all_types_definitions["enums"]:
             other_scope = enum_defs.scope.get_scope_str()
             if my_type == other_scope:
+                self.definition = enum_defs
                 found = True
                 break
 
         if not found:
-            raise Exception("Unable to match enum type for: " + self.name)
+            raise Exception("Unable to find the definition of this enum: " + self.name)
 
     def render_get_set(self, jinja_env):
         return self.render("FieldEnum_GetSet.h", jinja_environment=jinja_env)
@@ -399,7 +410,7 @@ class FieldMessage(Field):
                 break
 
         if not found:
-            raise Exception("Unable to match enum type for: " + self.name)
+            raise Exception("Unable to find the definition of this message: " + self.name)
 
     def register_template_parameters(self):
         if self.definition.all_parameters_registered:
@@ -412,19 +423,6 @@ class FieldMessage(Field):
     # Get the whole scope of the definition of this field.
     def get_scope(self):
         return self.definition.scope.get()
-
-    # Get the scope relevant compared to the scope this field is used in.
-    def get_reduced_scope(self):
-        parent_scope = self.parent.scope.get()
-        def_scope = self.definition.scope.get()
-        start_index = 0
-        for ds, ps in zip(def_scope[:-1], parent_scope):
-            if ds == ps:
-                start_index += 1
-            else:
-                break
-        reduced_scope = def_scope[start_index:]
-        return reduced_scope
 
     def render_get_set(self, jinja_env):
         return self.render("FieldMsg_GetSet.h", jinja_environment=jinja_env)

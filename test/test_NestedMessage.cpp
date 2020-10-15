@@ -203,6 +203,9 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
+  // In serializing D, even if it is not set, we check the size of the buffer.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
+
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 

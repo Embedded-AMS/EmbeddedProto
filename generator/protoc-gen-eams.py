@@ -64,10 +64,11 @@ def generate_code(request, respones):
             break
 
     if not all_parameters_registered:
-        raise Exception("Unable to register all template parameters")
+        raise Exception("Messages with repeated, string or byte fields use template parameters to define their length."
+                        "For some reason it was not to add all required template parameters.")
 
     curr_location = os.path.dirname(os.path.abspath(__file__))
-    filepath =  os.path.join(curr_location, "templates")
+    filepath = os.path.join(curr_location, "templates")
     template_loader = jinja2.FileSystemLoader(searchpath=filepath)
     template_env = jinja2.Environment(loader=template_loader, trim_blocks=True, lstrip_blocks=True)
 
@@ -100,7 +101,21 @@ def main_plugin():
     response = plugin.CodeGeneratorResponse()
 
     # Generate code
-    generate_code(request, response)
+    try:
+        generate_code(request, response)
+    except jinja2.UndefinedError as e:
+        response.error = "Embedded Proto error - Template Undefined Error exception: " + str(e)
+    except jinja2.TemplateRuntimeError as e:
+        response.error = "Embedded Proto error - Template Runtime Error exception: " + str(e)
+    except jinja2.TemplateAssertionError as e:
+        response.error = "Embedded Proto error - TemplateAssertionError exception: " + str(e)
+    except jinja2.TemplateSyntaxError as e:
+        response.error = "Embedded Proto error - TemplateSyntaxError exception: " + str(e)
+    except jinja2.TemplateError as e:
+        response.error = "Embedded Proto error - TemplateError exception: " + str(e)
+    except Exception as e:
+        response.error = "Embedded Proto error - " + str(e)
+
 
     # Serialize response message
     output = response.SerializeToString()
@@ -123,7 +138,20 @@ def main_cli():
         response = plugin.CodeGeneratorResponse()
 
         # Generate code
-        generate_code(request, response)
+        try:
+            generate_code(request, response)
+        except jinja2.UndefinedError as e:
+            response.error = "Embedded Proto error - Template Undefined Error exception: " + str(e)
+        except jinja2.TemplateRuntimeError as e:
+            response.error = "Embedded Proto error - Template Runtime Error exception: " + str(e)
+        except jinja2.TemplateAssertionError as e:
+            response.error = "Embedded Proto error - TemplateAssertionError exception: " + str(e)
+        except jinja2.TemplateSyntaxError as e:
+            response.error = "Embedded Proto error - TemplateSyntaxError exception: " + str(e)
+        except jinja2.TemplateError as e:
+            response.error = "Embedded Proto error - TemplateError exception: " + str(e)
+        except Exception as e:
+            response.error = "Embedded Proto error - " + str(e)
 
         # For debugging purposes print the result to the console.
         for response_file in response.file:

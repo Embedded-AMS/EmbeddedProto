@@ -89,11 +89,6 @@ class Scope:
         result.extend([{"name": self.name, "templates": self.get_template_parameters()}])
         return result
 
-    # Given two scopes, return scope that is uncommon for this object.
-    def reduced(self, other_scope):
-        pass
-
-
 # -----------------------------------------------------------------------------
 
 
@@ -109,23 +104,8 @@ class TypeDefinition:
 
     def render(self, jinja_environment):
         template = jinja_environment.get_template(self.template_file)
-        try:
-            render_result = template.render(typedef=self, environment=jinja_environment)
-
-        except jinja2.UndefinedError as e:
-            print("UndefinedError exception: " + str(e))
-        except jinja2.TemplateRuntimeError as e:
-            print("TemplateRuntimeError exception: " + str(e))
-        except jinja2.TemplateAssertionError as e:
-            print("TemplateAssertionError exception: " + str(e))
-        except jinja2.TemplateSyntaxError as e:
-            print("TemplateSyntaxError exception: " + str(e))
-        except jinja2.TemplateError as e:
-            print("TemplateError exception: " + str(e))
-        except Exception as e:
-            print("Template renderer exception: " + str(e))
-        else:
-            return render_result
+        render_result = template.render(typedef=self, environment=jinja_environment)
+        return render_result
 
 
 # -----------------------------------------------------------------------------
@@ -180,7 +160,8 @@ class MessageDefinition(TypeDefinition):
 
     # Obtain a dictionary with references to all nested enums and messages
     def get_all_nested_types(self):
-        nested_types = {"enums": self.nested_enum_definitions, "messages": []}
+        nested_types = {"enums": [], "messages": []}
+        nested_types["enums"].extend(self.nested_enum_definitions)
         for msg in self.nested_msg_definitions:
             nt = msg.get_all_nested_types()
             nested_types["enums"].extend(nt["enums"])
