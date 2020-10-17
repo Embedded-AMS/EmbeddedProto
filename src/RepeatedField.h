@@ -191,41 +191,11 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         if(REPEATED_FIELD_IS_PACKED)
         {              
-          uint32_t size;
-          return_value = WireFormatter::DeserializeVarint(buffer, size);
-          ReadBufferSection bufferSection(buffer, size);
-          DATA_TYPE x;
-          
-          return_value = x.deserialize(bufferSection);
-          while(Error::NO_ERRORS == return_value)
-          {
-            return_value = this->add(x);
-            if(Error::NO_ERRORS == return_value)
-            {
-              return_value = x.deserialize(bufferSection);
-            }
-          }
-
-          // We expect the buffersection to be empty, in that case everything is fine..
-          if(Error::END_OF_BUFFER == return_value)
-          {
-            return_value = Error::NO_ERRORS;
-          }
+          return_value = deserialize_packed(buffer);
         }
         else 
         {
-          uint32_t size;
-          return_value = WireFormatter::DeserializeVarint(buffer, size);
-          if(Error::NO_ERRORS == return_value) 
-          {
-            ReadBufferSection bufferSection(buffer, size);
-            DATA_TYPE x;
-            return_value = x.deserialize(bufferSection);
-            if(Error::NO_ERRORS == return_value)
-            {
-              return_value = this->add(x);
-            }
-          }
+          return_value = deserialize_unpacked(buffer);
         }
         return return_value;
       }
@@ -283,6 +253,66 @@ namespace EmbeddedProto
             }
           }
         }
+        return return_value;
+      }
+
+      Error deserialize_packed(ReadBufferInterface& buffer)
+      {
+        uint32_t size;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, size);
+        ReadBufferSection bufferSection(buffer, size);
+        DATA_TYPE x;
+        
+        return_value = x.deserialize(bufferSection);
+        while(Error::NO_ERRORS == return_value)
+        {
+          return_value = this->add(x);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = x.deserialize(bufferSection);
+          }
+        }
+
+        // We expect the buffersection to be empty, in that case everything is fine..
+        if(Error::END_OF_BUFFER == return_value)
+        {
+          return_value = Error::NO_ERRORS;
+        }
+
+        return return_value;
+      }
+
+      Error deserialize_unpacked(ReadBufferInterface& buffer)
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        // For repeated messages, strings or bytes
+        // First allocate an element in the array.
+        const uint32_t index = this->get_length();
+        if(this->get_max_length() > index)
+        {
+          // For messages read the size here, with strings and byte arrays this is include in 
+          // deserialize.
+          if(std::is_base_of<MessageInterface, DATA_TYPE>::value)
+          {
+            uint32_t size;
+            return_value = WireFormatter::DeserializeVarint(buffer, size);
+            if(Error::NO_ERRORS == return_value) 
+            {
+              ReadBufferSection bufferSection(buffer, size);
+              return_value = this->get(index).deserialize(bufferSection);
+            }
+          }
+          else 
+          {
+            return_value = this->get(index).deserialize(buffer);
+          }
+        }
+        else 
+        {
+          return_value = Error::ARRAY_FULL;
+        }
+
         return return_value;
       }
 

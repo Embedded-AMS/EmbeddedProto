@@ -432,4 +432,49 @@ TEST(RepeatedStringBytes, serialize)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
+TEST(RepeatedStringBytes, deserialize) 
+{ 
+  InSequence s;
+
+  repeated_string_bytes<3, 15, 3, 15> msg;
+  Mocks::ReadBufferMock buffer;
+
+  // Pop the tag and size of the first string
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0a), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
+
+  uint8_t referee_str1[] = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x31};
+
+  for(auto r: referee_str1) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+
+  // Pop the tag and size of the second string
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0a), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x00), Return(true)));
+
+  // Pop the tag and size of the third string
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0a), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
+
+  uint8_t referee_str3[] = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x33};
+
+  for(auto r: referee_str3) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(3, msg.array_of_txt().get_length());
+  EXPECT_EQ(0, msg.array_of_bytes().get_length());
+  EXPECT_STREQ(msg.array_of_txt(0).get_const(), "Foo bar 1");
+  EXPECT_STREQ(msg.array_of_txt(1).get_const(), "");
+  EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3"); 
+}
+
+
+
 } // End of namespace test_EmbeddedAMS_string_bytes
