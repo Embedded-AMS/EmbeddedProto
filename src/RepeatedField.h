@@ -34,7 +34,8 @@
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
-#include "ReadBufferSection.h" 
+#include "ReadBufferSection.h"
+#include "FieldStringBytes.h"
 #include "Errors.h"
 
 #include <cstdint>
@@ -51,8 +52,9 @@ namespace EmbeddedProto
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
-    static constexpr bool REPEATED_FIELD_IS_PACKED = !std::is_base_of<MessageInterface, 
-                                                                      DATA_TYPE>::value;
+    static constexpr bool REPEATED_FIELD_IS_PACKED = 
+          !(std::is_base_of<MessageInterface, DATA_TYPE>::value 
+            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
 
     public:
 
@@ -165,8 +167,14 @@ namespace EmbeddedProto
         else 
         {
           const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          return_value = (size_x <= buffer.get_available_size()) ? serialize_unpacked(field_number, buffer) 
-                                                                 : Error::BUFFER_FULL;
+          if(size_x <= buffer.get_available_size()) 
+          {
+            return_value = serialize_unpacked(field_number, buffer);
+          }
+          else 
+          {
+            return_value = Error::BUFFER_FULL;
+          }
         }
 
         return return_value;
@@ -183,41 +191,11 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         if(REPEATED_FIELD_IS_PACKED)
         {              
-          uint32_t size;
-          return_value = WireFormatter::DeserializeVarint(buffer, size);
-          ReadBufferSection bufferSection(buffer, size);
-          DATA_TYPE x;
-          
-          return_value = x.deserialize(bufferSection);
-          while(Error::NO_ERRORS == return_value)
-          {
-            return_value = this->add(x);
-            if(Error::NO_ERRORS == return_value)
-            {
-              return_value = x.deserialize(bufferSection);
-            }
-          }
-
-          // We expect the buffersection to be empty, in that case everything is fine..
-          if(Error::END_OF_BUFFER == return_value)
-          {
-            return_value = Error::NO_ERRORS;
-          }
+          return_value = deserialize_packed(buffer);
         }
         else 
         {
-          uint32_t size;
-          return_value = WireFormatter::DeserializeVarint(buffer, size);
-          if(Error::NO_ERRORS == return_value) 
-          {
-            ReadBufferSection bufferSection(buffer, size);
-            DATA_TYPE x;
-            return_value = x.deserialize(bufferSection);
-            if(Error::NO_ERRORS == return_value)
-            {
-              return_value = this->add(x);
-            }
-          }
+          return_value = deserialize_unpacked(buffer);
         }
         return return_value;
       }
@@ -275,6 +253,66 @@ namespace EmbeddedProto
             }
           }
         }
+        return return_value;
+      }
+
+      Error deserialize_packed(ReadBufferInterface& buffer)
+      {
+        uint32_t size;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, size);
+        ReadBufferSection bufferSection(buffer, size);
+        DATA_TYPE x;
+        
+        return_value = x.deserialize(bufferSection);
+        while(Error::NO_ERRORS == return_value)
+        {
+          return_value = this->add(x);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = x.deserialize(bufferSection);
+          }
+        }
+
+        // We expect the buffersection to be empty, in that case everything is fine..
+        if(Error::END_OF_BUFFER == return_value)
+        {
+          return_value = Error::NO_ERRORS;
+        }
+
+        return return_value;
+      }
+
+      Error deserialize_unpacked(ReadBufferInterface& buffer)
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        // For repeated messages, strings or bytes
+        // First allocate an element in the array.
+        const uint32_t index = this->get_length();
+        if(this->get_max_length() > index)
+        {
+          // For messages read the size here, with strings and byte arrays this is include in 
+          // deserialize.
+          if(std::is_base_of<MessageInterface, DATA_TYPE>::value)
+          {
+            uint32_t size;
+            return_value = WireFormatter::DeserializeVarint(buffer, size);
+            if(Error::NO_ERRORS == return_value) 
+            {
+              ReadBufferSection bufferSection(buffer, size);
+              return_value = this->get(index).deserialize(bufferSection);
+            }
+          }
+          else 
+          {
+            return_value = this->get(index).deserialize(buffer);
+          }
+        }
+        else 
+        {
+          return_value = Error::ARRAY_FULL;
+        }
+
         return return_value;
       }
 

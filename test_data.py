@@ -36,7 +36,8 @@ import nested_message_pb2 as nm
 import repeated_fields_pb2 as rf
 import oneof_fields_pb2 as of
 import file_to_include_pb2 as fti
-import include_other_files_pb2 as iof
+#import include_other_files_pb2 as iof
+import string_bytes_pb2 as sb
 
 
 def test_simple_types():
@@ -99,17 +100,17 @@ def test_simple_types():
 def test_nested_message():
     msg = nm.message_b()
 
-    # msg.u = 1.0
-    # msg.v = 1.0
-    # msg.nested_a.x = 1
-    # msg.nested_a.y = 1.0
-    # msg.nested_a.z = 1
+    #msg.u = 1.0
+    #msg.v = 1
+    #msg.nested_a.x.append(1)
+    #msg.nested_a.y = 1.0
+    #msg.nested_a.z = 1
 
-    msg.u = 0 #pow(2, 1023)
-    msg.v = 0 #pow(2, 1023)
-    #msg.nested_a.x = 0#pow(2, 31) - 1
-    #msg.nested_a.y = 0 #1.0
-    #msg.nested_a.z = 0 #1
+    msg.u = 1.7976931348623157e+308         # Max double 1.7976931348623157e+308
+    msg.v = pow(2, 31) - 1                  # Max int32
+    msg.nested_a.x.append(pow(2, 31) - 1)   # Max int32
+    msg.nested_a.y = 3.40282347e+38         # Max float
+    msg.nested_a.z = 9223372036854775807    # Max sint64
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -192,7 +193,7 @@ def test_repeated_message():
 
 
 def test_string():
-    msg = rf.text()
+    msg = sb.text()
 
     msg.txt = "Foo bar"
 
@@ -208,9 +209,27 @@ def test_string():
 
 
 def test_bytes():
-    msg = rf.raw_bytes()
+    msg = sb.raw_bytes()
 
     msg.b = b'\x01\x02\x03\x00'
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+
+def test_repeated_string_bytes():
+    msg = sb.repeated_string_bytes()
+
+    msg.array_of_txt.append("Foo bar 1")
+    msg.array_of_txt.append("")
+    msg.array_of_txt.append("Foo bar 3")
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -269,7 +288,8 @@ def test_included_proto():
 #test_repeated_fields()
 #test_repeated_message()
 #test_string()
-test_bytes()
+#test_bytes()
+test_repeated_string_bytes()
 #test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
