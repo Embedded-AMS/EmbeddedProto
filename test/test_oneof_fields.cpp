@@ -85,6 +85,12 @@ TEST(OneofField, set_get_clear)
   msg.clear_z();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  msg.set_state(message_oneof::States::Run);
+  EXPECT_EQ(message_oneof::States::Run, msg.get_state());
+  EXPECT_EQ(message_oneof::id::STATE, msg.get_which_xyz());
+  msg.clear_state();
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
   msg.mutable_msg_ABC().set_varA(1);
