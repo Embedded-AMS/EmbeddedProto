@@ -28,59 +28,14 @@
  *    the Netherlands
  */
 
-// This file is used to test oneof fields in messages.
+// This file is used to test including other proto files particular from a subfolder.
 
 syntax = "proto3";
 
-message some_ABC
-{
-  int32 varA = 1;
-  int32 varB = 2;
-  int32 varC = 3;
+package sub.package;
+
+message other_folder_msg {
+  int32 val = 1;
+  repeated int32 array = 2;
 }
 
-message some_DEF
-{
-  int32 varD = 1;
-  int32 varE = 2;
-  int32 varF = 3;
-}
-
-message message_oneof 
-{
-  int32 a = 1;
-
-  enum States {
-    Idle = 0;
-    Run = 1;
-    Done = 2;
-    Error = 3;
-  }
-
-  oneof xyz 
-  {
-    int32 x = 5;
-    int32 y = 6;
-    int32 z = 7;
-    States state = 8;
-  }
-
-  int32 b = 10;
-
-  oneof uvw 
-  {
-    float u = 15;
-    float v = 16;
-    float w = 17;
-  }
-
-  oneof message 
-  {
-    some_ABC msg_ABC = 20;
-    some_DEF msg_DEF = 21;
-  }
-}
-
-message nested_oneof {
-  message_oneof msg_oneof = 1;
-}

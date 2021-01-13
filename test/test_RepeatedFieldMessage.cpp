@@ -483,4 +483,28 @@ TEST(RepeatedFieldMessage, deserialize_max)
 
 }
 
+TEST(RepeatedFieldMessage, assign_a_nested_message) 
+{
+  // Assign a nested message which holds an repeated field.
+  nested_repeated_message<Y_SIZE>  top_level_msg;
+
+  // The nexted message
+  repeated_fields<Y_SIZE> nested_msg;
+
+  // Fill the array with some data.
+  nested_msg.add_y(1);
+  nested_msg.add_y(2);
+  nested_msg.add_y(3);
+
+
+  // And assign
+  top_level_msg.set_rf(nested_msg);
+  
+  EXPECT_EQ(3, top_level_msg.get_rf().get_y().get_length());
+  EXPECT_EQ(1, top_level_msg.get_rf().get_y()[0]);
+  EXPECT_EQ(2, top_level_msg.get_rf().get_y()[1]);
+  EXPECT_EQ(3, top_level_msg.get_rf().get_y()[2]);
+
+}
+
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage

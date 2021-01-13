@@ -85,6 +85,12 @@ TEST(OneofField, set_get_clear)
   msg.clear_z();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  msg.set_state(message_oneof::States::Run);
+  EXPECT_EQ(message_oneof::States::Run, msg.get_state());
+  EXPECT_EQ(message_oneof::id::STATE, msg.get_which_xyz());
+  msg.clear_state();
+
+  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
   msg.mutable_msg_ABC().set_varA(1);
@@ -316,4 +322,26 @@ TEST(OneofField, deserialize_oneof_msg)
   EXPECT_EQ(1, msg.get_msg_DEF().get_varD());
   EXPECT_EQ(22, msg.get_msg_DEF().get_varE());
   EXPECT_EQ(333, msg.get_msg_DEF().get_varF());
+}
+
+TEST(OneofField, nested_assign)
+{
+  // This test will call the assignement operator and set the union data correctly in the message
+  // which holds a nested message with oneof's.
+
+  InSequence s;
+  nested_oneof top_level_msg;
+
+  message_oneof nested_msg;
+  nested_msg.mutable_msg_ABC().set_varA(1);
+  nested_msg.mutable_msg_ABC().set_varB(22);
+  nested_msg.mutable_msg_ABC().set_varC(333);
+
+  top_level_msg.set_msg_oneof(nested_msg);
+
+  // Check the result.
+  EXPECT_EQ(message_oneof::id::MSG_ABC, top_level_msg.get_msg_oneof().get_which_message());
+  EXPECT_EQ(1, top_level_msg.get_msg_oneof().msg_ABC().varA());
+  EXPECT_EQ(22, top_level_msg.get_msg_oneof().msg_ABC().varB());
+  EXPECT_EQ(333, top_level_msg.get_msg_oneof().msg_ABC().varC());
 }

@@ -28,59 +28,18 @@
  *    the Netherlands
  */
 
-// This file is used to test oneof fields in messages.
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
-syntax = "proto3";
+#include "empty_message.h"
 
-message some_ABC
+namespace test_EmbeddedAMS_empty_messages
 {
-  int32 varA = 1;
-  int32 varB = 2;
-  int32 varC = 3;
+
+TEST(EmptyMessages, construction)
+{ 
+  // Test if using a message with no fields or enums cause build errors. 
+  empty_message empty;
 }
 
-message some_DEF
-{
-  int32 varD = 1;
-  int32 varE = 2;
-  int32 varF = 3;
-}
-
-message message_oneof 
-{
-  int32 a = 1;
-
-  enum States {
-    Idle = 0;
-    Run = 1;
-    Done = 2;
-    Error = 3;
-  }
-
-  oneof xyz 
-  {
-    int32 x = 5;
-    int32 y = 6;
-    int32 z = 7;
-    States state = 8;
-  }
-
-  int32 b = 10;
-
-  oneof uvw 
-  {
-    float u = 15;
-    float v = 16;
-    float w = 17;
-  }
-
-  oneof message 
-  {
-    some_ABC msg_ABC = 20;
-    some_DEF msg_DEF = 21;
-  }
-}
-
-message nested_oneof {
-  message_oneof msg_oneof = 1;
-}
+} // End of namespace test_EmbeddedAMS_empty_messages

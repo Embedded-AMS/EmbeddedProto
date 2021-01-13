@@ -51,13 +51,14 @@ namespace test_EmbeddedAMS_IncludeOtherFiles
 {
 
 static constexpr uint32_t RF_SIZE = 3;
+static constexpr uint32_t ARRAY_SIZE = 2;
 
 TEST(IncludeOtherFiles, zero) 
 {
   InSequence s;
 
   // See if an empty message results in no data been pushed.
-  ::IncludedMessages<RF_SIZE> msg;
+  ::IncludedMessages<RF_SIZE, ARRAY_SIZE> msg;
   Mocks::WriteBufferMock buffer;
 
   EXPECT_CALL(buffer, push(_)).Times(0);
@@ -73,7 +74,7 @@ TEST(IncludeOtherFiles, set)
 {
   InSequence s;
 
-  ::IncludedMessages<RF_SIZE> msg;
+  ::IncludedMessages<RF_SIZE, ARRAY_SIZE> msg;
   Mocks::WriteBufferMock buffer;
 
   msg.set_state(some::external::lib::CommonStates::StateA);
@@ -116,7 +117,7 @@ TEST(IncludeOtherFiles, get)
 {
   InSequence s;
 
-  ::IncludedMessages<RF_SIZE> msg;
+  ::IncludedMessages<RF_SIZE, ARRAY_SIZE> msg;
   Mocks::ReadBufferMock buffer;
   ON_CALL(buffer, get_size()).WillByDefault(Return(22));
 

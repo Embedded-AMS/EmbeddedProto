@@ -32,9 +32,11 @@
 
 syntax = "proto3";
 
+package demo.space;
+
 message message_a 
 {
-  int32 x   = 1;
+  repeated int32 x   = 1;
   float y   = 2;
   sint64 z  = 3;
 }
@@ -48,5 +50,11 @@ message message_b
 
 message message_c 
 {
+  message message_d
+  {
+    repeated uint32 d = 1;
+  }
+
   message_b nested_b = 1;
+  message_d nested_d = 2;
 }

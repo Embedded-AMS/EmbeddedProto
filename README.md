@@ -143,7 +143,7 @@ Various examples how to use and integrate Embedded in your project are given on 
 
 ## PC Unit Tests
 
-The unit tests for PC are mend to test the logic of Embedded Proto. The test are build upon the GTest and GMock libraries which are include as a submodule in this repository. 
+The unit tests for PC are meant to test the logic of Embedded Proto. The test are build upon the GTest and GMock libraries which are include as a submodule in this repository. 
 
 The tests are build using a small script in the root folder of the project:
 ```bash

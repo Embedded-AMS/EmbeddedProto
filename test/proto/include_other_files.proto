@@ -38,8 +38,13 @@ import "file_to_include.proto";
 // Import something with variable length
 import "repeated_fields.proto";
 
+// Import something from a subfolder.
+import "subfolder/file_to_include_from_subfolder.proto";
+
+
 message IncludedMessages {
   some.external.lib.CommonStates  state = 1;
   some.external.lib.CommonMessage msg   = 2;
   repeated_fields rf  = 3;
+  sub.package.other_folder_msg sub_msg = 4;
 }

@@ -37,7 +37,7 @@ namespace EmbeddedProto
   Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
     const uint32_t size_x = this->serialized_size();
-    bool result = (size_x < buffer.get_available_size());
+    bool result = (size_x <= buffer.get_available_size());
     Error return_value = result ? Error::NO_ERRORS : Error::BUFFER_FULL;
     if(result && (0 < size_x))
     {
