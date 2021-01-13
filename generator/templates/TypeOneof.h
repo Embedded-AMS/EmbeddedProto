@@ -91,6 +91,8 @@ void clear_{{_oneof.get_name()}}()
     case id::{{field.get_variable_id_name()}}:
       {% if field.oneof_allocation_required() %}
       {{field.get_variable_name()}}.~{{field.get_short_type()}}();
+	  {% elif field.of_type_enum %}
+	  {{field.get_variable_name()}} = {{field.get_default_value()}};
       {% else %}
       {{field.get_variable_name()}}.set(0);
       {% endif %}
