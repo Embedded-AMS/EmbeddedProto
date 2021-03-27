@@ -87,6 +87,7 @@ TEST(SimpleTypes, serialize_one)
   msg.set_a_fixed32(1);
   msg.set_a_sfixed32(1); 
   msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B);
 
   uint8_t expected[] = {0x08, 0x01, 
                         0x10, 0x01, 
@@ -101,7 +102,8 @@ TEST(SimpleTypes, serialize_one)
                         0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 
                         0x65, 0x01, 0x00, 0x00, 0x00, 
                         0x6d, 0x01, 0x00, 0x00, 0x00, 
-                        0x75, 0x00, 0x00, 0x80, 0x3f};
+                        0x75, 0x00, 0x00, 0x80, 0x3f,
+                        0x78, 0x01};
 
   for(auto e : expected) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -109,7 +111,7 @@ TEST(SimpleTypes, serialize_one)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
-  EXPECT_EQ(58, msg.serialized_size());
+  EXPECT_EQ(60, msg.serialized_size());
 }
 
 TEST(SimpleTypes, serialize_max) 
