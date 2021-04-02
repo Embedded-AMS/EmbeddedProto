@@ -468,4 +468,30 @@ TEST(SimpleTypes, deserialize_fault_end_of_buffer_bool)
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
 }
 
+TEST(SimpleTypes, deserialize_enum_beond_range)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(2));
+
+  ::Test_Simple_Types msg;
+
+  // This enum value is beond the range known to this code. Decodation should not fail. The value
+  // should however not match to any of the known enum values.
+  uint8_t referee[] = {0x78, 0x03}; 
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_A, msg.get_a_nested_enum());
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_B, msg.get_a_nested_enum());
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_C, msg.get_a_nested_enum());
+
+}
+
 } // End of namespace test_EmbeddedAMS_SimpleTypes
