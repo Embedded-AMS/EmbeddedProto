@@ -36,7 +36,8 @@ import nested_message_pb2 as nm
 import repeated_fields_pb2 as rf
 import oneof_fields_pb2 as of
 import file_to_include_pb2 as fti
-#import include_other_files_pb2 as iof
+import include_other_files_pb2 as iof
+from subfolder import file_to_include_from_subfolder_pb2 as ftis
 import string_bytes_pb2 as sb
 
 
@@ -276,6 +277,11 @@ def test_included_proto():
     msg.rf.y.append(1)
     msg.rf.z = 1
 
+    msg.sub_msg.val = 1
+    msg.sub_msg.array.append(1)
+    msg.sub_msg.array.append(1)
+    msg.sub_msg.ne = ftis.other_folder_msg.NE_B
+
     str = ""
     msg_str = msg.SerializeToString()
     print(len(msg_str))
@@ -287,7 +293,7 @@ def test_included_proto():
     print()
 
 
-test_simple_types()
+#test_simple_types()
 #test_repeated_fields()
 #test_repeated_message()
 #test_string()
@@ -295,5 +301,5 @@ test_simple_types()
 #test_repeated_string_bytes()
 #test_nested_message()
 #test_oneof_fields()
-#test_included_proto()
+test_included_proto()
 
