@@ -57,4 +57,12 @@ message Test_Simple_Types {
   fixed32     a_fixed32   = 12;
   sfixed32    a_sfixed32  = 13;
   float       a_float     = 14;
+
+  enum Nested_Enum {
+    NE_A = 0;
+    NE_B = 1;
+    NE_C = 2;
+  }
+
+  Nested_Enum a_nested_enum = 15;
 }

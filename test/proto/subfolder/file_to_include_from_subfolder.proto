@@ -37,5 +37,13 @@ package sub.package;
 message other_folder_msg {
   int32 val = 1;
   repeated int32 array = 2;
+
+  enum Nested_Enum {
+    NE_A = 0;
+    NE_B = 1;
+    NE_C = 2;
+  }
+
+  Nested_Enum ne = 3;
 }
 
