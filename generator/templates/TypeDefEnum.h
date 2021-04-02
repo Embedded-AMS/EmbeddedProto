@@ -27,7 +27,7 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-enum {{ typedef.name }}
+enum class {{ typedef.name }} : uint32_t
 {
   {% for value in typedef.values() %}
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
