@@ -49,7 +49,7 @@ namespace EmbeddedProto
         return_value = WireFormatter::SerializeVarint(size_x, buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          const ::EmbeddedProto::Field* base = static_cast<const ::EmbeddedProto::Field*>(this);  
+          const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
           return_value = base->serialize(buffer);
         }
       }

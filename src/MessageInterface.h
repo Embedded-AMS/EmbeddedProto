@@ -47,7 +47,7 @@ class MessageInterface : public ::EmbeddedProto::Field
 
     MessageInterface() = default;
 
-    virtual ~MessageInterface() = default;
+    ~MessageInterface() override = default;
 
     // TODO doc
     Error serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
@@ -56,7 +56,7 @@ class MessageInterface : public ::EmbeddedProto::Field
     /*!
         The defaults are to be set according to the Protobuf standard.
     */
-    virtual void clear() = 0;
+    void clear() override = 0;
 
 };
 

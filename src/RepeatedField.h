@@ -59,7 +59,7 @@ namespace EmbeddedProto
     public:
 
       RepeatedField() = default;
-      virtual ~RepeatedField() = default;
+      ~RepeatedField() override = default;
 
       //! Obtain the total number of DATA_TYPE items in the array.
       virtual uint32_t get_length() const = 0;
