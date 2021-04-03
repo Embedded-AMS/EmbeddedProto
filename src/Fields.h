@@ -68,7 +68,7 @@ namespace EmbeddedProto
   class FieldTemplate : public Field
   {
     public:
-      typedef TYPE FIELD_TYPE;
+      using FIELD_TYPE = TYPE;
 
       FieldTemplate() = default;
       FieldTemplate(const TYPE& v) : value_(v) { };
