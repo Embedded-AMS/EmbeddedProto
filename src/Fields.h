@@ -79,11 +79,18 @@ namespace EmbeddedProto
       void set(const TYPE&& v) { value_ = v; }
       void operator=(const TYPE& v) { value_ = v; }
       void operator=(const TYPE&& v) { value_ = v; }
+      void operator=(const FieldTemplate<TYPE>& ft) { value_ = ft.value_; }
+      void operator=(const FieldTemplate<TYPE>&& ft) { value_ = ft.value_; }
 
       const TYPE& get() const { return value_; }
       TYPE& get() { return value_; }
 
-      operator TYPE() const { return value_; }
+      //! This is the conversion operator. 
+      /*! 
+        Sonar would like this to be explicit but this is not practial in normal usage with other 
+        integer and floating point types.
+      */
+      operator TYPE() const { return value_; } //NOSONAR
 
       bool operator==(const TYPE& rhs) { return value_ == rhs; }
       bool operator!=(const TYPE& rhs) { return value_ != rhs; }
@@ -111,7 +118,6 @@ namespace EmbeddedProto
 
       TYPE value_;
   };
-
 
   class int32 : public FieldTemplate<int32_t> 
   { 
