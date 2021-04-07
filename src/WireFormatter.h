@@ -138,10 +138,10 @@ namespace EmbeddedProto
 
       //! Serialize an unsigned fixed length field without the tag.
       template<class UINT_TYPE>
-      static Error SerialzieFixedNoTag(UINT_TYPE value, WriteBufferInterface& buffer) 
+      static Error SerializeFixedNoTag(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
         static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerialzieFixedNoTag.");
+                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerializeFixedNoTag.");
 
         // Push the data little endian to the buffer.
         // TODO Define a little endian flag to support memcpy the data to the buffer.
@@ -165,7 +165,7 @@ namespace EmbeddedProto
 
         using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
 
-        return SerialzieFixedNoTag(static_cast<UINT_TYPE>(value), buffer);
+        return SerializeFixedNoTag(static_cast<UINT_TYPE>(value), buffer);
       }
 
       //! Serialize a 32bit real value without tag.
@@ -174,7 +174,7 @@ namespace EmbeddedProto
         // Cast the type to void and to a 32 fixed number
         auto* pVoid = static_cast<void*>(&value);
         auto* fixed = static_cast<uint32_t*>(pVoid);
-        return SerialzieFixedNoTag(*fixed, buffer);
+        return SerializeFixedNoTag(*fixed, buffer);
       }
 
       //! Serialize a 64bit real value without tag.
@@ -183,7 +183,7 @@ namespace EmbeddedProto
         // Cast the type to void and to a 64 fixed number
         auto* pVoid = static_cast<void*>(&value);
         auto* fixed = static_cast<uint64_t*>(pVoid);
-        return SerialzieFixedNoTag(*fixed, buffer);
+        return SerializeFixedNoTag(*fixed, buffer);
       }
       /** @} **/
 
@@ -231,7 +231,7 @@ namespace EmbeddedProto
         Error return_value = SerializeVarint(MakeTag(field_number, WireType::FIXED32), buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          return_value = SerialzieFixedNoTag(value, buffer);
+          return_value = SerializeFixedNoTag(value, buffer);
         }
         return return_value;
       }
@@ -241,7 +241,7 @@ namespace EmbeddedProto
         Error return_value = SerializeVarint(MakeTag(field_number, WireType::FIXED64), buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          return_value = SerialzieFixedNoTag(value, buffer);
+          return_value = SerializeFixedNoTag(value, buffer);
         }
         return return_value;
       }
@@ -424,7 +424,7 @@ namespace EmbeddedProto
         static_assert(std::is_same<STYPE, int32_t>::value || 
                       std::is_same<STYPE, int64_t>::value, "Wrong type passed to DeserializeSFixed.");
 
-        using USTYPE = std::make_unsigned_t<STYPE>;
+        using USTYPE =std::make_unsigned_t<STYPE>;
         USTYPE temp_unsigned_value = 0;
         Error result = DeserializeFixed(buffer, temp_unsigned_value);
         if(Error::NO_ERRORS == result)
