@@ -59,6 +59,8 @@ TEST(getters_setters_fields, comparison)
   EmbeddedProto::floatfixed c(0.5F);
 
   EXPECT_TRUE(a == 1);
+  EXPECT_TRUE(1 == a);
+
   EXPECT_TRUE(a != 0);
   EXPECT_TRUE(a > 0);
   EXPECT_TRUE(a < 2);

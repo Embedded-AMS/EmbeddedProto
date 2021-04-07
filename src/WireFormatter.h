@@ -172,8 +172,8 @@ namespace EmbeddedProto
       static Error SerialzieFloatNoTag(float value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 32 fixed number
-        void* pVoid = static_cast<void*>(&value);
-        uint32_t* fixed = static_cast<uint32_t*>(pVoid);
+        auto* pVoid = static_cast<void*>(&value);
+        auto* fixed = static_cast<uint32_t*>(pVoid);
         return SerialzieFixedNoTag(*fixed, buffer);
       }
 
@@ -181,8 +181,8 @@ namespace EmbeddedProto
       static Error SerialzieDoubleNoTag(double value, WriteBufferInterface& buffer)
       {
         // Cast the type to void and to a 64 fixed number
-        void* pVoid = static_cast<void*>(&value);
-        uint64_t* fixed = static_cast<uint64_t*>(pVoid);
+        auto* pVoid = static_cast<void*>(&value);
+        auto* fixed = static_cast<uint64_t*>(pVoid);
         return SerialzieFixedNoTag(*fixed, buffer);
       }
       /** @} **/
@@ -442,8 +442,8 @@ namespace EmbeddedProto
         if(Error::NO_ERRORS == result) 
         {
           // Cast from unsigned int to a float.
-          const void* pVoid = static_cast<const void*>(&temp_value);
-          const float* pFloat = static_cast<const float*>(pVoid);
+          const auto* pVoid = static_cast<const void*>(&temp_value);
+          const auto* pFloat = static_cast<const float*>(pVoid);
           value = *pFloat;
         }
         return result;
@@ -456,8 +456,8 @@ namespace EmbeddedProto
         if(Error::NO_ERRORS == result) 
         {
           // Cast from unsigned int to a double.
-          const void* pVoid = static_cast<const void*>(&temp_value);
-          const double* pDouble = static_cast<const double*>(pVoid);
+          const auto* pVoid = static_cast<const void*>(&temp_value);
+          const auto* pDouble = static_cast<const double*>(pVoid);
           value = *pDouble;
         }
         return result;
@@ -535,7 +535,7 @@ namespace EmbeddedProto
         
         // Calculate how many bytes there are in a varint 128 base encoded number. This should 
         // yield 5 for a 32bit number and 10 for a 64bit number.
-        static constexpr uint8_t N_BYTES_IN_VARINT = static_cast<uint8_t>(constexpr_ceil(
+        static constexpr auto N_BYTES_IN_VARINT = static_cast<uint8_t>(constexpr_ceil(
                                                           std::numeric_limits<UINT_TYPE>::digits 
                                                         / static_cast<float>(VARINT_SHIFT_N_BITS)));
         
