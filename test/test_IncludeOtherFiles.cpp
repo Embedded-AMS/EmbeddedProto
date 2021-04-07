@@ -90,6 +90,11 @@ TEST(IncludeOtherFiles, set)
   msg.mutable_rf().add_y(1);
   msg.mutable_rf().set_z(1);
 
+  msg.mutable_sub_msg().set_val(1);
+  msg.mutable_sub_msg().add_array(1);
+  msg.mutable_sub_msg().add_array(1);
+  msg.mutable_sub_msg().set_ne(::sub::package::other_folder_msg<ARRAY_SIZE>::Nested_Enum::NE_B);
+
 
   ON_CALL(buffer, get_available_size()).WillByDefault(Return(99));
 
@@ -102,7 +107,12 @@ TEST(IncludeOtherFiles, set)
                          0x1a, 0x09, 
                          0x08, 0x01, // rf.x
                          0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
-                         0x18, 0x01}; // rf.z
+                         0x18, 0x01, // rf.z
+                         // sub_msg
+                         0x22, 0x08, 
+                         0x08, 0x01, 
+                         0x12, 0x02, 0x01, 0x01,
+                         0x18, 0x01};
 
   for(auto e : expected) 
   {
@@ -119,7 +129,7 @@ TEST(IncludeOtherFiles, get)
 
   ::IncludedMessages<RF_SIZE, ARRAY_SIZE> msg;
   Mocks::ReadBufferMock buffer;
-  ON_CALL(buffer, get_size()).WillByDefault(Return(22));
+  ON_CALL(buffer, get_size()).WillByDefault(Return(32));
 
   uint8_t referee[] = { 0x08, 0x01, // state
                        // cmsg
@@ -130,7 +140,12 @@ TEST(IncludeOtherFiles, get)
                        0x1a, 0x09, 
                        0x08, 0x01, // rf.x
                        0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
-                       0x18, 0x01}; // rf.z
+                       0x18, 0x01, // rf.z
+                       // sub_msg
+                       0x22, 0x08, 
+                       0x08, 0x01, 
+                       0x12, 0x02, 0x01, 0x01,
+                       0x18, 0x01};
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));

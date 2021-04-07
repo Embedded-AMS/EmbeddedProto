@@ -270,7 +270,7 @@ TEST(OneofField, deserialize_second_oneof)
   EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(message_oneof::id::V, msg.get_which_uvw());
-  EXPECT_EQ(1.0, msg.get_y());
+  EXPECT_EQ(1, msg.get_y());
 }
 
 TEST(OneofField, serialize_oneof_msg) 

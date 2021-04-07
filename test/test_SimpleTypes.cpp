@@ -87,6 +87,7 @@ TEST(SimpleTypes, serialize_one)
   msg.set_a_fixed32(1);
   msg.set_a_sfixed32(1); 
   msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B);
 
   uint8_t expected[] = {0x08, 0x01, 
                         0x10, 0x01, 
@@ -101,7 +102,8 @@ TEST(SimpleTypes, serialize_one)
                         0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 
                         0x65, 0x01, 0x00, 0x00, 0x00, 
                         0x6d, 0x01, 0x00, 0x00, 0x00, 
-                        0x75, 0x00, 0x00, 0x80, 0x3f};
+                        0x75, 0x00, 0x00, 0x80, 0x3f,
+                        0x78, 0x01};
 
   for(auto e : expected) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -109,7 +111,7 @@ TEST(SimpleTypes, serialize_one)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
-  EXPECT_EQ(58, msg.serialized_size());
+  EXPECT_EQ(60, msg.serialized_size());
 }
 
 TEST(SimpleTypes, serialize_max) 
@@ -464,6 +466,32 @@ TEST(SimpleTypes, deserialize_fault_end_of_buffer_bool)
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
 
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+}
+
+TEST(SimpleTypes, deserialize_enum_beond_range)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  ON_CALL(buffer, get_size()).WillByDefault(Return(2));
+
+  ::Test_Simple_Types msg;
+
+  // This enum value is beond the range known to this code. Decodation should not fail. The value
+  // should however not match to any of the known enum values.
+  uint8_t referee[] = {0x78, 0x03}; 
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_A, msg.get_a_nested_enum());
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_B, msg.get_a_nested_enum());
+  EXPECT_NE(::Test_Simple_Types::Nested_Enum::NE_C, msg.get_a_nested_enum());
+
 }
 
 } // End of namespace test_EmbeddedAMS_SimpleTypes

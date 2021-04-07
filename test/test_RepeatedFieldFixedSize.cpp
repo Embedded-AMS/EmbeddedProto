@@ -95,14 +95,14 @@ TEST(RepeatedFieldFixedSize, get)
   // Set the second element
   x.get(1) = 1;
   EXPECT_EQ(2, x.get_length());
-  EXPECT_EQ(0, x.get_const(0));
-  EXPECT_EQ(1, x.get_const(1));
+  EXPECT_EQ(0U, x.get_const(0));
+  EXPECT_EQ(1U, x.get_const(1));
 
   // When going out of bound the last element should be returned.
-  EXPECT_EQ(0, x.get_const(2));
+  EXPECT_EQ(0U, x.get_const(2));
   x.get(3) = 3;
-  EXPECT_EQ(3, x.get_const(2));
-  EXPECT_EQ(3, x.get_const(3));
+  EXPECT_EQ(3U, x.get_const(2));
+  EXPECT_EQ(3U, x.get_const(3));
 }
 
 TEST(RepeatedFieldFixedSize, set_data_array) 
@@ -133,14 +133,14 @@ TEST(RepeatedFieldFixedSize, set_element)
 
   // First add a value in the middle and see if we have a size of two.
   x.set(1, 2);
-  EXPECT_EQ(2, x.get_const(1));
-  EXPECT_EQ(2, x.get_length());
+  EXPECT_EQ(2U, x.get_const(1));
+  EXPECT_EQ(2U, x.get_length());
 
   x.set(0, 1);
-  EXPECT_EQ(1, x.get_const(0));
+  EXPECT_EQ(1U, x.get_const(0));
 
   x.set(2, 3);
-  EXPECT_EQ(3, x.get_const(2));
+  EXPECT_EQ(3U, x.get_const(2));
 }
 
 TEST(RepeatedFieldFixedSize, clear) 

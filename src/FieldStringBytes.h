@@ -62,7 +62,7 @@ namespace EmbeddedProto
 
         }
 
-        virtual ~FieldStringBytes()
+        ~FieldStringBytes() override
         {
           clear();
         }

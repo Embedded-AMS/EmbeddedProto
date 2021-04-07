@@ -78,7 +78,8 @@ class ProtoFile:
 
     # Obtain a dictionary with references to all nested enums and messages
     def get_all_nested_types(self):
-        nested_types = {"enums": self.enum_definitions, "messages": []}
+        nested_types = {"enums": [], "messages": []}
+        nested_types["enums"].extend(self.enum_definitions)
         for msg in self.msg_definitions:
             nt = msg.get_all_nested_types()
             nested_types["enums"].extend(nt["enums"])

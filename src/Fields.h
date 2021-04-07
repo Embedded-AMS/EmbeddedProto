@@ -68,22 +68,40 @@ namespace EmbeddedProto
   class FieldTemplate : public Field
   {
     public:
-      typedef TYPE FIELD_TYPE;
+      using FIELD_TYPE = TYPE;
 
       FieldTemplate() = default;
-      FieldTemplate(const TYPE& v) : value_(v) { };
-      FieldTemplate(const TYPE&& v) : value_(v) { };
+      explicit FieldTemplate(const TYPE& v) : value_(v) { };
+      explicit FieldTemplate(const TYPE&& v) : value_(v) { };
+      explicit FieldTemplate(const FieldTemplate<TYPE>& ft) : value_(ft.value_) { };
       ~FieldTemplate() override = default;
 
       void set(const TYPE& v) { value_ = v; }      
       void set(const TYPE&& v) { value_ = v; }
+      void set(const FieldTemplate<TYPE>& ft) { value_ = ft.value_; }
+      void set(const FieldTemplate<TYPE>&& ft) { value_ = ft.value_; }
       void operator=(const TYPE& v) { value_ = v; }
       void operator=(const TYPE&& v) { value_ = v; }
+      FieldTemplate<TYPE>& operator=(const FieldTemplate<TYPE>& ft)
+      { 
+        value_ = ft.value_; 
+        return *this; 
+      }
+      FieldTemplate<TYPE>& operator=(const FieldTemplate<TYPE>&& ft) noexcept
+      { 
+        value_ = ft.value_;
+        return *this;
+      }
 
       const TYPE& get() const { return value_; }
       TYPE& get() { return value_; }
 
-      operator TYPE() const { return value_; }
+      //! This is the conversion operator. 
+      /*! 
+        Sonar would like this to be explicit but this is not practial in normal usage with other 
+        integer and floating point types.
+      */
+      operator TYPE() const { return value_; } //NOSONAR
 
       bool operator==(const TYPE& rhs) { return value_ == rhs; }
       bool operator!=(const TYPE& rhs) { return value_ != rhs; }
@@ -111,7 +129,6 @@ namespace EmbeddedProto
 
       TYPE value_;
   };
-
 
   class int32 : public FieldTemplate<int32_t> 
   { 
