@@ -52,6 +52,22 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}::FIELD_TYPE&& va
   }
   {{field.get_variable_name()}}.set(value);
 }
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
+{
+  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  {
+    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+  }
+  {{field.get_variable_name()}} = value;
+}
+inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+{
+  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  {
+    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+  }
+  {{field.get_variable_name()}} = value;
+}
 {% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{field.get_variable_name()}} = value; }

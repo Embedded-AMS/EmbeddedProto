@@ -71,12 +71,15 @@ namespace EmbeddedProto
       using FIELD_TYPE = TYPE;
 
       FieldTemplate() = default;
-      FieldTemplate(const TYPE& v) : value_(v) { };
-      FieldTemplate(const TYPE&& v) : value_(v) { };
+      explicit FieldTemplate(const TYPE& v) : value_(v) { };
+      explicit FieldTemplate(const TYPE&& v) : value_(v) { };
+      explicit FieldTemplate(const FieldTemplate<TYPE>& ft) : value_(ft.value_) { };
       ~FieldTemplate() override = default;
 
       void set(const TYPE& v) { value_ = v; }      
       void set(const TYPE&& v) { value_ = v; }
+      void set(const FieldTemplate<TYPE>& ft) { value_ = ft.value_; }
+      void set(const FieldTemplate<TYPE>&& ft) { value_ = ft.value_; }
       void operator=(const TYPE& v) { value_ = v; }
       void operator=(const TYPE&& v) { value_ = v; }
       void operator=(const FieldTemplate<TYPE>& ft) { value_ = ft.value_; }
