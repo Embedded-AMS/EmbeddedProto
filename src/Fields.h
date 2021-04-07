@@ -82,8 +82,16 @@ namespace EmbeddedProto
       void set(const FieldTemplate<TYPE>&& ft) { value_ = ft.value_; }
       void operator=(const TYPE& v) { value_ = v; }
       void operator=(const TYPE&& v) { value_ = v; }
-      void operator=(const FieldTemplate<TYPE>& ft) { value_ = ft.value_; }
-      void operator=(const FieldTemplate<TYPE>&& ft) { value_ = ft.value_; }
+      FieldTemplate<TYPE>& operator=(const FieldTemplate<TYPE>& ft)
+      { 
+        value_ = ft.value_; 
+        return *this; 
+      }
+      FieldTemplate<TYPE>& operator=(const FieldTemplate<TYPE>&& ft) noexcept
+      { 
+        value_ = ft.value_;
+        return *this;
+      }
 
       const TYPE& get() const { return value_; }
       TYPE& get() { return value_; }
