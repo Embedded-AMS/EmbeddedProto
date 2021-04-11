@@ -416,6 +416,44 @@ TEST(RepeatedStringBytes, get_set)
   EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3");
 }
 
+TEST(RepeatedStringBytes, assign_msg) 
+{ 
+  repeated_string_bytes<3, 15, 3, 15> msgA;
+  repeated_string_bytes<3, 15, 3, 15> msgB;
+
+  ::EmbeddedProto::FieldString<15> str;
+  msgA.add_array_of_txt(str);
+  msgA.mutable_array_of_txt(0) = "Foo bar 1";
+  msgA.add_array_of_txt(str);
+  msgA.mutable_array_of_txt(1) = "Foo bar 2";
+
+  str = "Foo bar 3";
+  msgA.add_array_of_txt(str);
+
+
+  ::EmbeddedProto::FieldBytes<15> bytes;
+  bytes[0] = 1;
+  msgA.add_array_of_bytes(bytes);
+  bytes[1] = 2;
+  msgA.add_array_of_bytes(bytes);
+   
+  msgB = msgA;
+
+  EXPECT_EQ(3, msgB.array_of_txt().get_length());
+  EXPECT_EQ(2, msgB.array_of_bytes().get_length());
+  EXPECT_STREQ(msgB.array_of_txt(0).get_const(), "Foo bar 1");
+  EXPECT_STREQ(msgB.array_of_txt(1).get_const(), "Foo bar 2");
+  EXPECT_STREQ(msgB.array_of_txt(2).get_const(), "Foo bar 3");
+
+  EXPECT_EQ(1, msgB.array_of_bytes()[0].get_length());
+  EXPECT_EQ(1, msgB.array_of_bytes()[0][0]);
+
+  EXPECT_EQ(2, msgB.array_of_bytes()[1].get_length());
+  EXPECT_EQ(1, msgB.array_of_bytes()[1][0]);
+  EXPECT_EQ(2, msgB.array_of_bytes()[1][1]); 
+
+
+}
 
 TEST(RepeatedStringBytes, serialize) 
 { 

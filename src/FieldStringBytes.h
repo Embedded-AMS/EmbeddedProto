@@ -146,6 +146,7 @@ namespace EmbeddedProto
         Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
         {
           memcpy(data_, rhs.data_, MAX_LENGTH);
+          current_length_ = rhs.current_length_;
           return Error::NO_ERRORS;
         }
 
