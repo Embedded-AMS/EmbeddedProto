@@ -197,6 +197,19 @@ TEST(FieldBytes, set_get)
   EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.mutable_b().set(big_array, 11));
 }
 
+TEST(FieldBytes, assign_msg) 
+{
+  raw_bytes<10> msgA;
+  raw_bytes<10> msgB;
+  const uint8_t data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  msgA.mutable_b().set(data, 10);
+  msgB = msgA;
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    EXPECT_EQ(data[i], msgB.get_b()[i]);
+  }
+}
+
 TEST(FieldBytes, clear)
 {
   raw_bytes<10> msg;  
@@ -312,6 +325,19 @@ TEST(FieldBytes, oneof_clear)
   msg.mutable_b().set(array, 2);
   msg.clear();
   EXPECT_EQ(0, msg.get_b().get_length());
+}
+
+TEST(FieldString, oneof_assign)
+{ 
+  string_or_bytes<10, 10> msgA;
+  string_or_bytes<10, 10> msgB;
+
+  msgA.mutable_txt() = "Foo Bar";
+  msgB = msgA;
+
+  auto id = string_or_bytes<10, 10>::id::TXT;
+  EXPECT_EQ(id, msgB.get_which_s_or_b());
+  EXPECT_STREQ(msgB.txt(), "Foo Bar");
 }
 
 TEST(FieldBytes, oneof_serialize)

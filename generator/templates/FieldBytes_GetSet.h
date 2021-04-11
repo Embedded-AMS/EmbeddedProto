@@ -44,9 +44,18 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}()
   }
   return {{field.get_variable_name()}};
 }
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs)
+{
+  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  {
+    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+  }
+  {{field.get_variable_name()}}.set(rhs);
+}
 {% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs) { {{field.get_variable_name()}}.set(rhs); }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
 inline const uint8_t* {{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }
