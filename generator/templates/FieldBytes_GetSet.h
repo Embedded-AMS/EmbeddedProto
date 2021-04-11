@@ -48,5 +48,5 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
 {% endif %}
-inline const {{field.get_type()}}& {{field.get_name()}}() const { return {{field.get_variable_name()}}; }
-inline const uint8_t* get_{{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }
+inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+inline const uint8_t* {{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }
