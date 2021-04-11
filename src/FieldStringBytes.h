@@ -125,6 +125,38 @@ namespace EmbeddedProto
         const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
 
+        //! Assign the values in the right hand side FieldStringBytes object to this object.
+        /*!
+            This is only compatible with the same data type and length.
+            \param[in] rhs The object from which to copy the data.
+            \return A reference to this object.
+        */
+        FieldStringBytes<MAX_LENGTH, DATA_TYPE>& operator=(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        {
+          this->set(rhs);
+          return *this;
+        }
+
+        //! Assign the values in the right hand side FieldStringBytes object to this object.
+        /*!
+            This is only compatible with the same data type and length.
+            \param[in] rhs The object from which to copy the data.
+            \return Always return NO_ERRORS, this was added to be compadible with the other set function.
+        */
+        Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        {
+          memcpy(data_, rhs.data_, MAX_LENGTH);
+          current_length_ = rhs.current_length_;
+          return Error::NO_ERRORS;
+        }
+
+        
+        //! Assign data in the given array to this object.
+        /*!
+            \param[in] data A pointer to an array with data.
+            \param[in] length The number of bytes/chars in the data array.
+            \return Will return ARRAY_FULL when length exceeds the number of bytes/chars in this object.
+        */        
         Error set(const DATA_TYPE* data, const uint32_t length)
         {
           Error return_value = Error::NO_ERRORS;
@@ -233,6 +265,7 @@ namespace EmbeddedProto
 
   } // End of namespace internal
 
+  //! The class definition used in messages for String fields.
   template<uint32_t MAX_LENGTH>
   class FieldString : public internal::FieldStringBytes<MAX_LENGTH, char>
   {
@@ -254,6 +287,7 @@ namespace EmbeddedProto
       }
   };
 
+  //! The class definition used in messages for Bytes fields.
   template<uint32_t MAX_LENGTH>
   class FieldBytes : public internal::FieldStringBytes<MAX_LENGTH, uint8_t>
   {

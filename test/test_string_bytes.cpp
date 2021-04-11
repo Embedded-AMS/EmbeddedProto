@@ -56,14 +56,14 @@ TEST(FieldString, clear)
   
   // Clear the field specific.
   msg.mutable_txt() = "Foo Bar";
-  EXPECT_EQ(7, msg.txt().get_length());
+  EXPECT_EQ(7, msg.get_txt().get_length());
   msg.clear_txt();
-  EXPECT_EQ(0, msg.txt().get_length());
+  EXPECT_EQ(0, msg.get_txt().get_length());
 
   // Clear the whole message.
   msg.mutable_txt() = "Foo Bar";
   msg.clear();
-  EXPECT_EQ(0, msg.txt().get_length());
+  EXPECT_EQ(0, msg.get_txt().get_length());
 }
 
 TEST(FieldString, serialize) 
@@ -86,7 +86,7 @@ TEST(FieldString, serialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
-  EXPECT_EQ(10, msg.txt().get_max_length());
+  EXPECT_EQ(10, msg.get_txt().get_max_length());
 }
 
 TEST(FieldString, deserialize) 
@@ -106,8 +106,8 @@ TEST(FieldString, deserialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
-  EXPECT_EQ(7, msg.txt().get_length());
-  EXPECT_STREQ(msg.get_txt(), "Foo bar");
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
 TEST(FieldString, deserialize_error_invalid_wiretype) 
@@ -120,7 +120,7 @@ TEST(FieldString, deserialize_error_invalid_wiretype)
   // The first byte is an invalid wiretype
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
   EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(buffer));
-  EXPECT_EQ(0, msg.txt().get_length());
+  EXPECT_EQ(0, msg.get_txt().get_length());
 }
 
 TEST(FieldString, oneof_serialize)
@@ -143,7 +143,7 @@ TEST(FieldString, oneof_serialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
-  EXPECT_EQ(10, msg.txt().get_max_length());
+  EXPECT_EQ(10, msg.get_txt().get_max_length());
 }
 
 TEST(FieldString, oneof_deserialize) 
@@ -163,38 +163,51 @@ TEST(FieldString, oneof_deserialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
-  EXPECT_EQ(7, msg.txt().get_length());
-  EXPECT_STREQ(msg.get_txt(), "Foo bar");
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
 TEST(FieldBytes, set_get)
 {
   raw_bytes<10> msg;
   msg.mutable_b()[0] = 1;
-  EXPECT_EQ(1, msg.b().get_length());
-  EXPECT_EQ(1, msg.b().get_const(0));
+  EXPECT_EQ(1, msg.get_b().get_length());
+  EXPECT_EQ(1, msg.get_b().get_const(0));
 
   msg.clear();
-  EXPECT_EQ(0, msg.b().get_length());
-  EXPECT_EQ(0, msg.b().get_const(0));
+  EXPECT_EQ(0, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_const(0));
 
   msg.mutable_b()[1] = 2;
-  EXPECT_EQ(2, msg.b().get_length());
-  EXPECT_EQ(0, msg.b().get_const(0));
-  EXPECT_EQ(2, msg.b().get_const(1));
+  EXPECT_EQ(2, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_const(0));
+  EXPECT_EQ(2, msg.get_b().get_const(1));
 
   // Check index out of bound will return the last element.
   msg.mutable_b()[10] = 11; // max index should be 9.
   // The last element should be changed
-  EXPECT_EQ(10, msg.b().get_length());
-  EXPECT_EQ(11, msg.b().get_const(9));
+  EXPECT_EQ(10, msg.get_b().get_length());
+  EXPECT_EQ(11, msg.get_b().get_const(9));
   // Check this function out of bound aswell.
-  EXPECT_EQ(11, msg.b().get_const(10));
+  EXPECT_EQ(11, msg.get_b().get_const(10));
 
   // Try to set more bytes compared to what will fit.
   uint8_t big_array[11] = {0};
   big_array[10] = 11;
   EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.mutable_b().set(big_array, 11));
+}
+
+TEST(FieldBytes, assign_msg) 
+{
+  raw_bytes<10> msgA;
+  raw_bytes<10> msgB;
+  const uint8_t data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  msgA.mutable_b().set(data, 10);
+  msgB = msgA;
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    EXPECT_EQ(data[i], msgB.get_b()[i]);
+  }
 }
 
 TEST(FieldBytes, clear)
@@ -205,14 +218,14 @@ TEST(FieldBytes, clear)
 
   // Clear the field specific.
   msg.mutable_b().set(array, 2);
-  EXPECT_EQ(2, msg.b().get_length());
+  EXPECT_EQ(2, msg.get_b().get_length());
   msg.clear_b();
-  EXPECT_EQ(0, msg.b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_length());
 
   // Clear the whole message.
   msg.mutable_b().set(array, 2);
   msg.clear();
-  EXPECT_EQ(0, msg.b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_length());
 }
 
 TEST(FieldBytes, serialize)
@@ -235,7 +248,7 @@ TEST(FieldBytes, serialize)
   EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
-  EXPECT_EQ(10, msg.b().get_max_length());
+  EXPECT_EQ(10, msg.get_b().get_max_length());
 }
 
 TEST(FieldBytes, deserialize) 
@@ -255,11 +268,11 @@ TEST(FieldBytes, deserialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
-  EXPECT_EQ(4, msg.b().get_length());
-  EXPECT_EQ(1, msg.b()[0]);
-  EXPECT_EQ(2, msg.b()[1]);
-  EXPECT_EQ(3, msg.b()[2]);
-  EXPECT_EQ(0, msg.b()[3]);
+  EXPECT_EQ(4, msg.get_b().get_length());
+  EXPECT_EQ(1, msg.get_b()[0]);
+  EXPECT_EQ(2, msg.get_b()[1]);
+  EXPECT_EQ(3, msg.get_b()[2]);
+  EXPECT_EQ(0, msg.get_b()[3]);
 }
 
 TEST(FieldBytes, deserialize_error_invalid_wiretype) 
@@ -272,7 +285,7 @@ TEST(FieldBytes, deserialize_error_invalid_wiretype)
   // The first byte is an invalid wiretype
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
   EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(buffer));
-  EXPECT_EQ(0, msg.b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_length());
 }
 
 TEST(FieldBytes, oneof_set_get)
@@ -282,7 +295,7 @@ TEST(FieldBytes, oneof_set_get)
   
   auto id = string_or_bytes<10, 10>::id::TXT;
   EXPECT_EQ(id, msg.get_which_s_or_b());
-  EXPECT_STREQ(msg.get_txt(), "Foo Bar");
+  EXPECT_STREQ(msg.txt(), "Foo Bar");
 
   // Switch to the array
   uint8_t array[] = {1, 2, 3, 4, 5};
@@ -304,14 +317,27 @@ TEST(FieldBytes, oneof_clear)
 
   // Clear the field specific.
   msg.mutable_b().set(array, 2);
-  EXPECT_EQ(2, msg.b().get_length());
+  EXPECT_EQ(2, msg.get_b().get_length());
   msg.clear_b();
-  EXPECT_EQ(0, msg.b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_length());
 
   // Clear the whole message.
   msg.mutable_b().set(array, 2);
   msg.clear();
-  EXPECT_EQ(0, msg.b().get_length());
+  EXPECT_EQ(0, msg.get_b().get_length());
+}
+
+TEST(FieldString, oneof_assign)
+{ 
+  string_or_bytes<10, 10> msgA;
+  string_or_bytes<10, 10> msgB;
+
+  msgA.mutable_txt() = "Foo Bar";
+  msgB = msgA;
+
+  auto id = string_or_bytes<10, 10>::id::TXT;
+  EXPECT_EQ(id, msgB.get_which_s_or_b());
+  EXPECT_STREQ(msgB.txt(), "Foo Bar");
 }
 
 TEST(FieldBytes, oneof_serialize)
@@ -335,7 +361,7 @@ TEST(FieldBytes, oneof_serialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
-  EXPECT_EQ(10, msg.txt().get_max_length());
+  EXPECT_EQ(10, msg.get_txt().get_max_length());
 }
 
 TEST(FieldBytes, oneof_deserialize) 
@@ -355,11 +381,11 @@ TEST(FieldBytes, oneof_deserialize)
 
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
-  EXPECT_EQ(4, msg.b().get_length());
-  EXPECT_EQ(1, msg.b()[0]);
-  EXPECT_EQ(2, msg.b()[1]);
-  EXPECT_EQ(3, msg.b()[2]);
-  EXPECT_EQ(0, msg.b()[3]);
+  EXPECT_EQ(4, msg.get_b().get_length());
+  EXPECT_EQ(1, msg.get_b()[0]);
+  EXPECT_EQ(2, msg.get_b()[1]);
+  EXPECT_EQ(3, msg.get_b()[2]);
+  EXPECT_EQ(0, msg.get_b()[3]);
 }
 
 TEST(RepeatedStringBytes, empty) 
@@ -390,6 +416,44 @@ TEST(RepeatedStringBytes, get_set)
   EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3");
 }
 
+TEST(RepeatedStringBytes, assign_msg) 
+{ 
+  repeated_string_bytes<3, 15, 3, 15> msgA;
+  repeated_string_bytes<3, 15, 3, 15> msgB;
+
+  ::EmbeddedProto::FieldString<15> str;
+  msgA.add_array_of_txt(str);
+  msgA.mutable_array_of_txt(0) = "Foo bar 1";
+  msgA.add_array_of_txt(str);
+  msgA.mutable_array_of_txt(1) = "Foo bar 2";
+
+  str = "Foo bar 3";
+  msgA.add_array_of_txt(str);
+
+
+  ::EmbeddedProto::FieldBytes<15> bytes;
+  bytes[0] = 1;
+  msgA.add_array_of_bytes(bytes);
+  bytes[1] = 2;
+  msgA.add_array_of_bytes(bytes);
+   
+  msgB = msgA;
+
+  EXPECT_EQ(3, msgB.array_of_txt().get_length());
+  EXPECT_EQ(2, msgB.array_of_bytes().get_length());
+  EXPECT_STREQ(msgB.array_of_txt(0).get_const(), "Foo bar 1");
+  EXPECT_STREQ(msgB.array_of_txt(1).get_const(), "Foo bar 2");
+  EXPECT_STREQ(msgB.array_of_txt(2).get_const(), "Foo bar 3");
+
+  EXPECT_EQ(1, msgB.array_of_bytes()[0].get_length());
+  EXPECT_EQ(1, msgB.array_of_bytes()[0][0]);
+
+  EXPECT_EQ(2, msgB.array_of_bytes()[1].get_length());
+  EXPECT_EQ(1, msgB.array_of_bytes()[1][0]);
+  EXPECT_EQ(2, msgB.array_of_bytes()[1][1]); 
+
+
+}
 
 TEST(RepeatedStringBytes, serialize) 
 { 
