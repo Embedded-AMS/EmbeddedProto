@@ -249,7 +249,7 @@ namespace EmbeddedProto
         //! Reset the field to it's initial value.
         void clear() override 
         { 
-          memset(data_, 0, current_length_);
+          memset(data_, 0, MAX_LENGTH);
           current_length_ = 0; 
         }
     
