@@ -64,6 +64,11 @@ TEST(FieldString, clear)
   msg.mutable_txt() = "Foo Bar";
   msg.clear();
   EXPECT_EQ(0, msg.get_txt().get_length());
+
+  // Assign a nullptr to clear.
+  msg.mutable_txt() = "Foo Bar";
+  msg.mutable_txt() = nullptr;
+  EXPECT_EQ(0, msg.get_txt().get_length());
 }
 
 TEST(FieldString, serialize) 

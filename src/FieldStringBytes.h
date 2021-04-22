@@ -273,17 +273,23 @@ namespace EmbeddedProto
       FieldString() = default;
       virtual ~FieldString() = default;
 
-      void operator=(const char* const &&rhs)
+      FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
       {
-        const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-        this->current_length_ = std::min(rhs_MAX_LENGTH, MAX_LENGTH);
-        strncpy(this->data_, rhs, this->current_length_);
+        if(nullptr != rhs) {
+          const uint32_t rhs_MAX_LENGTH = strlen(rhs);
+          this->current_length_ = std::min(rhs_MAX_LENGTH, MAX_LENGTH);
+          strncpy(this->data_, rhs, this->current_length_);
 
-        // Make sure the string is null terminated.
-        if(MAX_LENGTH > this->current_length_)
-        {
-          this->data_[this->current_length_] = 0;
+          // Make sure the string is null terminated.
+          if(MAX_LENGTH > this->current_length_)
+          {
+            this->data_[this->current_length_] = 0;
+          }
         }
+        else {
+          this->clear();
+        }
+        return *this;
       }
   };
 
