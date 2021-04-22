@@ -87,7 +87,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
     {% endfor %}
 
-    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
+    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const override
     {
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
 
@@ -112,7 +112,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
-    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
     {
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
       ::EmbeddedProto::WireFormatter::WireType wire_type;
@@ -163,7 +163,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
-    void clear() final
+    void clear() override
     {
       {% for field in typedef.fields %}
       clear_{{field.get_name()}}();
