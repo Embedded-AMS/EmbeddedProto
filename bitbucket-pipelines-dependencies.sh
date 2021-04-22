@@ -52,7 +52,7 @@ export PATH="$PATH:$PWD/build-wrapper"
 if [ -d "$PWD/sonar-scanner/" ]; then
   echo "found sonar scanner scanner cache"
 else
-  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip
+  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
   unzip -o sonar-scanner-cli-*-linux.zip
   mv sonar-scanner*/ sonar-scanner/
 fi
