@@ -210,12 +210,12 @@ namespace EmbeddedProto
 
   Error fixed32::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
+    return WireFormatter::SerializeFixedNoTag(get(), buffer);
   }
 
   Error fixed64::serialize(WriteBufferInterface& buffer) const
   {
-    return WireFormatter::SerialzieFixedNoTag(get(), buffer);
+    return WireFormatter::SerializeFixedNoTag(get(), buffer);
   }
 
   Error sfixed32::serialize(WriteBufferInterface& buffer) const
