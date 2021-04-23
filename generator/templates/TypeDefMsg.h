@@ -34,17 +34,7 @@ Postal address:
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ typedef.get_name() }}(){% if (typedef.fields or typedef.oneofs) %} :
-    {% endif %}
-    {% for field in typedef.fields %}
-        {{field.get_variable_name()}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
-    {% endfor %}
-    {% for oneof in typedef.oneofs %}
-        {{oneof.get_which_oneof()}}(id::NOT_SET){{"," if not loop.last}}
-    {% endfor %}
-    {
-
-    };
+    {{ typedef.get_name() }}() = default;
     ~{{ typedef.get_name() }}() override = default;
 
     {% for enum in typedef.nested_enum_definitions %}
@@ -177,11 +167,15 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     private:
 
       {% for field in typedef.fields %}
+      {% if field.get_default_value() %}
+      {{field.get_type()}} {{field.get_variable_name()}} = {{field.get_default_value()}};
+      {% else %}
       {{field.get_type()}} {{field.get_variable_name()}};
+      {% endif %}
       {% endfor %}
 
       {% for oneof in typedef.oneofs %}
-      id {{oneof.get_which_oneof()}};
+      id {{oneof.get_which_oneof()}} = id::NOT_SET;
       union {{oneof.get_name()}}
       {
         {{oneof.get_name()}}() {}

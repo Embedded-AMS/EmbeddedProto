@@ -55,13 +55,8 @@ namespace EmbeddedProto
 
       public:
 
-        FieldStringBytes()
-          : current_length_(0),
-            data_{0}
-        {
-
-        }
-
+        FieldStringBytes() = default;
+        
         ~FieldStringBytes() override
         {
           clear();
@@ -256,10 +251,10 @@ namespace EmbeddedProto
       protected:
 
         //! Number of item in the data array.
-        uint32_t current_length_;
+        uint32_t current_length_ = 0;
 
         //! The text.
-        DATA_TYPE data_[MAX_LENGTH];
+        DATA_TYPE data_[MAX_LENGTH] = {0};
 
     }; // End of class FieldStringBytes
 
