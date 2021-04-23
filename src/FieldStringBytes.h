@@ -250,6 +250,17 @@ namespace EmbeddedProto
     
       protected:
 
+        //! Set the current number of items in the array. Only for internal usage.
+        /*!
+            The value is limited to the maximum lenght of the array.
+        */
+        void set_length(uint32_t length) { current_length_ = std::min(length, MAX_LENGTH); }
+
+        //! Get a non constant pointer to the first element in the array. Only for internal usage.
+        DATA_TYPE* get() { return data_; }
+
+      private:
+
         //! Number of item in the data array.
         uint32_t current_length_ = 0;
 
@@ -272,13 +283,15 @@ namespace EmbeddedProto
       {
         if(nullptr != rhs) {
           const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-          this->current_length_ = std::min(rhs_MAX_LENGTH, MAX_LENGTH);
-          strncpy(this->data_, rhs, this->current_length_);
+          this->set_length(rhs_MAX_LENGTH);
+          strncpy(this->get(), rhs, this->get_length());
 
           // Make sure the string is null terminated.
-          if(MAX_LENGTH > this->current_length_)
+          if(MAX_LENGTH > this->get_length())
           {
-            this->data_[this->current_length_] = 0;
+            // Add a null terminator to make sure. Explicitly use the get operator to the raw 
+            // pointer not to increase the array size with the null terminator.
+            *(this->get() + this->get_length()) = 0;
           }
         }
         else {
