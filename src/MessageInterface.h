@@ -49,8 +49,16 @@ class MessageInterface : public ::EmbeddedProto::Field
 
     ~MessageInterface() override = default;
 
-    // TODO doc
-    Error serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const final;
+    //! \see Field::serialize_with_id()
+    Error serialize_with_id(uint32_t field_number, 
+                            ::EmbeddedProto::WriteBufferInterface& buffer) const final;
+
+    //! \see Field::deserialize()
+    Error deserialize(ReadBufferInterface& buffer) override = 0;
+
+    //! \see Field::deserialize()
+    Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer, 
+                      const ::EmbeddedProto::WireFormatter::WireType& wiretype) final;
 
     //! Clear the content of this message and set it to it's default state.
     /*!

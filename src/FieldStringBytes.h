@@ -240,6 +240,18 @@ namespace EmbeddedProto
 
           return return_value;
         }
+        
+        Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer, 
+                          const ::EmbeddedProto::WireFormatter::WireType& wiretype) final
+        {
+          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wiretype 
+                               ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
+          if(Error::NO_ERRORS == return_value)  
+          {
+            return_value = this->deserialize(buffer);
+          }
+          return return_value;
+        }
 
         //! Reset the field to it's initial value.
         void clear() override 
