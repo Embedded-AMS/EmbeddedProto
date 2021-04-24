@@ -30,6 +30,7 @@
 
 #include "MessageInterface.h"
 #include "WireFormatter.h"
+#include "ReadBufferSection.h"
 
 namespace EmbeddedProto
 {
@@ -66,7 +67,13 @@ namespace EmbeddedProto
                          ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
     if(Error::NO_ERRORS == return_value)  
     {
-      return_value = deserialize(buffer);
+      uint32_t size;
+      Error return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+      ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+      {
+        return_value = deserialize(bufferSection);
+      }
     }
     return return_value;
   }
