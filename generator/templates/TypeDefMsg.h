@@ -186,5 +186,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
+      {{ TypeOneof.deserialize(oneof)|indent(6) }}
       {% endfor %}
 };
