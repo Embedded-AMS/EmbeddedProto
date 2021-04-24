@@ -40,5 +40,5 @@ Postal address:
   {
     clear_{{field.get_name()}}();
   }
-  {%- endif -%}
+  {% endif %}
 }
