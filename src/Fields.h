@@ -62,10 +62,11 @@ namespace EmbeddedProto
       //! Deserialize this field but also check if given wire type matches the field type.
       /*!
         \param buffer data from which the field should be obtained.
-        \param wiretype The wire type obtained from the tag used to match with this field type.
+        \param wire_type The wire type obtained from the tag used to match with this field type.
         \return NO_ERROR if everything went ok.
       */
-      virtual Error deserialize(ReadBufferInterface& buffer, const WireFormatter::WireType& wiretype) = 0;
+      virtual Error deserialize_check_type(ReadBufferInterface& buffer, 
+                                           const ::EmbeddedProto::WireFormatter::WireType& wire_type) = 0;
 
       //! Calculate the size of this message when serialized.
       /*!
@@ -90,15 +91,13 @@ namespace EmbeddedProto
       ~FieldTemplate() override = default;
 
       //! \see Field::deserialize()
-      Error deserialize(ReadBufferInterface& buffer) override = 0;
-
-      //! \see Field::deserialize()
-      Error deserialize(ReadBufferInterface& buffer, const WireFormatter::WireType& wiretype) override
+      Error deserialize_check_type(ReadBufferInterface& buffer, 
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
       {
-        Error return_value = WIRETYPE == wiretype ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
+        Error return_value = WIRETYPE == wire_type ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
         if(Error::NO_ERRORS == return_value) 
         {
-          return_value = this->deserialize(buffer);
+          return_value = deserialize(buffer);
         }
         return return_value;
       }

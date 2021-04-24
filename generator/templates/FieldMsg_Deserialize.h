@@ -27,24 +27,16 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wire_type)
+uint32_t size;
+return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
-  uint32_t size;
-  return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-  ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
-  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
-  {
-    return_value = mutable_{{field.get_name()}}().deserialize(bufferSection);
-  }
-  {% if field.oneof is not none %}
-  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
-  {
-    clear_{{field.get_name()}}();
-  }
-  {% endif %}
+  return_value = mutable_{{field.get_name()}}().deserialize_check_type(bufferSection, wire_type);
 }
-else
+{% if field.oneof is not none %}
+if(::EmbeddedProto::Error::NO_ERRORS != return_value)
 {
-  // Wire type does not match field.
-  return_value = ::EmbeddedProto::Error::INVALID_WIRETYPE;
+  clear_{{field.get_name()}}();
 }
+{% endif %}

@@ -34,7 +34,8 @@
 namespace EmbeddedProto
 {
 
-  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
+  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
+                                                              ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
     const uint32_t size_x = this->serialized_size();
     bool result = (size_x <= buffer.get_available_size());
@@ -58,14 +59,14 @@ namespace EmbeddedProto
   }
 
 
-  Error MessageInterface::deserialize(::EmbeddedProto::ReadBufferInterface& buffer, 
-                                      const ::EmbeddedProto::WireFormatter::WireType& wiretype)
+  Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+                                                 const ::EmbeddedProto::WireFormatter::WireType& wire_type)
   {
-    Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wiretype 
+    Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
                          ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
     if(Error::NO_ERRORS == return_value)  
     {
-      return_value = this->deserialize(buffer);
+      return_value = deserialize(buffer);
     }
     return return_value;
   }

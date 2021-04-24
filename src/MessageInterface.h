@@ -57,8 +57,8 @@ class MessageInterface : public ::EmbeddedProto::Field
     Error deserialize(ReadBufferInterface& buffer) override = 0;
 
     //! \see Field::deserialize()
-    Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer, 
-                      const ::EmbeddedProto::WireFormatter::WireType& wiretype) final;
+    Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+                                 const ::EmbeddedProto::WireFormatter::WireType& wire_type) final;
 
     //! Clear the content of this message and set it to it's default state.
     /*!

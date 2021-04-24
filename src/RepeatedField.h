@@ -200,10 +200,10 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer, 
-                        const ::EmbeddedProto::WireFormatter::WireType& wiretype) final
+      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
       {
-        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wiretype 
+        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
                              ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
         if(Error::NO_ERRORS == return_value)  
         {
