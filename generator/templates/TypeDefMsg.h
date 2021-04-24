@@ -115,19 +115,15 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
         {
           {% for field in typedef.fields %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% endfor %}

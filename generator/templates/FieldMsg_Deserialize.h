@@ -27,16 +27,18 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-uint32_t size;
-return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
-::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
-if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
-  return_value = mutable_{{field.get_name()}}().deserialize_check_type(bufferSection, wire_type);
+  uint32_t size;
+  return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+  ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    return_value = mutable_{{field.get_name()}}().deserialize_check_type(bufferSection, wire_type);
+  }
+  {% if field.oneof is not none %}
+  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
+  {
+    clear_{{field.get_name()}}();
+  }
+  {%- endif -%}
 }
-{% if field.oneof is not none %}
-if(::EmbeddedProto::Error::NO_ERRORS != return_value)
-{
-  clear_{{field.get_name()}}();
-}
-{%- endif -%}
