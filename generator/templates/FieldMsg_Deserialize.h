@@ -34,7 +34,7 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
   return_value = mutable_{{field.get_name()}}().deserialize_check_type(bufferSection, wire_type);
 }
-{%- if field.oneof is not none -%}
+{% if field.oneof is not none %}
 if(::EmbeddedProto::Error::NO_ERRORS != return_value)
 {
   clear_{{field.get_name()}}();

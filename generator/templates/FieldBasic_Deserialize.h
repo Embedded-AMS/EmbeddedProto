@@ -34,7 +34,7 @@ if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
 }
 {% endif %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, wire_type);
-{%- if field.oneof is not none -%}
+{% if field.oneof is not none %}
 if(::EmbeddedProto::Error::NO_ERRORS != return_value)
 {
   clear_{{field.get_name()}}();
