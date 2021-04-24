@@ -133,8 +133,8 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
         if(::EmbeddedProto::Error::NO_ERRORS == return_value)
         {
-            // Read the next tag.
-            tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+          // Read the next tag.
+          tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
         }
       }
 
