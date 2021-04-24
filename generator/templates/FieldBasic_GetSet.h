@@ -33,7 +33,7 @@ inline void clear_{{field.get_name()}}()
   if(id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
   {
     {{field.get_which_oneof()}} = id::NOT_SET;
-    {{field.get_variable_name()}}.set({{field.get_default_value()}});
+    {{field.get_variable_name()}}.~{{field.get_short_type()}}(); // NOSONAR Unions require this.
   }
 }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}::FIELD_TYPE& value)
