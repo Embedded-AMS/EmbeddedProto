@@ -113,8 +113,7 @@ class Field:
 
     # Returns true if in oneof.init the new& function needs to be call to initialize already allocated memory.
     def oneof_allocation_required(self):
-        return (type(self) is FieldMessage) or (type(self) is FieldRepeated) or (type(self) is FieldString) or \
-               (type(self) is FieldBytes)
+        return type(self) is not FieldEnum
 
     def get_oneof_name(self):
         return self.oneof.get_name()
