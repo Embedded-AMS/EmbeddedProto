@@ -68,7 +68,7 @@ namespace EmbeddedProto
     if(Error::NO_ERRORS == return_value)  
     {
       uint32_t size = 0;
-      Error return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+      return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
       ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
       if(::EmbeddedProto::Error::NO_ERRORS == return_value)
       {
