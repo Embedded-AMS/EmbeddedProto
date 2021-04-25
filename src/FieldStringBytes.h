@@ -212,7 +212,7 @@ namespace EmbeddedProto
 
         Error deserialize(ReadBufferInterface& buffer) override 
         {
-          uint32_t availiable;
+          uint32_t availiable = 0;
           Error return_value = WireFormatter::DeserializeVarint(buffer, availiable);
           if(Error::NO_ERRORS == return_value)
           {
@@ -220,7 +220,7 @@ namespace EmbeddedProto
             {
               clear();
 
-              uint8_t byte;
+              uint8_t byte = 0;
               while((current_length_ < availiable) && buffer.pop(byte)) 
               {
                 data_[current_length_] = static_cast<DATA_TYPE>(byte);
