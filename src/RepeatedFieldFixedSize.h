@@ -152,9 +152,9 @@ namespace EmbeddedProto
 
       void clear() override 
       {
-        for(uint32_t i = 0; i < current_length_; ++i)
+        for(auto& d : data_)
         {
-          data_[i].clear();
+          d.clear();
         }
         current_length_ = 0;
       }
