@@ -201,8 +201,8 @@ namespace EmbeddedProto
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
-          const void* void_pointer = static_cast<const void*>(&(data_[0]));
-          const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          const auto* void_pointer = static_cast<const void*>(&(data_[0]));
+          const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
           if(!buffer.push(byte_pointer, current_length_))
           {
             return_value = Error::BUFFER_FULL;
