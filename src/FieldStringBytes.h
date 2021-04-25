@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <string.h>
 #include <type_traits>
+#include <array>
 
 
 namespace EmbeddedProto
@@ -69,7 +70,7 @@ namespace EmbeddedProto
         uint32_t get_max_length() const { return MAX_LENGTH; }
 
         //! Get a constant pointer to the first element in the array.
-        const DATA_TYPE* get_const() const { return data_; }
+        const DATA_TYPE* get_const() const { return data_.data(); }
 
         //! Get a reference to the value at the given index. 
         /*!
@@ -140,7 +141,7 @@ namespace EmbeddedProto
         */
         Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
         {
-          memcpy(data_, rhs.data_, MAX_LENGTH);
+          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
           current_length_ = rhs.current_length_;
           return Error::NO_ERRORS;
         }
@@ -158,7 +159,7 @@ namespace EmbeddedProto
           if(MAX_LENGTH >= length)
           {
             current_length_ = length;
-            memcpy(data_, data, length);
+            memcpy(data_.data(), data, length);
           }
           else
           {
@@ -200,8 +201,8 @@ namespace EmbeddedProto
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
-          const void* void_pointer = static_cast<const void*>(&(data_[0]));
-          const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          const auto* void_pointer = static_cast<const void*>(&(data_[0]));
+          const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
           if(!buffer.push(byte_pointer, current_length_))
           {
             return_value = Error::BUFFER_FULL;
@@ -211,7 +212,7 @@ namespace EmbeddedProto
 
         Error deserialize(ReadBufferInterface& buffer) override 
         {
-          uint32_t availiable;
+          uint32_t availiable = 0;
           Error return_value = WireFormatter::DeserializeVarint(buffer, availiable);
           if(Error::NO_ERRORS == return_value)
           {
@@ -219,7 +220,7 @@ namespace EmbeddedProto
             {
               clear();
 
-              uint8_t byte;
+              uint8_t byte = 0;
               while((current_length_ < availiable) && buffer.pop(byte)) 
               {
                 data_[current_length_] = static_cast<DATA_TYPE>(byte);
@@ -256,7 +257,7 @@ namespace EmbeddedProto
         //! Reset the field to it's initial value.
         void clear() override 
         { 
-          memset(data_, 0, MAX_LENGTH);
+          data_.fill(0);
           current_length_ = 0; 
         }
     
@@ -269,7 +270,7 @@ namespace EmbeddedProto
         void set_length(uint32_t length) { current_length_ = std::min(length, MAX_LENGTH); }
 
         //! Get a non constant pointer to the first element in the array. Only for internal usage.
-        DATA_TYPE* get() { return data_; }
+        DATA_TYPE* get() { return data_.data(); }
 
       private:
 
@@ -277,7 +278,7 @@ namespace EmbeddedProto
         uint32_t current_length_ = 0;
 
         //! The text.
-        DATA_TYPE data_[MAX_LENGTH] = {0};
+        std::array<DATA_TYPE, MAX_LENGTH> data_ = {0};
 
     }; // End of class FieldStringBytes
 
