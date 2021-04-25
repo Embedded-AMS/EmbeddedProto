@@ -115,19 +115,15 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
         {
           {% for field in typedef.fields %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
           case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% endfor %}
@@ -137,8 +133,8 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
         if(::EmbeddedProto::Error::NO_ERRORS == return_value)
         {
-            // Read the next tag.
-            tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+          // Read the next tag.
+          tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
         }
       }
 
@@ -190,5 +186,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
+      {{ TypeOneof.deserialize(oneof)|indent(6) }}
       {% endfor %}
 };

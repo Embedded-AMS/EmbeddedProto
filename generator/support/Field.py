@@ -211,7 +211,8 @@ class FieldBasic(Field):
         return self.render("FieldBasic_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -247,7 +248,8 @@ class FieldString(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -283,7 +285,8 @@ class FieldBytes(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -482,4 +485,5 @@ class FieldRepeated(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
