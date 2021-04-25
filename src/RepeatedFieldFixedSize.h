@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include <array>
 
 
 namespace EmbeddedProto
@@ -161,10 +162,10 @@ namespace EmbeddedProto
     private:
 
       //! Number of item in the data array.
-      uint32_t current_length_;
+      uint32_t current_length_ = 0;
 
       //! The actual data 
-      DATA_TYPE data_[MAX_LENGTH];
+      std::array<DATA_TYPE, MAX_LENGTH> data_;
   };
 
 } // End of namespace EmbeddedProto

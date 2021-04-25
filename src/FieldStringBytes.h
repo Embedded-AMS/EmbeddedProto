@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <string.h>
 #include <type_traits>
+#include <array>
 
 
 namespace EmbeddedProto
@@ -69,7 +70,7 @@ namespace EmbeddedProto
         uint32_t get_max_length() const { return MAX_LENGTH; }
 
         //! Get a constant pointer to the first element in the array.
-        const DATA_TYPE* get_const() const { return data_; }
+        const DATA_TYPE* get_const() const { return data_.data(); }
 
         //! Get a reference to the value at the given index. 
         /*!
@@ -140,7 +141,7 @@ namespace EmbeddedProto
         */
         Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
         {
-          memcpy(data_, rhs.data_, MAX_LENGTH);
+          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
           current_length_ = rhs.current_length_;
           return Error::NO_ERRORS;
         }
@@ -158,7 +159,7 @@ namespace EmbeddedProto
           if(MAX_LENGTH >= length)
           {
             current_length_ = length;
-            memcpy(data_, data, length);
+            memcpy(data_.data(), data, length);
           }
           else
           {
@@ -256,7 +257,7 @@ namespace EmbeddedProto
         //! Reset the field to it's initial value.
         void clear() override 
         { 
-          memset(data_, 0, MAX_LENGTH);
+          data_.fill(0);
           current_length_ = 0; 
         }
     
@@ -269,7 +270,7 @@ namespace EmbeddedProto
         void set_length(uint32_t length) { current_length_ = std::min(length, MAX_LENGTH); }
 
         //! Get a non constant pointer to the first element in the array. Only for internal usage.
-        DATA_TYPE* get() { return data_; }
+        DATA_TYPE* get() { return data_.data(); }
 
       private:
 
@@ -277,7 +278,7 @@ namespace EmbeddedProto
         uint32_t current_length_ = 0;
 
         //! The text.
-        DATA_TYPE data_[MAX_LENGTH] = {0};
+        std::array<DATA_TYPE, MAX_LENGTH> data_ = {0};
 
     }; // End of class FieldStringBytes
 
