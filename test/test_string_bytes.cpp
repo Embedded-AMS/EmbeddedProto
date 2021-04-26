@@ -35,8 +35,9 @@
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 
-#include <cstdint>    
-#include <limits> 
+#include <cstdint>
+#include <limits>
+#include <array>
 
 // EAMS message definitions
 #include <string_bytes.h>
@@ -82,7 +83,7 @@ TEST(FieldString, serialize)
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
-  uint8_t expected[] = {0x0a, 0x07};
+  std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -101,7 +102,7 @@ TEST(FieldString, deserialize)
   text<10> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
+  std::array<uint8_t, 9> referee = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
 
   for(auto r: referee) 
   {
@@ -139,7 +140,7 @@ TEST(FieldString, oneof_serialize)
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
 
-  uint8_t expected[] = {0x0a, 0x07};
+  std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -158,7 +159,7 @@ TEST(FieldString, oneof_deserialize)
   string_or_bytes<10, 10> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
+  std::array<uint8_t, 9> referee = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
 
   for(auto r: referee) 
   {
@@ -206,8 +207,8 @@ TEST(FieldBytes, assign_msg)
 {
   raw_bytes<10> msgA;
   raw_bytes<10> msgB;
-  const uint8_t data[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  msgA.mutable_b().set(data, 10);
+  const std::array<uint8_t, 10> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  msgA.mutable_b().set(data.data(), 10);
   msgB = msgA;
 
   for(uint8_t i = 0; i < 10; ++i) {
@@ -219,16 +220,16 @@ TEST(FieldBytes, clear)
 {
   raw_bytes<10> msg;  
   
-  const uint8_t array[2] = {1 ,2};
+  const std::array<uint8_t, 2> array = {1 ,2};
 
   // Clear the field specific.
-  msg.mutable_b().set(array, 2);
+  msg.mutable_b().set(array.data(), 2);
   EXPECT_EQ(2, msg.get_b().get_length());
   msg.clear_b();
   EXPECT_EQ(0, msg.get_b().get_length());
 
   // Clear the whole message.
-  msg.mutable_b().set(array, 2);
+  msg.mutable_b().set(array.data(), 2);
   msg.clear();
   EXPECT_EQ(0, msg.get_b().get_length());
 }
@@ -240,12 +241,12 @@ TEST(FieldBytes, serialize)
   raw_bytes<10> msg;
   Mocks::WriteBufferMock buffer;
 
-  uint8_t bytes[] = {1u, 2u, 3u, 0u};
-  msg.mutable_b().set(bytes, 4);
+  std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
+  msg.mutable_b().set(bytes.data(), 4);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
-  uint8_t expected[] = {0x0a, 0x04};
+  std::array<uint8_t, 2> expected = {0x0a, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -263,7 +264,7 @@ TEST(FieldBytes, deserialize)
   raw_bytes<10> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x0a, 0x04, 0x01, 0x02, 0x03, 0x00};
+  std::array<uint8_t, 6> referee = {0x0a, 0x04, 0x01, 0x02, 0x03, 0x00};
 
   for(auto r: referee) 
   {
@@ -303,8 +304,8 @@ TEST(FieldBytes, oneof_set_get)
   EXPECT_STREQ(msg.txt(), "Foo Bar");
 
   // Switch to the array
-  uint8_t array[] = {1, 2, 3, 4, 5};
-  msg.mutable_b().set(array, 5);
+  std::array<uint8_t, 5> array = {1, 2, 3, 4, 5};
+  msg.mutable_b().set(array.data(), 5);
 
   id = string_or_bytes<10, 10>::id::B;
   EXPECT_EQ(id, msg.get_which_s_or_b());
@@ -318,16 +319,16 @@ TEST(FieldBytes, oneof_clear)
 {
   raw_bytes<10> msg;  
   
-  const uint8_t array[2] = {1 ,2};
+  const std::array<uint8_t, 2> array = {1 ,2};
 
   // Clear the field specific.
-  msg.mutable_b().set(array, 2);
+  msg.mutable_b().set(array.data(), 2);
   EXPECT_EQ(2, msg.get_b().get_length());
   msg.clear_b();
   EXPECT_EQ(0, msg.get_b().get_length());
 
   // Clear the whole message.
-  msg.mutable_b().set(array, 2);
+  msg.mutable_b().set(array.data(), 2);
   msg.clear();
   EXPECT_EQ(0, msg.get_b().get_length());
 }
@@ -352,12 +353,12 @@ TEST(FieldBytes, oneof_serialize)
   string_or_bytes<10, 10> msg;
   Mocks::WriteBufferMock buffer;
 
-  uint8_t bytes[] = {1u, 2u, 3u, 0u};
-  msg.mutable_b().set(bytes, 4);
+  std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
+  msg.mutable_b().set(bytes.data(), 4);
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
-  uint8_t expected[] = {0x12, 0x04};
+  std::array<uint8_t, 2> expected = {0x12, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -376,7 +377,7 @@ TEST(FieldBytes, oneof_deserialize)
   string_or_bytes<10, 10> msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x12, 0x04, 0x01, 0x02, 0x03, 0x00};
+  std::array<uint8_t, 6> referee = {0x12, 0x04, 0x01, 0x02, 0x03, 0x00};
 
   for(auto r: referee) 
   {
@@ -512,7 +513,7 @@ TEST(RepeatedStringBytes, deserialize)
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0a), Return(true)));
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
 
-  uint8_t referee_str1[] = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x31};
+  std::array<uint8_t, 9> referee_str1 = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x31};
 
   for(auto r: referee_str1) 
   {
@@ -527,7 +528,7 @@ TEST(RepeatedStringBytes, deserialize)
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x0a), Return(true)));
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x09), Return(true)));
 
-  uint8_t referee_str3[] = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x33};
+  std::array<uint8_t, 9> referee_str3 = {0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72, 0x20, 0x33};
 
   for(auto r: referee_str3) 
   {
