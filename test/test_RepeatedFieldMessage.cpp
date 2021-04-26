@@ -35,7 +35,8 @@
 #include <WriteBufferMock.h>
 
 #include <cstdint>    
-#include <limits> 
+#include <limits>
+#include <array>
 
 // EAMS message definitions
 #include <repeated_fields.h>
@@ -95,7 +96,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_fields)
   msg.add_y(0);
   msg.add_y(0);
 
-  uint8_t expected[] = {0x12, 0x03, 0x00, 0x00, 0x00}; // y
+  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x00, 0x00, 0x00}; // y
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
 
@@ -146,7 +147,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
   msg.add_y(1);
   msg.add_y(0);
 
-  uint8_t expected[] = {0x12, 0x03, 0x00, 0x01, 0x00}; // y
+  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x00, 0x01, 0x00}; // y
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
 
@@ -207,7 +208,7 @@ TEST(RepeatedFieldMessage, serialize_array_one)
   msg.add_y(1);
   msg.add_y(1);
 
-  uint8_t expected[] = {0x12, 0x03, 0x01, 0x01, 0x01}; // y
+  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x01, 0x01, 0x01}; // y
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
 
@@ -231,7 +232,7 @@ TEST(RepeatedFieldMessage, serialize_array_max)
   msg.add_y(std::numeric_limits<uint32_t>::max());
   msg.add_y(std::numeric_limits<uint32_t>::max());
 
-  uint8_t expected[] = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f}; // y
+  std::array<uint8_t, 17> expected = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f}; // y
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
@@ -257,14 +258,14 @@ TEST(RepeatedFieldMessage, serialize_one)
   msg.add_y(1);
   msg.set_z(1);
 
-  uint8_t expected_x[] = {0x08, 0x01};  // x
+  std::array<uint8_t, 2> expected_x = {0x08, 0x01};  // x
   
   for(auto e : expected_x) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }                  
   
-  uint8_t expected[] = {0x12, 0x03, 0x01, 0x01, 0x01, // y
-                        0x18, 0x01}; // z
+  std::array<uint8_t, 7> expected = {0x12, 0x03, 0x01, 0x01, 0x01, // y
+                                     0x18, 0x01}; // z
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
 
@@ -289,14 +290,14 @@ TEST(RepeatedFieldMessage, serialize_max)
   msg.add_y(std::numeric_limits<uint32_t>::max());
   msg.set_z(std::numeric_limits<uint32_t>::max());
 
-  uint8_t expected_x[] = {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f};  // x
+  std::array<uint8_t, 6> expected_x = {0x08, 0xff, 0xff, 0xff, 0xff, 0x0f};  // x
   
   for(auto e : expected_x) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }                  
   
-  uint8_t expected[] = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
-                        0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
+  std::array<uint8_t, 23> expected = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
+                                      0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
@@ -357,9 +358,9 @@ TEST(RepeatedFieldMessage, deserialize_one)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  uint8_t referee[SIZE] = { 0x08, 0x01, // x
-                            0x12, 0x03, 0x01, 0x01, 0x01, // y
-                            0x18, 0x01}; // z 
+  std::array<uint8_t, SIZE> referee = { 0x08, 0x01, // x
+                                        0x12, 0x03, 0x01, 0x01, 0x01, // y
+                                        0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -389,9 +390,9 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  uint8_t referee[SIZE] = { 0x08, 0x01, // x
-                            0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
-                            0x18, 0x01}; // z 
+  std::array<uint8_t, SIZE> referee = { 0x08, 0x01, // x
+                                        0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // y
+                                        0x18, 0x01}; // z 
 
   for(auto r: referee) 
   {
@@ -426,11 +427,11 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  uint8_t referee[SIZE] = { 0x12, 0x00, // y[0]
-                            0x08, 0x01, // x
-                            0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
-                            0x18, 0x01, // z
-                            0x12, 0x00, }; // y[2] 
+  std::array<uint8_t, SIZE> referee = { 0x12, 0x00, // y[0]
+                                        0x08, 0x01, // x
+                                        0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // y[1]
+                                        0x18, 0x01, // z
+                                        0x12, 0x00, }; // y[2] 
 
   for(auto r: referee) 
   {
@@ -462,9 +463,9 @@ TEST(RepeatedFieldMessage, deserialize_max)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  uint8_t referee[SIZE] = { 0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
-                            0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
-                            0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
+  std::array<uint8_t, SIZE> referee = { 0x08, 0xff, 0xff, 0xff, 0xff, 0x0f,  // x
+                                        0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
+                                        0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
 
   for(auto r: referee) 
   {
