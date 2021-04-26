@@ -35,6 +35,26 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
     {{ typedef.get_name() }}() = default;
+    {{ typedef.get_name() }}(const {{typedef.get_name()}}& rhs )
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+    }
+
+    {{ typedef.get_name() }}(const {{typedef.get_name()}}&& rhs ) noexcept
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+    }
+
     ~{{ typedef.get_name() }}() override = default;
 
     {% for enum in typedef.nested_enum_definitions %}
@@ -54,6 +74,17 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     };
 
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+      return *this;
+    }
+
+    {{ typedef.name }}& operator=(const {{ typedef.name }}&& rhs) noexcept
     {
       {% for field in typedef.fields %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
