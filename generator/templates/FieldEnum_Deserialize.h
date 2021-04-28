@@ -29,7 +29,7 @@ Postal address:
 #}
 if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wire_type)
 {
-  uint32_t value;
+  uint32_t value = 0;
   return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
   if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   {
