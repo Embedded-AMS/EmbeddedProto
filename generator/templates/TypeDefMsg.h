@@ -138,21 +138,23 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
       ::EmbeddedProto::WireFormatter::WireType wire_type;
       uint32_t id_number = 0;
+      id id_tag = id::NOT_SET;
 
       ::EmbeddedProto::Error tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
       while((::EmbeddedProto::Error::NO_ERRORS == return_value) && (::EmbeddedProto::Error::NO_ERRORS == tag_value))
       {
-        switch(id_number)
+        id_tag = static_cast<id>(id_number);
+        switch(id_tag)
         {
           {% for field in typedef.fields %}
-          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
+          case id::{{field.get_variable_id_name()}}:
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
-          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
+          case id::{{field.get_variable_id_name()}}:
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
 
