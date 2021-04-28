@@ -136,7 +136,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
     {
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
-      ::EmbeddedProto::WireFormatter::WireType wire_type;
+      ::EmbeddedProto::WireFormatter::WireType wire_type = ::EmbeddedProto::WireFormatter::WireType::VARINT;
       uint32_t id_number = 0;
       id id_tag = id::NOT_SET;
 
