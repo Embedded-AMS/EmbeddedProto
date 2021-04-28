@@ -175,7 +175,8 @@ namespace EmbeddedProto
 
           if(0 < current_length_) 
           {
-            if(current_length_ <= buffer.get_available_size())
+            const auto n_bytes_available = buffer.get_available_size();
+            if(current_length_ <= n_bytes_available)
             {
               uint32_t tag = WireFormatter::MakeTag(field_number, 
                                                     WireFormatter::WireType::LENGTH_DELIMITED);
@@ -223,7 +224,7 @@ namespace EmbeddedProto
               uint8_t byte = 0;
               while((current_length_ < availiable) && buffer.pop(byte)) 
               {
-                data_[current_length_] = static_cast<DATA_TYPE>(byte);
+                (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
                 ++current_length_;
               }
 

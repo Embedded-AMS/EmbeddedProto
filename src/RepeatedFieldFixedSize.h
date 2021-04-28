@@ -123,7 +123,7 @@ namespace EmbeddedProto
           const DATA_TYPE* d = data;
           for(uint32_t i = 0; i < length; ++i) 
           {
-            data_[i] = *d;
+            (data_[i]) = (*d);
             ++d;
           }
           current_length_ = length;        
