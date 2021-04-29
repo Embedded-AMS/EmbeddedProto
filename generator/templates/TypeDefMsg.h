@@ -65,7 +65,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ msg.render(environment)|indent(4) }}
 
     {% endfor %}
-    enum class id
+    enum class id : uint32_t
     {
       NOT_SET = 0,
       {% for id_set in typedef.field_ids %}
