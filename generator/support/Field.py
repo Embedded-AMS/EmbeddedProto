@@ -113,8 +113,7 @@ class Field:
 
     # Returns true if in oneof.init the new& function needs to be call to initialize already allocated memory.
     def oneof_allocation_required(self):
-        return (type(self) is FieldMessage) or (type(self) is FieldRepeated) or (type(self) is FieldString) or \
-               (type(self) is FieldBytes)
+        return type(self) is not FieldEnum
 
     def get_oneof_name(self):
         return self.oneof.get_name()
@@ -212,7 +211,8 @@ class FieldBasic(Field):
         return self.render("FieldBasic_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -248,7 +248,8 @@ class FieldString(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -284,7 +285,8 @@ class FieldBytes(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -483,4 +485,5 @@ class FieldRepeated(Field):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        return str.rstrip()

@@ -30,11 +30,13 @@
 
 #include "MessageInterface.h"
 #include "WireFormatter.h"
+#include "ReadBufferSection.h"
 
 namespace EmbeddedProto
 {
 
-  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, ::EmbeddedProto::WriteBufferInterface& buffer) const
+  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
+                                                              ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
     const uint32_t size_x = this->serialized_size();
     bool result = (size_x <= buffer.get_available_size());
@@ -52,6 +54,25 @@ namespace EmbeddedProto
           const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
           return_value = base->serialize(buffer);
         }
+      }
+    }
+    return return_value;
+  }
+
+
+  Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+                                                 const ::EmbeddedProto::WireFormatter::WireType& wire_type)
+  {
+    Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+                         ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
+    if(Error::NO_ERRORS == return_value)  
+    {
+      uint32_t size = 0;
+      return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+      ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+      {
+        return_value = deserialize(bufferSection);
       }
     }
     return return_value;

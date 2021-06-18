@@ -36,6 +36,7 @@
 
 #include <cstdint>    
 #include <limits> 
+#include <array>
 
 // EAMS message definitions
 #include <oneof_fields.h>
@@ -123,9 +124,9 @@ TEST(OneofField, serialize_ones)
   msg.set_b(1);
   msg.set_x(1);
   
-  uint8_t expected_x[] = {0x08, 0x01,  // a
-                          0x50, 0x01,  // b
-                          0x28, 0x01}; // x
+  std::array<uint8_t, 6> expected_x = { 0x08, 0x01,  // a
+                                        0x50, 0x01,  // b
+                                        0x28, 0x01 };// x
 
   for(auto e : expected_x) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -135,9 +136,9 @@ TEST(OneofField, serialize_ones)
 
   // Y
   msg.set_y(1);
-  uint8_t expected_y[] = {0x08, 0x01,  // a
-                          0x50, 0x01,  // b
-                          0x30, 0x01}; // y
+  std::array<uint8_t, 6> expected_y = { 0x08, 0x01,  // a
+                                        0x50, 0x01,  // b
+                                        0x30, 0x01 };// y
 
   for(auto e : expected_y) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -147,9 +148,9 @@ TEST(OneofField, serialize_ones)
 
   // z
   msg.set_z(1);
-  uint8_t expected_z[] = {0x08, 0x01,  // a
-                          0x50, 0x01,  // b
-                          0x38, 0x01}; // z
+  std::array<uint8_t, 6> expected_z = { 0x08, 0x01,  // a
+                                        0x50, 0x01,  // b
+                                        0x38, 0x01 };// z
 
   for(auto e : expected_z) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -170,10 +171,10 @@ TEST(OneofField, serialize_second_oneof)
   msg.set_x(1);
   msg.set_v(1);
 
-  uint8_t expected_z[] = {0x08, 0x01,  // a
-                          0x50, 0x01,  // b
-                          0x28, 0x01,  // x
-                          0x85, 0x01, 0x00, 0x00, 0x80, 0x3f}; // v
+  std::array<uint8_t, 12> expected_z = {0x08, 0x01,  // a
+                                        0x50, 0x01,  // b
+                                        0x28, 0x01,  // x
+                                        0x85, 0x01, 0x00, 0x00, 0x80, 0x3f }; // v
 
   for(auto e : expected_z) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -189,9 +190,9 @@ TEST(OneofField, deserialize)
   message_oneof msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01,  // a
-                       0x50, 0x01,  // b
-                       0x30, 0x01}; // y
+  std::array<uint8_t, 6> referee = { 0x08, 0x01,  // a
+                                     0x50, 0x01,  // b
+                                     0x30, 0x01 };// y
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -213,10 +214,10 @@ TEST(OneofField, deserialize_override)
   message_oneof msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01,  // a
-                       0x50, 0x01,  // b
-                       0x30, 0x01,  // y
-                       0x28, 0x01}; // x 
+  std::array<uint8_t, 8> referee = { 0x08, 0x01,  // a
+                                     0x50, 0x01,  // b
+                                     0x30, 0x01,  // y
+                                     0x28, 0x01 };// x 
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -253,10 +254,10 @@ TEST(OneofField, deserialize_second_oneof)
   message_oneof msg;
   Mocks::ReadBufferMock buffer;
 
-  uint8_t referee[] = {0x08, 0x01,  // a
-                       0x50, 0x01,  // b
-                       0x28, 0x01,  // x
-                       0x85, 0x01, 0x00, 0x00, 0x80, 0x3f}; // v
+  std::array<uint8_t, 12> referee = { 0x08, 0x01,  // a
+                                      0x50, 0x01,  // b
+                                      0x28, 0x01,  // x
+                                      0x85, 0x01, 0x00, 0x00, 0x80, 0x3f }; // v
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -286,11 +287,11 @@ TEST(OneofField, serialize_oneof_msg)
   // When called the buffer will have enough space for the message
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
 
-  uint8_t expected_ABC[] = {0xa2,       // field ID.
-                            0x01, 0x06, // Nested message size.
-                            0x08, 0x01, // varA
-                            0x10, 0x01, // varB
-                            0x18, 0x01};// varC
+  std::array<uint8_t, 9> expected_ABC = { 0xa2,         // field ID.
+                                          0x01, 0x06,   // Nested message size.
+                                          0x08, 0x01,   // varA
+                                          0x10, 0x01,   // varB
+                                          0x18, 0x01 }; // varC
 
   for(auto e : expected_ABC) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -310,8 +311,8 @@ TEST(OneofField, deserialize_oneof_msg)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  uint8_t referee[SIZE] = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
-    for(auto r: referee) {
+  std::array<uint8_t, SIZE> referee = {0xaa, 0x01, 0x07, 0x08, 0x01, 0x10, 0x16, 0x18, 0xcd, 0x02};
+  for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
   }
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));

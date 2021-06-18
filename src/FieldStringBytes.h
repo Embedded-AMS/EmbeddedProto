@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <string.h>
 #include <type_traits>
+#include <array>
 
 
 namespace EmbeddedProto
@@ -55,13 +56,8 @@ namespace EmbeddedProto
 
       public:
 
-        FieldStringBytes()
-          : current_length_(0),
-            data_{0}
-        {
-
-        }
-
+        FieldStringBytes() = default;
+        
         ~FieldStringBytes() override
         {
           clear();
@@ -74,7 +70,7 @@ namespace EmbeddedProto
         uint32_t get_max_length() const { return MAX_LENGTH; }
 
         //! Get a constant pointer to the first element in the array.
-        const DATA_TYPE* get_const() const { return data_; }
+        const DATA_TYPE* get_const() const { return data_.data(); }
 
         //! Get a reference to the value at the given index. 
         /*!
@@ -125,13 +121,45 @@ namespace EmbeddedProto
         const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
 
+        //! Assign the values in the right hand side FieldStringBytes object to this object.
+        /*!
+            This is only compatible with the same data type and length.
+            \param[in] rhs The object from which to copy the data.
+            \return A reference to this object.
+        */
+        FieldStringBytes<MAX_LENGTH, DATA_TYPE>& operator=(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        {
+          this->set(rhs);
+          return *this;
+        }
+
+        //! Assign the values in the right hand side FieldStringBytes object to this object.
+        /*!
+            This is only compatible with the same data type and length.
+            \param[in] rhs The object from which to copy the data.
+            \return Always return NO_ERRORS, this was added to be compadible with the other set function.
+        */
+        Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        {
+          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
+          current_length_ = rhs.current_length_;
+          return Error::NO_ERRORS;
+        }
+
+        
+        //! Assign data in the given array to this object.
+        /*!
+            \param[in] data A pointer to an array with data.
+            \param[in] length The number of bytes/chars in the data array.
+            \return Will return ARRAY_FULL when length exceeds the number of bytes/chars in this object.
+        */        
         Error set(const DATA_TYPE* data, const uint32_t length)
         {
           Error return_value = Error::NO_ERRORS;
           if(MAX_LENGTH >= length)
           {
             current_length_ = length;
-            memcpy(data_, data, length);
+            memcpy(data_.data(), data, length);
           }
           else
           {
@@ -147,7 +175,8 @@ namespace EmbeddedProto
 
           if(0 < current_length_) 
           {
-            if(current_length_ <= buffer.get_available_size())
+            const auto n_bytes_available = buffer.get_available_size();
+            if(current_length_ <= n_bytes_available)
             {
               uint32_t tag = WireFormatter::MakeTag(field_number, 
                                                     WireFormatter::WireType::LENGTH_DELIMITED);
@@ -173,8 +202,8 @@ namespace EmbeddedProto
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
-          const void* void_pointer = static_cast<const void*>(&(data_[0]));
-          const uint8_t* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          const auto* void_pointer = static_cast<const void*>(&(data_[0]));
+          const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
           if(!buffer.push(byte_pointer, current_length_))
           {
             return_value = Error::BUFFER_FULL;
@@ -184,7 +213,7 @@ namespace EmbeddedProto
 
         Error deserialize(ReadBufferInterface& buffer) override 
         {
-          uint32_t availiable;
+          uint32_t availiable = 0;
           Error return_value = WireFormatter::DeserializeVarint(buffer, availiable);
           if(Error::NO_ERRORS == return_value)
           {
@@ -192,10 +221,10 @@ namespace EmbeddedProto
             {
               clear();
 
-              uint8_t byte;
+              uint8_t byte = 0;
               while((current_length_ < availiable) && buffer.pop(byte)) 
               {
-                data_[current_length_] = static_cast<DATA_TYPE>(byte);
+                (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
                 ++current_length_;
               }
 
@@ -213,26 +242,50 @@ namespace EmbeddedProto
 
           return return_value;
         }
+        
+        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+                                     const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
+        {
+          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+                               ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
+          if(Error::NO_ERRORS == return_value)  
+          {
+            return_value = this->deserialize(buffer);
+          }
+          return return_value;
+        }
 
         //! Reset the field to it's initial value.
         void clear() override 
         { 
-          memset(data_, 0, current_length_);
+          data_.fill(0);
           current_length_ = 0; 
         }
     
       protected:
 
+        //! Set the current number of items in the array. Only for internal usage.
+        /*!
+            The value is limited to the maximum lenght of the array.
+        */
+        void set_length(uint32_t length) { current_length_ = std::min(length, MAX_LENGTH); }
+
+        //! Get a non constant pointer to the first element in the array. Only for internal usage.
+        DATA_TYPE* get() { return data_.data(); }
+
+      private:
+
         //! Number of item in the data array.
-        uint32_t current_length_;
+        uint32_t current_length_ = 0;
 
         //! The text.
-        DATA_TYPE data_[MAX_LENGTH];
+        std::array<DATA_TYPE, MAX_LENGTH> data_ = {0};
 
     }; // End of class FieldStringBytes
 
   } // End of namespace internal
 
+  //! The class definition used in messages for String fields.
   template<uint32_t MAX_LENGTH>
   class FieldString : public internal::FieldStringBytes<MAX_LENGTH, char>
   {
@@ -240,20 +293,29 @@ namespace EmbeddedProto
       FieldString() = default;
       virtual ~FieldString() = default;
 
-      void operator=(const char* const &&rhs)
+      FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
       {
-        const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-        this->current_length_ = std::min(rhs_MAX_LENGTH, MAX_LENGTH);
-        strncpy(this->data_, rhs, this->current_length_);
+        if(nullptr != rhs) {
+          const uint32_t rhs_MAX_LENGTH = strlen(rhs);
+          this->set_length(rhs_MAX_LENGTH);
+          strncpy(this->get(), rhs, this->get_length());
 
-        // Make sure the string is null terminated.
-        if(MAX_LENGTH > this->current_length_)
-        {
-          this->data_[this->current_length_] = 0;
+          // Make sure the string is null terminated.
+          if(MAX_LENGTH > this->get_length())
+          {
+            // Add a null terminator to make sure. Explicitly use the get operator to the raw 
+            // pointer not to increase the array size with the null terminator.
+            *(this->get() + this->get_length()) = 0;
+          }
         }
+        else {
+          this->clear();
+        }
+        return *this;
       }
   };
 
+  //! The class definition used in messages for Bytes fields.
   template<uint32_t MAX_LENGTH>
   class FieldBytes : public internal::FieldStringBytes<MAX_LENGTH, uint8_t>
   {

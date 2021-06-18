@@ -36,6 +36,7 @@
 
 #include <cstdint>    
 #include <limits> 
+#include <array>
 
 // EAMS message definitions
 #include <include_other_files.h>
@@ -98,21 +99,21 @@ TEST(IncludeOtherFiles, set)
 
   ON_CALL(buffer, get_available_size()).WillByDefault(Return(99));
 
-  uint8_t expected[] = { 0x08, 0x01, // state
-                         // cmsg
-                         0x12, 0x07, 
-                         0x08, 0x01, // msg.a
-                         0x15, 0x00, 0x00, 0x80, 0x3f, // msg.b
-                         // rf
-                         0x1a, 0x09, 
-                         0x08, 0x01, // rf.x
-                         0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
-                         0x18, 0x01, // rf.z
-                         // sub_msg
-                         0x22, 0x08, 
-                         0x08, 0x01, 
-                         0x12, 0x02, 0x01, 0x01,
-                         0x18, 0x01};
+  std::array<uint8_t, 32> expected = { 0x08, 0x01, // state
+                                       // cmsg
+                                       0x12, 0x07, 
+                                       0x08, 0x01, // msg.a
+                                       0x15, 0x00, 0x00, 0x80, 0x3f, // msg.b
+                                       // rf
+                                       0x1a, 0x09, 
+                                       0x08, 0x01, // rf.x
+                                       0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
+                                       0x18, 0x01, // rf.z
+                                       // sub_msg
+                                       0x22, 0x08, 
+                                       0x08, 0x01, 
+                                       0x12, 0x02, 0x01, 0x01,
+                                       0x18, 0x01 };
 
   for(auto e : expected) 
   {
@@ -131,21 +132,21 @@ TEST(IncludeOtherFiles, get)
   Mocks::ReadBufferMock buffer;
   ON_CALL(buffer, get_size()).WillByDefault(Return(32));
 
-  uint8_t referee[] = { 0x08, 0x01, // state
-                       // cmsg
-                       0x12, 0x07, 
-                       0x08, 0x01, // msg.a
-                       0x15, 0x00, 0x00, 0x80, 0x3f, // msg.b
-                       // rf
-                       0x1a, 0x09, 
-                       0x08, 0x01, // rf.x
-                       0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
-                       0x18, 0x01, // rf.z
-                       // sub_msg
-                       0x22, 0x08, 
-                       0x08, 0x01, 
-                       0x12, 0x02, 0x01, 0x01,
-                       0x18, 0x01};
+  std::array<uint8_t, 32> referee = { 0x08, 0x01, // state
+                                      // cmsg
+                                      0x12, 0x07, 
+                                      0x08, 0x01, // msg.a
+                                      0x15, 0x00, 0x00, 0x80, 0x3f, // msg.b
+                                      // rf
+                                      0x1a, 0x09, 
+                                      0x08, 0x01, // rf.x
+                                      0x12, 0x03, 0x01, 0x01, 0x01, // rf.y
+                                      0x18, 0x01, // rf.z
+                                      // sub_msg
+                                      0x22, 0x08, 
+                                      0x08, 0x01, 
+                                      0x12, 0x02, 0x01, 0x01,
+                                      0x18, 0x01 };
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));

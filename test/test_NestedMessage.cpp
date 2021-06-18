@@ -37,6 +37,7 @@
 
 #include <cstdint>    
 #include <limits> 
+#include <array>
 
 // EAMS message definitions
 #include <nested_message.h>
@@ -83,7 +84,7 @@ TEST(NestedMessage, serialize_one)
   msg.mutable_nested_a().set_z(1);
   msg.set_v(1);
 
-  uint8_t expected_uv[] = {0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F}; // u
+  std::array<uint8_t, 9> expected_uv = {0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F}; // u
 
   for(auto e : expected_uv) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -99,15 +100,14 @@ TEST(NestedMessage, serialize_one)
   // The next call is for the repeated field x.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
 
-  uint8_t expected_a[] = {0x0A, 0x01, 0x01, // x
-                          0x15, 0x00, 0x00, 0x80, 0x3f, // y
-                          0x18, 0x02, // z
-                          0x18, 0x01};// And back to the parent message with field v.
+  std::array<uint8_t, 12> expected_a = {0x0A, 0x01, 0x01, // x
+                                        0x15, 0x00, 0x00, 0x80, 0x3f, // y
+                                        0x18, 0x02, // z
+                                        0x18, 0x01}; // And back to the parent message with field v.
 
   for(auto e : expected_a) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
@@ -128,7 +128,7 @@ TEST(NestedMessage, serialize_max)
   msg.mutable_nested_a().set_z(std::numeric_limits<int64_t>::max());
   msg.set_v(std::numeric_limits<int32_t>::max());
 
-  uint8_t expected_b[] = {0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
+  std::array<uint8_t, 9> expected_b = {0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
 
 
   for(auto e : expected_b) {
@@ -145,11 +145,11 @@ TEST(NestedMessage, serialize_max)
   // The next call is for the repeated field x.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(11));
 
-  uint8_t expected_a[] = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
-                          0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
-                          0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
-                          // And back to the parent message with field v.
-                          0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
+  std::array<uint8_t, 29> expected_a = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+                                        0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
+                                        0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
+                                        // And back to the parent message with field v.
+                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
 
   for(auto e : expected_a) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -176,8 +176,8 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(42));
 
-  uint8_t expected_b[] = {0x0A, 0x28, // tag and size of nested b
-                          0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
+  std::array<uint8_t, 11> expected_b = {0x0A, 0x28, // tag and size of nested b
+                                        0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
 
   for(auto e : expected_b) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -193,11 +193,11 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
   // The next call is for the repeated field x.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(11));
 
-  uint8_t expected_a[] = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
-                          0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
-                          0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
-                          // And back to the parent message with field v.
-                          0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
+  std::array<uint8_t, 29> expected_a = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+                                        0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
+                                        0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
+                                        // And back to the parent message with field v.
+                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
 
   for(auto e : expected_a) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -223,13 +223,13 @@ TEST(NestedMessage, deserialize_one)
 
   // Test if a nested message can be deserialized with values set to one.
 
-  uint8_t referee[SIZE] = { 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
-                            0x12, 0x0A, // tag and size of nested a
-                            0x0A, 0x01, 0x01, // x
-                            0x15, 0x00, 0x00, 0x80, 0x3F, // y
-                            0x18, 0x02, // z
-                            // And back to the parent message with field v.
-                            0x18, 0x01};
+  std::array<uint8_t, SIZE> referee = { 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
+                                        0x12, 0x0A, // tag and size of nested a
+                                        0x0A, 0x01, 0x01, // x
+                                        0x15, 0x00, 0x00, 0x80, 0x3F, // y
+                                        0x18, 0x02, // z
+                                        // And back to the parent message with field v.
+                                        0x18, 0x01 };
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -260,14 +260,14 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
 
   // Test if a double nested message can be deserialized with values set to maximum.
 
-  uint8_t referee[SIZE] = { 0x0A, 0x28, // tag and size of nested b
-                            0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F, // u
-                            0x12, 0x17, // tag and size of nested a
-                            0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
-                            0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
-                            0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
-                            // And back to the parent message with field v.
-                            0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
+  std::array<uint8_t, SIZE> referee = { 0x0A, 0x28, // tag and size of nested b
+                                        0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F, // u
+                                        0x12, 0x17, // tag and size of nested a
+                                        0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+                                        0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
+                                        0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
+                                        // And back to the parent message with field v.
+                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07 };
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));

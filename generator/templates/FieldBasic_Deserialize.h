@@ -27,24 +27,8 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-if(::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}} == wire_type)
-{
-  {% if field.oneof is not none %}
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
-  {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
-  }
-  {% endif %}
-  return_value = {{field.get_variable_name()}}.deserialize(buffer);
-  {% if field.oneof is not none %}
-  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
-  {
-    clear_{{field.get_name()}}();
-  }
-  {% endif %}
-}
-else
-{
-  // Wire type does not match field.
-  return_value = ::EmbeddedProto::Error::INVALID_WIRETYPE;
-}
+{% if field.oneof is not none %}
+return_value = deserialize_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}}, {{field.get_variable_name()}}, buffer, wire_type);
+{% else %}
+return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, wire_type);
+{%- endif -%}

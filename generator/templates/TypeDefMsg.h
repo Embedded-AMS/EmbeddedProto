@@ -34,17 +34,27 @@ Postal address:
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
-    {{ typedef.get_name() }}(){% if (typedef.fields or typedef.oneofs) %} :
-    {% endif %}
-    {% for field in typedef.fields %}
-        {{field.get_variable_name()}}({{field.get_default_value()}}){{"," if not loop.last}}{{"," if loop.last and typedef.oneofs}}
-    {% endfor %}
-    {% for oneof in typedef.oneofs %}
-        {{oneof.get_which_oneof()}}(id::NOT_SET){{"," if not loop.last}}
-    {% endfor %}
+    {{ typedef.get_name() }}() = default;
+    {{ typedef.get_name() }}(const {{typedef.get_name()}}& rhs )
     {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+    }
 
-    };
+    {{ typedef.get_name() }}(const {{typedef.get_name()}}&& rhs ) noexcept
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+    }
+
     ~{{ typedef.get_name() }}() override = default;
 
     {% for enum in typedef.nested_enum_definitions %}
@@ -55,7 +65,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ msg.render(environment)|indent(4) }}
 
     {% endfor %}
-    enum class id
+    enum class id : uint32_t
     {
       NOT_SET = 0,
       {% for id_set in typedef.field_ids %}
@@ -64,6 +74,17 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     };
 
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
+    {
+      {% for field in typedef.fields %}
+      set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      {{ TypeOneof.assign(oneof)|indent(6) }}
+      {% endfor %}
+      return *this;
+    }
+
+    {{ typedef.name }}& operator=(const {{ typedef.name }}&& rhs) noexcept
     {
       {% for field in typedef.fields %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
@@ -87,7 +108,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {% endfor %}
     {% endfor %}
 
-    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const final
+    ::EmbeddedProto::Error serialize(::EmbeddedProto::WriteBufferInterface& buffer) const override
     {
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
 
@@ -112,32 +133,30 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
-    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+    ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
     {
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
-      ::EmbeddedProto::WireFormatter::WireType wire_type;
+      ::EmbeddedProto::WireFormatter::WireType wire_type = ::EmbeddedProto::WireFormatter::WireType::VARINT;
       uint32_t id_number = 0;
+      id id_tag = id::NOT_SET;
 
       ::EmbeddedProto::Error tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
       while((::EmbeddedProto::Error::NO_ERRORS == return_value) && (::EmbeddedProto::Error::NO_ERRORS == tag_value))
       {
-        switch(id_number)
+        id_tag = static_cast<id>(id_number);
+        switch(id_tag)
         {
           {% for field in typedef.fields %}
-          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
+          case id::{{field.get_variable_id_name()}}:
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
-          case static_cast<uint32_t>(id::{{field.get_variable_id_name()}}):
-          {
+          case id::{{field.get_variable_id_name()}}:
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
-          }
 
           {% endfor %}
           {% endfor %}
@@ -147,8 +166,8 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
         if(::EmbeddedProto::Error::NO_ERRORS == return_value)
         {
-            // Read the next tag.
-            tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
+          // Read the next tag.
+          tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
         }
       }
 
@@ -163,7 +182,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
-    void clear() final
+    void clear() override
     {
       {% for field in typedef.fields %}
       clear_{{field.get_name()}}();
@@ -177,11 +196,15 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     private:
 
       {% for field in typedef.fields %}
+      {% if field.get_default_value() %}
+      {{field.get_type()}} {{field.get_variable_name()}} = {{field.get_default_value()}};
+      {% else %}
       {{field.get_type()}} {{field.get_variable_name()}};
+      {% endif %}
       {% endfor %}
 
       {% for oneof in typedef.oneofs %}
-      id {{oneof.get_which_oneof()}};
+      id {{oneof.get_which_oneof()}} = id::NOT_SET;
       union {{oneof.get_name()}}
       {
         {{oneof.get_name()}}() {}
@@ -196,5 +219,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
+      {{ TypeOneof.deserialize(oneof)|indent(6) }}
       {% endfor %}
 };

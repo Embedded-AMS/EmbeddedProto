@@ -90,7 +90,7 @@ void clear_{{_oneof.get_name()}}()
     {% for field in _oneof.get_fields() %}
     case id::{{field.get_variable_id_name()}}:
       {% if field.oneof_allocation_required() %}
-      {{field.get_variable_name()}}.~{{field.get_short_type()}}();
+      {{field.get_variable_name()}}.~{{field.get_short_type()}}(); // NOSONAR Unions require this.
 	  {% elif field.of_type_enum %}
 	  {{field.get_variable_name()}} = {{field.get_default_value()}};
       {% else %}
@@ -102,5 +102,25 @@ void clear_{{_oneof.get_name()}}()
       break;
   }
   {{_oneof.get_which_oneof()}} = id::NOT_SET;
+}
+{% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro deserialize(_oneof) %}
+::EmbeddedProto::Error deserialize_{{_oneof.get_name()}}(const id field_id, ::EmbeddedProto::Field& field,
+                              ::EmbeddedProto::ReadBufferInterface& buffer,
+                              const ::EmbeddedProto::WireFormatter::WireType wire_type)
+{
+  if(field_id != {{_oneof.get_which_oneof()}})
+  {
+    init_{{_oneof.get_name()}}(field_id);
+  }
+  ::EmbeddedProto::Error return_value = field.deserialize_check_type(buffer, wire_type);
+  if(::EmbeddedProto::Error::NO_ERRORS != return_value)
+  {
+    clear_{{_oneof.get_name()}}();
+  }
+  return return_value;
 }
 {% endmacro %}

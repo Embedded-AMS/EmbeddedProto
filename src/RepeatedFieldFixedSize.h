@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include <array>
 
 
 namespace EmbeddedProto
@@ -122,7 +123,7 @@ namespace EmbeddedProto
           const DATA_TYPE* d = data;
           for(uint32_t i = 0; i < length; ++i) 
           {
-            data_[i] = *d;
+            (data_[i]) = (*d);
             ++d;
           }
           current_length_ = length;        
@@ -151,9 +152,9 @@ namespace EmbeddedProto
 
       void clear() override 
       {
-        for(uint32_t i = 0; i < current_length_; ++i)
+        for(auto& d : data_)
         {
-          data_[i].clear();
+          d.clear();
         }
         current_length_ = 0;
       }
@@ -161,10 +162,10 @@ namespace EmbeddedProto
     private:
 
       //! Number of item in the data array.
-      uint32_t current_length_;
+      uint32_t current_length_ = 0;
 
       //! The actual data 
-      DATA_TYPE data_[MAX_LENGTH];
+      std::array<DATA_TYPE, MAX_LENGTH> data_;
   };
 
 } // End of namespace EmbeddedProto
