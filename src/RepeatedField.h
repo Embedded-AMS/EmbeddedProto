@@ -124,9 +124,9 @@ namespace EmbeddedProto
       virtual Error add(const DATA_TYPE& value) = 0;
 
       //! Remove all data in the array and set it to the default value.
-      virtual void clear() = 0;
+      virtual void clear() override = 0;
 
-      Error serialize(WriteBufferInterface& buffer) const
+      Error serialize(WriteBufferInterface& buffer) const final
       {
         // This function should not be called on a repeated field.
         return Error::BUFFER_FULL;
