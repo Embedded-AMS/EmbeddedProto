@@ -238,7 +238,7 @@ class FieldString(Field):
         return [{"name": self.template_param_str, "type": "uint32_t"}]
 
     def register_template_parameters(self):
-        self.parent.scope.register_template_parameters(self)
+        self.parent.register_child_with_template(self)
         return True
 
     def render_get_set(self, jinja_env):
