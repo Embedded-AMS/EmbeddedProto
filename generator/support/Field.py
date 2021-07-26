@@ -217,8 +217,8 @@ class FieldBasic(Field):
 # -----------------------------------------------------------------------------
 
 
-# This class defines a string field
-class FieldString(Field):
+# A base class for both the String and Bytes type field
+class BaseStringBytes(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
         super().__init__(proto_descriptor, parent_msg, "FieldString.h", oneof)
 
@@ -228,21 +228,12 @@ class FieldString(Field):
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
 
-    def get_type(self):
-        return "::EmbeddedProto::FieldString<" + self.template_param_str + ">"
-
-    def get_short_type(self):
-        return "FieldString"
-
     def get_template_parameters(self):
         return [{"name": self.template_param_str, "type": "uint32_t"}]
 
     def register_template_parameters(self):
-        self.parent.scope.register_template_parameters(self)
+        self.parent.register_child_with_template(self)
         return True
-
-    def render_get_set(self, jinja_env):
-        return self.render("FieldString_GetSet.h", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
         return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
@@ -254,16 +245,27 @@ class FieldString(Field):
 # -----------------------------------------------------------------------------
 
 
-# This class defines a bytes array field
-class FieldBytes(Field):
+# This class defines a string field
+class FieldString(BaseStringBytes):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldBytes.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, oneof)
 
-        # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "LENGTH"
+    def get_type(self):
+        return "::EmbeddedProto::FieldString<" + self.template_param_str + ">"
 
-    def get_wire_type_str(self):
-        return "LENGTH_DELIMITED"
+    def get_short_type(self):
+        return "FieldString"
+
+    def render_get_set(self, jinja_env):
+        return self.render("FieldString_GetSet.h", jinja_environment=jinja_env)
+
+# -----------------------------------------------------------------------------
+
+
+# This class defines a bytes array field
+class FieldBytes(BaseStringBytes):
+    def __init__(self, proto_descriptor, parent_msg, oneof=None):
+        super().__init__(proto_descriptor, parent_msg, oneof)
 
     def get_type(self):
         return "::EmbeddedProto::FieldBytes<" + self.template_param_str + ">"
@@ -271,22 +273,8 @@ class FieldBytes(Field):
     def get_short_type(self):
         return "FieldBytes"
 
-    def get_template_parameters(self):
-        return [{"name": self.template_param_str, "type": "uint32_t"}]
-
-    def register_template_parameters(self):
-        self.parent.register_child_with_template(self)
-        return True
-
     def render_get_set(self, jinja_env):
         return self.render("FieldBytes_GetSet.h", jinja_environment=jinja_env)
-
-    def render_serialize(self, jinja_env):
-        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
-
-    def render_deserialize(self, jinja_env):
-        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
-        return str.rstrip()
 
 # -----------------------------------------------------------------------------
 
