@@ -79,7 +79,8 @@ TEST(FieldString, serialize)
   text<10> msg;
   Mocks::WriteBufferMock buffer;
 
-  msg.mutable_txt() = "Foo bar";
+  char text[] = "Foo bar";
+  msg.mutable_txt() = text;
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
