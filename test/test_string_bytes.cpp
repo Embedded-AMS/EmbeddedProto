@@ -51,6 +51,37 @@ using ::testing::ElementsAre;
 namespace test_EmbeddedAMS_string_bytes
 {
 
+TEST(FieldString, get_set)
+{
+  text<10> msg;  
+  
+  // Test directly assigning a static string.
+  msg.mutable_txt() = "Foo Bar";
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo Bar", msg.get_txt().get_const());
+
+  // Test using the string inding.
+  msg.mutable_txt()[0] = 'f';
+  msg.mutable_txt()[4] = 'b';
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("foo bar", msg.get_txt().get_const());
+
+  // Test extending the string length by means of the non const get function.
+  msg.mutable_txt().get(7) = ' ';
+  msg.mutable_txt().get(8) = '2';
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
+
+  // Teat assigning a string by array pointer. 
+  char text[] = "Foo bar 3";
+  msg.mutable_txt() = text;
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 3", msg.get_txt().get_const());
+
+  const char* text2 = msg.get_txt().get_const();
+  ASSERT_STREQ("Foo bar 3", text2);
+}
+
 TEST(FieldString, clear)
 {
   text<10> msg;  
@@ -60,16 +91,19 @@ TEST(FieldString, clear)
   EXPECT_EQ(7, msg.get_txt().get_length());
   msg.clear_txt();
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 
   // Clear the whole message.
   msg.mutable_txt() = "Foo Bar";
   msg.clear();
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 
   // Assign a nullptr to clear.
   msg.mutable_txt() = "Foo Bar";
   msg.mutable_txt() = nullptr;
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 }
 
 TEST(FieldString, serialize) 
@@ -79,7 +113,8 @@ TEST(FieldString, serialize)
   text<10> msg;
   Mocks::WriteBufferMock buffer;
 
-  msg.mutable_txt() = "Foo bar";
+  char text[] = "Foo bar";
+  msg.mutable_txt() = text;
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
