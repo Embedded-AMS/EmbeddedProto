@@ -96,10 +96,13 @@ TEST(RepeatedFieldMessage, serialize_array_zero_fields)
   msg.add_y(0);
   msg.add_y(0);
 
-  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x00, 0x00, 0x00}; // y
+  // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(3));
 
+  std::array<uint8_t, 3> expected = {0x00, 0x00, 0x00}; // data of y
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -147,9 +150,13 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero)
   msg.add_y(1);
   msg.add_y(0);
 
-  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x00, 0x01, 0x00}; // y
+  // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(3));
+
+  std::array<uint8_t, 3> expected = {0x00, 0x01, 0x00}; // data of y
 
   for(auto e : expected) 
   {
@@ -208,9 +215,13 @@ TEST(RepeatedFieldMessage, serialize_array_one)
   msg.add_y(1);
   msg.add_y(1);
 
-  std::array<uint8_t, 5> expected = {0x12, 0x03, 0x01, 0x01, 0x01}; // y
+  // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(3));
+
+  std::array<uint8_t, 3> expected = {0x01, 0x01, 0x01}; // data of y
 
   for(auto e : expected) 
   {
@@ -232,9 +243,15 @@ TEST(RepeatedFieldMessage, serialize_array_max)
   msg.add_y(std::numeric_limits<uint32_t>::max());
   msg.add_y(std::numeric_limits<uint32_t>::max());
 
-  std::array<uint8_t, 17> expected = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f}; // y
+    // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x0F)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(15));
+
+  std::array<uint8_t, 15> expected = {0xff, 0xff, 0xff, 0xff, 0x0f, 
+                                      0xff, 0xff, 0xff, 0xff, 0x0f, 
+                                      0xff, 0xff, 0xff, 0xff, 0x0f}; // data of y
 
   for(auto e : expected) 
   {
@@ -264,11 +281,14 @@ TEST(RepeatedFieldMessage, serialize_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }                  
   
-  std::array<uint8_t, 7> expected = {0x12, 0x03, 0x01, 0x01, 0x01, // y
+    // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
+  
+  std::array<uint8_t, 5> expected = {0x01, 0x01, 0x01, // data of y
                                      0x18, 0x01}; // z
-
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
-
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
@@ -296,10 +316,16 @@ TEST(RepeatedFieldMessage, serialize_max)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }                  
   
-  std::array<uint8_t, 23> expected = {0x12, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, 0xff, 0xff, 0xff, 0xff, 0x0f, // y
-                                      0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
+    // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x0F)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(21));
+
+  std::array<uint8_t, 21> expected = {0xff, 0xff, 0xff, 0xff, 0x0f, 
+                                      0xff, 0xff, 0xff, 0xff, 0x0f, 
+                                      0xff, 0xff, 0xff, 0xff, 0x0f, // data of y
+                                      0x18, 0xff, 0xff, 0xff, 0xff, 0x0f}; // z
 
   for(auto e : expected) 
   {
@@ -318,6 +344,10 @@ TEST(RepeatedFieldMessage, serialize_fault_buffer_full)
   msg.add_y(1);
   msg.add_y(1);                 
   
+  // Tag and size of y
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
+
   // Need 3 bytes but got only 2.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(2));
 
