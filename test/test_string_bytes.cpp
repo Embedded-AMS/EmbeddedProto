@@ -173,15 +173,17 @@ TEST(FieldString, oneof_serialize)
 
   msg.mutable_txt() = "Foo bar";
 
-  EXPECT_CALL(buffer, get_available_size()).Times(3).WillRepeatedly(Return(99));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(99));
 
+  // The tag and number of characters.
   std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
+  // The actual data but it does not matter what as long as there are seven characters.
+  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(10, msg.get_txt().get_max_length());
@@ -391,15 +393,17 @@ TEST(FieldBytes, oneof_serialize)
   std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
   msg.mutable_b().set(bytes.data(), 4);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(3).WillRepeatedly(Return(17));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(17));
 
+  // The tag and size
   std::array<uint8_t, 2> expected = {0x12, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-  EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
+  // The actual data but it does not matter what as long as there are four bytes.
+  EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(10, msg.get_txt().get_max_length());
@@ -433,7 +437,6 @@ TEST(RepeatedStringBytes, empty)
 { 
   repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
   Mocks::WriteBufferMock buffer;
-  EXPECT_CALL(buffer, get_available_size()).Times(4).WillRepeatedly(Return(99));
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
@@ -511,13 +514,13 @@ TEST(RepeatedStringBytes, serialize)
   msg.add_array_of_txt(str);
   msg.mutable_array_of_txt(2) = "Foo bar 3";
 
-  // We need 24 bytes to serialze the strings above.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(24));
 
   // The first string.
   // Id and size of array of txt.
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+
   // The string is pushed as an array, we do not know the pointer value so use _, but we do know 
   // the size.
   EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
@@ -527,12 +530,13 @@ TEST(RepeatedStringBytes, serialize)
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
   
-  // The last string
+  // The last string 
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+
   EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(3).WillRepeatedly(Return(0));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
