@@ -99,6 +99,7 @@ def main_plugin():
 
     # Create response
     response = plugin.CodeGeneratorResponse()
+    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
     # Generate code
     try:
