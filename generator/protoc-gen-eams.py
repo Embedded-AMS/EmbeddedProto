@@ -117,7 +117,6 @@ def main_plugin():
     except Exception as e:
         response.error = "Embedded Proto error - " + str(e)
 
-
     # Serialize response message
     output = response.SerializeToString()
 

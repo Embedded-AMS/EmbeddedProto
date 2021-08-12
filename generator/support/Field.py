@@ -41,6 +41,9 @@ class Field:
         # A reference to the parent message in which this field is defined.
         self.parent = parent_msg
 
+        # Is this field optional, so do we need to track the presence of the field.
+        self.optional = self.descriptor.proto3_optional
+
         # If this field is part of a oneof this is the reference to it.
         self.oneof = oneof
 
@@ -51,7 +54,6 @@ class Field:
         self.template_file = template_filename
         
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == proto_descriptor.type
-
 
     @staticmethod
     # This function create the appropriate field object for a variable defined in the message.
