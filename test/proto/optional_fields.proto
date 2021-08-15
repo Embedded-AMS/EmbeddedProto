@@ -40,6 +40,13 @@ message position
   double zpos = 3;
 }
 
+enum states
+{
+  A = 0;
+  B = 1;
+  C = 2;
+}
+
 message optional_fields 
 {
   int32 a = 1;
@@ -48,5 +55,7 @@ message optional_fields
   float x = 3;  
   optional float y = 4;
 
-  optional position pos = 10004;
+  optional position pos = 5;
+
+  optional states state = 6;
 }
