@@ -147,8 +147,6 @@ class MessageDefinition(TypeDefinition):
                 if f.proto3_optional:
                     self.optional_fields.append(new_field)
 
-
-
         # Store all the oneof definitions in this message.
         self.oneofs = []
         for index, oneof in enumerate(self.descriptor.oneof_decl):
