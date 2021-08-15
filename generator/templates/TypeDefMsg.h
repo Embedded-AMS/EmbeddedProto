@@ -195,6 +195,45 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
     private:
 
+      {% if typedef.optional_fields is defined and typedef.optional_fields|length > 0 %}
+      // Define constants for tracking the presence of fields.
+      // Use a struct to scope the variables from user fields as namespaces are not allowed within classes.
+      struct presence
+      {
+        // An enumeration with all the fields for which presence has to be tracked.
+        enum class fields : uint32_t
+        {
+          {% for field in typedef.optional_fields %}
+          {{field.get_name().upper()}}{{ "," if not loop.last }}
+          {% endfor %}
+        };
+
+        // The number of fields for which presence has to be tracked.
+        static constexpr uint32_t N_FIELDS = {{typedef.optional_fields|length}};
+
+        // Which type are we using to track presence.
+        using TYPE = uint32_t;
+
+        // How many bits are there in the presence type.
+        static constexpr uint32_t N_BITS = std::numeric_limits<TYPE>::digits;
+
+        // How many variables of TYPE do we need to bit mask all presence fields.
+        static constexpr uint32_t SIZE = (N_FIELDS / N_BITS) + ((N_FIELDS % N_BITS) > 0 ? 1 : 0);
+
+        // Obtain the index of a given field in the presence array.
+        static constexpr uint32_t index(const fields& field) { return static_cast<uint32_t>(field) / N_BITS; }
+
+        // Obtain the bit mask for the given field assuming we are at the correct index in the presence array.
+        static constexpr TYPE mask(const fields& field)
+        {
+          return static_cast<uint32_t>(0x01) << (static_cast<uint32_t>(field) % N_BITS);
+        }
+      };
+
+      // Create an array in which the presence flags are stored.
+      presence::TYPE presence_[presence::SIZE];
+      {% endif %}
+
       {% for field in typedef.fields %}
       {% if field.get_default_value() %}
       {{field.get_type()}} {{field.get_variable_name()}} = {{field.get_default_value()}};
