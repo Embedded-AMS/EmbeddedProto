@@ -67,50 +67,50 @@ TEST(OneofField, serialize_zero)
 TEST(OneofField, set_get_clear)
 {
   message_oneof msg;
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
   msg.set_x(1);
   EXPECT_EQ(1, msg.get_x());
-  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
   msg.clear_x();
 
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
   msg.set_y(1);
   EXPECT_EQ(1, msg.get_y());
-  EXPECT_EQ(message_oneof::id::Y, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
   msg.clear_y();
 
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
   msg.set_z(1);
   EXPECT_EQ(1, msg.get_z());
-  EXPECT_EQ(message_oneof::id::Z, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::Z, msg.get_which_xyz());
   msg.clear_z();
 
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
   msg.set_state(message_oneof::States::Run);
   EXPECT_EQ(message_oneof::States::Run, msg.get_state());
-  EXPECT_EQ(message_oneof::id::STATE, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::STATE, msg.get_which_xyz());
   msg.clear_state();
 
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
 
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_message());
   msg.mutable_msg_ABC().set_varA(1);
   msg.mutable_msg_ABC().set_varB(22);
   msg.mutable_msg_ABC().set_varC(333);
-  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::MSG_ABC, msg.get_which_message());
   EXPECT_EQ(1, msg.msg_ABC().varA());
   EXPECT_EQ(22, msg.msg_ABC().varB());
   EXPECT_EQ(333, msg.msg_ABC().varC());
   msg.clear_msg_ABC();
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_message());
 
   msg.set_x(1);
   msg.mutable_msg_ABC().set_varA(1);
-  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
-  EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::MSG_ABC, msg.get_which_message());
   msg.clear();
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_message());
 }
 
 TEST(OneofField, serialize_ones) 
@@ -203,7 +203,7 @@ TEST(OneofField, deserialize)
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
-  EXPECT_EQ(message_oneof::id::Y, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
   EXPECT_EQ(1, msg.get_y());
 }
 
@@ -228,7 +228,7 @@ TEST(OneofField, deserialize_override)
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
-  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
   EXPECT_EQ(1, msg.get_x());
 }
 
@@ -243,7 +243,7 @@ TEST(OneofField, deserialize_failure)
   EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(false))); // This simulates the fialure.
 
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
-  EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_xyz());
 
 }
 
@@ -268,9 +268,9 @@ TEST(OneofField, deserialize_second_oneof)
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(1, msg.get_b());
-  EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
   EXPECT_EQ(1, msg.get_x());
-  EXPECT_EQ(message_oneof::id::V, msg.get_which_uvw());
+  EXPECT_EQ(message_oneof::FieldNumber::V, msg.get_which_uvw());
   EXPECT_EQ(1, msg.get_y());
 }
 
@@ -324,7 +324,7 @@ TEST(OneofField, deserialize_oneof_msg)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
-  EXPECT_EQ(message_oneof::id::MSG_DEF, msg.get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::MSG_DEF, msg.get_which_message());
   EXPECT_EQ(1, msg.get_msg_DEF().get_varD());
   EXPECT_EQ(22, msg.get_msg_DEF().get_varE());
   EXPECT_EQ(333, msg.get_msg_DEF().get_varF());
@@ -346,7 +346,7 @@ TEST(OneofField, nested_assign)
   top_level_msg.set_msg_oneof(nested_msg);
 
   // Check the result.
-  EXPECT_EQ(message_oneof::id::MSG_ABC, top_level_msg.get_msg_oneof().get_which_message());
+  EXPECT_EQ(message_oneof::FieldNumber::MSG_ABC, top_level_msg.get_msg_oneof().get_which_message());
   EXPECT_EQ(1, top_level_msg.get_msg_oneof().msg_ABC().varA());
   EXPECT_EQ(22, top_level_msg.get_msg_oneof().msg_ABC().varB());
   EXPECT_EQ(333, top_level_msg.get_msg_oneof().msg_ABC().varC());

@@ -28,7 +28,7 @@ Postal address:
   the Netherlands
 #}
 {% if field.oneof is not none %}
-return_value = deserialize_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}}, {{field.get_variable_name()}}, buffer, wire_type);
+return_value = deserialize_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}}, {{field.get_variable_name()}}, buffer, wire_type);
 {% else %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, wire_type);
 {%- endif -%}
