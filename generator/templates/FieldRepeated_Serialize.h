@@ -29,5 +29,5 @@ Postal address:
 #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
-  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(id::{{field.get_variable_id_name()}}), buffer);
+  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
 }

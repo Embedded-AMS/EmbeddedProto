@@ -30,49 +30,49 @@ Postal address:
 {% if field.oneof is not none %}
 inline void clear_{{field.get_name()}}()
 {
-  if(id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
   {
-    {{field.get_which_oneof}} = id::NOT_SET;
+    {{field.get_which_oneof}} = FieldNumber::NOT_SET;
     {{field.get_variable_name()}}.~{{field.get_short_type()}}();
   }
 }
 inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_type()}}& value)
 {
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+    init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   {{field.get_variable_name()}}.set(index, value);
 }
 inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_type()}}&& value)
 {
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+    init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   {{field.get_variable_name()}}.set(index, value);
 }
 inline void set_{{field.get_name()}}(const {{field.repeated_type}}& values)
 {
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+    init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   {{field.get_variable_name()}} = values;
 }
 inline void add_{{field.get_name()}}(const {{field.get_type()}}& value)
 {
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+    init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   {{field.get_variable_name()}}.add(value);
 }
 inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
 {
-  if(id::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+  if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
-    init_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}});
+    init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   return {{field.get_variable_name()}};
 }

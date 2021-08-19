@@ -336,7 +336,7 @@ TEST(FieldBytes, oneof_set_get)
   string_or_bytes<3, 3, 10, 10> msg;  
   msg.mutable_txt() = "Foo Bar";
   
-  auto id = string_or_bytes<3, 3, 10, 10>::id::TXT;
+  auto id = string_or_bytes<3, 3, 10, 10>::FieldNumber::TXT;
   EXPECT_EQ(id, msg.get_which_s_or_b());
   EXPECT_STREQ(msg.txt(), "Foo Bar");
 
@@ -344,7 +344,7 @@ TEST(FieldBytes, oneof_set_get)
   std::array<uint8_t, 5> array = {1, 2, 3, 4, 5};
   msg.mutable_b().set(array.data(), 5);
 
-  id = string_or_bytes<3, 3, 10, 10>::id::B;
+  id = string_or_bytes<3, 3, 10, 10>::FieldNumber::B;
   EXPECT_EQ(id, msg.get_which_s_or_b());
   for(uint8_t i = 0; i < 5; ++i)
   {
@@ -378,7 +378,7 @@ TEST(FieldString, oneof_assign)
   msgA.mutable_txt() = "Foo Bar";
   msgB = msgA;
 
-  auto id = string_or_bytes<3, 3, 10, 10>::id::TXT;
+  auto id = string_or_bytes<3, 3, 10, 10>::FieldNumber::TXT;
   EXPECT_EQ(id, msgB.get_which_s_or_b());
   EXPECT_STREQ(msgB.txt(), "Foo Bar");
 }
