@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -38,21 +38,31 @@ namespace EmbeddedProto
   Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
                                                               ::EmbeddedProto::WriteBufferInterface& buffer) const
   {
+    Error return_value = Error::NO_ERRORS;
+
+    // See if we have data which should be serialized.
     const uint32_t size_x = this->serialized_size();
-    bool result = (size_x <= buffer.get_available_size());
-    Error return_value = result ? Error::NO_ERRORS : Error::BUFFER_FULL;
-    if(result && (0 < size_x))
+    if(0 < size_x)
     {
       uint32_t tag = WireFormatter::MakeTag(field_number, 
                               WireFormatter::WireType::LENGTH_DELIMITED);
       return_value = WireFormatter::SerializeVarint(tag, buffer);
+      
       if(Error::NO_ERRORS == return_value)
       {
         return_value = WireFormatter::SerializeVarint(size_x, buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
-          return_value = base->serialize(buffer);
+          // See if there is enough space left in the buffer for the data.
+          if(size_x <= buffer.get_available_size()) 
+          {
+            const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
+            return_value = base->serialize(buffer);
+          }
+          else
+          {
+            return_value = Error::BUFFER_FULL;
+          }
         }
       }
     }

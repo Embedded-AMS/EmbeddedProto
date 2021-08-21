@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -51,6 +51,37 @@ using ::testing::ElementsAre;
 namespace test_EmbeddedAMS_string_bytes
 {
 
+TEST(FieldString, get_set)
+{
+  text<10> msg;  
+  
+  // Test directly assigning a static string.
+  msg.mutable_txt() = "Foo Bar";
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo Bar", msg.get_txt().get_const());
+
+  // Test using the string inding.
+  msg.mutable_txt()[0] = 'f';
+  msg.mutable_txt()[4] = 'b';
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("foo bar", msg.get_txt().get_const());
+
+  // Test extending the string length by means of the non const get function.
+  msg.mutable_txt().get(7) = ' ';
+  msg.mutable_txt().get(8) = '2';
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
+
+  // Teat assigning a string by array pointer. 
+  char text[] = "Foo bar 3";
+  msg.mutable_txt() = text;
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 3", msg.get_txt().get_const());
+
+  const char* text2 = msg.get_txt().get_const();
+  ASSERT_STREQ("Foo bar 3", text2);
+}
+
 TEST(FieldString, clear)
 {
   text<10> msg;  
@@ -60,16 +91,19 @@ TEST(FieldString, clear)
   EXPECT_EQ(7, msg.get_txt().get_length());
   msg.clear_txt();
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 
   // Clear the whole message.
   msg.mutable_txt() = "Foo Bar";
   msg.clear();
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 
   // Assign a nullptr to clear.
   msg.mutable_txt() = "Foo Bar";
   msg.mutable_txt() = nullptr;
   EXPECT_EQ(0, msg.get_txt().get_length());
+  ASSERT_STREQ("", msg.get_txt().get_const());
 }
 
 TEST(FieldString, serialize) 
@@ -79,7 +113,8 @@ TEST(FieldString, serialize)
   text<10> msg;
   Mocks::WriteBufferMock buffer;
 
-  msg.mutable_txt() = "Foo bar";
+  char text[] = "Foo bar";
+  msg.mutable_txt() = text;
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
 
@@ -133,20 +168,22 @@ TEST(FieldString, oneof_serialize)
 {
   InSequence s;
 
-  string_or_bytes<10, 10> msg;
+  string_or_bytes<3, 3, 10, 10> msg;
   Mocks::WriteBufferMock buffer;
 
   msg.mutable_txt() = "Foo bar";
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(99));
 
+  // The tag and number of characters.
   std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
+  // The actual data but it does not matter what as long as there are seven characters.
+  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(10, msg.get_txt().get_max_length());
@@ -156,7 +193,7 @@ TEST(FieldString, oneof_deserialize)
 {
   InSequence s;
 
-  string_or_bytes<10, 10> msg;
+  string_or_bytes<3, 3, 10, 10> msg;
   Mocks::ReadBufferMock buffer;
 
   std::array<uint8_t, 9> referee = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62, 0x61, 0x72};
@@ -296,10 +333,10 @@ TEST(FieldBytes, deserialize_error_invalid_wiretype)
 
 TEST(FieldBytes, oneof_set_get)
 {
-  string_or_bytes<10, 10> msg;  
+  string_or_bytes<3, 3, 10, 10> msg;  
   msg.mutable_txt() = "Foo Bar";
   
-  auto id = string_or_bytes<10, 10>::id::TXT;
+  auto id = string_or_bytes<3, 3, 10, 10>::id::TXT;
   EXPECT_EQ(id, msg.get_which_s_or_b());
   EXPECT_STREQ(msg.txt(), "Foo Bar");
 
@@ -307,7 +344,7 @@ TEST(FieldBytes, oneof_set_get)
   std::array<uint8_t, 5> array = {1, 2, 3, 4, 5};
   msg.mutable_b().set(array.data(), 5);
 
-  id = string_or_bytes<10, 10>::id::B;
+  id = string_or_bytes<3, 3, 10, 10>::id::B;
   EXPECT_EQ(id, msg.get_which_s_or_b());
   for(uint8_t i = 0; i < 5; ++i)
   {
@@ -335,13 +372,13 @@ TEST(FieldBytes, oneof_clear)
 
 TEST(FieldString, oneof_assign)
 { 
-  string_or_bytes<10, 10> msgA;
-  string_or_bytes<10, 10> msgB;
+  string_or_bytes<3, 3, 10, 10> msgA;
+  string_or_bytes<3, 3, 10, 10> msgB;
 
   msgA.mutable_txt() = "Foo Bar";
   msgB = msgA;
 
-  auto id = string_or_bytes<10, 10>::id::TXT;
+  auto id = string_or_bytes<3, 3, 10, 10>::id::TXT;
   EXPECT_EQ(id, msgB.get_which_s_or_b());
   EXPECT_STREQ(msgB.txt(), "Foo Bar");
 }
@@ -350,21 +387,23 @@ TEST(FieldBytes, oneof_serialize)
 {
   InSequence s;
 
-  string_or_bytes<10, 10> msg;
+  string_or_bytes<3, 3, 10, 10> msg;
   Mocks::WriteBufferMock buffer;
 
   std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
   msg.mutable_b().set(bytes.data(), 4);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(17));
 
+  // The tag and size
   std::array<uint8_t, 2> expected = {0x12, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-  EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
+  // The actual data but it does not matter what as long as there are four bytes.
+  EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(10, msg.get_txt().get_max_length());
@@ -374,7 +413,7 @@ TEST(FieldBytes, oneof_deserialize)
 {
   InSequence s;
 
-  string_or_bytes<10, 10> msg;
+  string_or_bytes<3, 3, 10, 10> msg;
   Mocks::ReadBufferMock buffer;
 
   std::array<uint8_t, 6> referee = {0x12, 0x04, 0x01, 0x02, 0x03, 0x00};
@@ -396,15 +435,14 @@ TEST(FieldBytes, oneof_deserialize)
 
 TEST(RepeatedStringBytes, empty) 
 { 
-  repeated_string_bytes<3, 10, 3, 10> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
   Mocks::WriteBufferMock buffer;
-  EXPECT_CALL(buffer, get_available_size()).Times(2).WillRepeatedly(Return(99));  
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(RepeatedStringBytes, get_set) 
 { 
-  repeated_string_bytes<3, 15, 3, 15> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
 
   ::EmbeddedProto::FieldString<15> str;
   msg.add_array_of_txt(str);
@@ -424,8 +462,8 @@ TEST(RepeatedStringBytes, get_set)
 
 TEST(RepeatedStringBytes, assign_msg) 
 { 
-  repeated_string_bytes<3, 15, 3, 15> msgA;
-  repeated_string_bytes<3, 15, 3, 15> msgB;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msgA;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msgB;
 
   ::EmbeddedProto::FieldString<15> str;
   msgA.add_array_of_txt(str);
@@ -465,7 +503,7 @@ TEST(RepeatedStringBytes, serialize)
 { 
   InSequence s;
 
-  repeated_string_bytes<3, 15, 3, 15> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
   Mocks::WriteBufferMock buffer;
 
   ::EmbeddedProto::FieldString<15> str;
@@ -476,13 +514,13 @@ TEST(RepeatedStringBytes, serialize)
   msg.add_array_of_txt(str);
   msg.mutable_array_of_txt(2) = "Foo bar 3";
 
-  // We need 24 bytes to serialze the strings above.
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(24));
 
   // The first string.
   // Id and size of array of txt.
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+
   // The string is pushed as an array, we do not know the pointer value so use _, but we do know 
   // the size.
   EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
@@ -492,9 +530,10 @@ TEST(RepeatedStringBytes, serialize)
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
   
-  // The last string
+  // The last string 
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
+
   EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
 
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
@@ -506,7 +545,7 @@ TEST(RepeatedStringBytes, deserialize)
 { 
   InSequence s;
 
-  repeated_string_bytes<3, 15, 3, 15> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
   Mocks::ReadBufferMock buffer;
 
   // Pop the tag and size of the first string

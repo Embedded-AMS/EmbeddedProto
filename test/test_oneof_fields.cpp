@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -284,12 +284,17 @@ TEST(OneofField, serialize_oneof_msg)
   msg.mutable_msg_ABC().set_varB(1);
   msg.mutable_msg_ABC().set_varC(1);
 
+
+  // Field ID
+  EXPECT_CALL(buffer, push(0xA2)).Times(1).WillOnce(Return(true));
+  // Followed by nested message size
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x06)).Times(1).WillOnce(Return(true));
+
   // When called the buffer will have enough space for the message
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
 
-  std::array<uint8_t, 9> expected_ABC = { 0xa2,         // field ID.
-                                          0x01, 0x06,   // Nested message size.
-                                          0x08, 0x01,   // varA
+  std::array<uint8_t, 6> expected_ABC = { 0x08, 0x01,   // varA
                                           0x10, 0x01,   // varB
                                           0x18, 0x01 }; // varC
 

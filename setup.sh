@@ -1,7 +1,7 @@
 #! /bin/bash
 
 #
-# Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #

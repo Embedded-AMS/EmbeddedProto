@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -61,7 +61,6 @@ TEST(NestedMessage, serialize_zero)
   Mocks::WriteBufferMock buffer;
   EXPECT_CALL(buffer, push(_)).Times(0);
   EXPECT_CALL(buffer, push(_,_)).Times(0);
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(99));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
@@ -90,17 +89,21 @@ TEST(NestedMessage, serialize_one)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(11));
-
   // tag and size of nested a
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
 
-  // The next call is for the repeated field x.
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(12));
 
-  std::array<uint8_t, 12> expected_a = {0x0A, 0x01, 0x01, // x
+  // tag and size of x
+  EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+
+  // The next call is for the repeated field x.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
+  std::array<uint8_t, 10> expected_a = {0x01, // x
                                         0x15, 0x00, 0x00, 0x80, 0x3f, // y
                                         0x18, 0x02, // z
                                         0x18, 0x01}; // And back to the parent message with field v.
@@ -130,22 +133,25 @@ TEST(NestedMessage, serialize_max)
 
   std::array<uint8_t, 9> expected_b = {0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
 
-
   for(auto e : expected_b) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-
-  // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(31));
 
   // tag and size of nested a
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x17)).Times(1).WillOnce(Return(true));
 
-  // The next call is for the repeated field x.
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(11));
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(29));
 
-  std::array<uint8_t, 29> expected_a = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+  // tag and size of x
+  EXPECT_CALL(buffer, push(0X0A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x05)).Times(1).WillOnce(Return(true));
+
+  // The next call is for the repeated field x.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(27));
+
+  std::array<uint8_t, 27> expected_a = {0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
                                         0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
                                         0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
                                         // And back to the parent message with field v.
@@ -174,26 +180,33 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
   msg.mutable_nested_b().mutable_nested_a().set_z(std::numeric_limits<int64_t>::max());
   msg.mutable_nested_b().set_v(std::numeric_limits<int32_t>::max());
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(42));
+  // tag and size of nested b
+  EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x28)).Times(1).WillOnce(Return(true));
 
-  std::array<uint8_t, 11> expected_b = {0x0A, 0x28, // tag and size of nested b
-                                        0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(40));
+
+  std::array<uint8_t, 9> expected_b = {0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F}; // u
 
   for(auto e : expected_b) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
-  // When called the buffer will have enough space for the message
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(31));
-
   // tag and size of nested a
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x17)).Times(1).WillOnce(Return(true));
 
-  // The next call is for the repeated field x.
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(11));
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(29));
 
-  std::array<uint8_t, 29> expected_a = {0x0A, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
+  // tag and size of x
+  EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x05)).Times(1).WillOnce(Return(true));
+
+  // The next call is for the repeated field x.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(27));
+
+  std::array<uint8_t, 27> expected_a = {0xFF, 0xFF, 0xFF, 0xFF, 0x07, // x
                                         0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
                                         0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
                                         // And back to the parent message with field v.
@@ -202,9 +215,6 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
   for(auto e : expected_a) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-
-  // In serializing D, even if it is not set, we check the size of the buffer.
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
