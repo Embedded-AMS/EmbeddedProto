@@ -231,7 +231,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       };
 
       // Create an array in which the presence flags are stored.
-      presence::TYPE presence_[presence::SIZE];
+      typename presence::TYPE presence_[presence::SIZE] = {0};
       {% endif %}
 
       {% for field in typedef.fields %}
