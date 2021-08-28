@@ -47,7 +47,52 @@ namespace test_EmbeddedAMS_OptionalFields
 
 TEST(OptionalFields, zero) 
 {
-  ::optional_fields msg;
+  ::optional_fields<5,10> msg;
+
+  // Test an int set to zero.
+  EXPECT_FALSE(msg.has_b());
+  msg.set_b(0);
+  EXPECT_TRUE(msg.has_b());
+  msg.clear_b();
+  EXPECT_FALSE(msg.has_b());
+
+  // Test a floating point to zero.
+  EXPECT_FALSE(msg.has_y());
+  msg.set_y(0.0F);
+  EXPECT_TRUE(msg.has_y());
+  msg.clear_y();
+  EXPECT_FALSE(msg.has_y());
+
+  // Address a nested message but do not set anything in it.
+  EXPECT_FALSE(msg.has_pos());
+  msg.mutable_pos().clear();
+  EXPECT_TRUE(msg.has_pos());
+  msg.clear_pos();
+  EXPECT_FALSE(msg.has_pos());
+
+  // Test an enum set to zero.
+  EXPECT_FALSE(msg.has_state());
+  msg.set_state(states::A);
+  EXPECT_TRUE(msg.has_state());
+  msg.clear_state();
+  EXPECT_FALSE(msg.has_state());
+
+  // Address a bytes array but do not set anything in it.
+  EXPECT_FALSE(msg.has_bytes_array());
+  msg.mutable_bytes_array().clear();
+  EXPECT_TRUE(msg.has_bytes_array());
+  msg.clear_bytes_array();
+  EXPECT_FALSE(msg.has_bytes_array());
+
+  // Address a string but do not set anything in it.
+  EXPECT_FALSE(msg.has_str());
+  msg.mutable_str().clear();
+  EXPECT_TRUE(msg.has_str());
+  msg.clear_str();
+  EXPECT_FALSE(msg.has_str());
+
 }
+
+
 
 } // End of namespace test_EmbeddedAMS_OptionalFields

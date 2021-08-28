@@ -56,6 +56,7 @@ message optional_fields
   optional float y = 4;
 
   optional position pos = 5;
-
   optional states state = 6;
+  optional bytes bytes_array = 7;
+  optional string str = 8;
 }
