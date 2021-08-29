@@ -54,6 +54,7 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/include_other_fil
 protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/subfolder/file_to_include_from_subfolder.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/string_bytes.proto
+protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.proto
 
 # Build the tests
 mkdir -p build/test

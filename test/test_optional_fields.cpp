@@ -129,6 +129,36 @@ TEST(OptionalFields, construction_assignment)
   EXPECT_TRUE(msgD.has_str());
 }
 
+TEST(OptionalFields, empty_serialization) 
+{
+  ::optional_fields<5,10> msg;
+  msg.set_b(0);
+  msg.set_y(0.0F);
+  msg.mutable_pos().clear();
+  msg.set_state(states::A);
+  msg.mutable_bytes_array().clear();
+  msg.mutable_str().clear();
 
+  InSequence s;
+  Mocks::WriteBufferMock buffer;
+
+  std::array<uint8_t, 15> expected = { 0x10, 0x00, 
+                                       0x25, 0x00, 0x00, 0x00, 0x00, 
+                                       0x2a, 0x00, 
+                                       0x30, 0x00,
+                                       0x3a, 0x00, 
+                                       0x42, 0x00}; // str
+
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+
+TEST(OptionalFields, empty_deserialization) 
+{
+
+}
 
 } // End of namespace test_EmbeddedAMS_OptionalFields

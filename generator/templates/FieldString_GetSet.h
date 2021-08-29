@@ -69,7 +69,7 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs)
 {
-  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}}); 
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
   {{field.get_variable_name()}}.set(rhs);
 }
 {% else %}
