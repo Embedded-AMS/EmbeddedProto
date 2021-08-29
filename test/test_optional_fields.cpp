@@ -142,11 +142,11 @@ TEST(OptionalFields, empty_serialization)
   InSequence s;
   Mocks::WriteBufferMock buffer;
 
-  std::array<uint8_t, 15> expected = { 0x10, 0x00, 
-                                       0x25, 0x00, 0x00, 0x00, 0x00, 
-                                       0x2a, 0x00, 
-                                       0x30, 0x00,
-                                       0x3a, 0x00, 
+  std::array<uint8_t, 15> expected = { 0x10, 0x00, // b
+                                       0x25, 0x00, 0x00, 0x00, 0x00, // y
+                                       0x2a, 0x00,  // pos
+                                       0x30, 0x00,  // state
+                                       0x3a, 0x00,  // bytes_array
                                        0x42, 0x00}; // str
 
   for(auto e : expected) {
@@ -158,6 +158,38 @@ TEST(OptionalFields, empty_serialization)
 
 TEST(OptionalFields, empty_deserialization) 
 {
+  ::optional_fields<5,10> msg;
+
+  InSequence s;
+
+  Mocks::ReadBufferMock buffer;
+
+  static constexpr uint32_t SIZE = 15;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  // Test if a double nested message can be deserialized with values set to maximum.
+
+  std::array<uint8_t, SIZE> referee = { 0x10, 0x00, // b
+                                        0x25, 0x00, 0x00, 0x00, 0x00, // y
+                                        0x2a, 0x00,  // pos
+                                        0x30, 0x00,  // state
+                                        0x3a, 0x00,  // bytes_array
+                                        0x42, 0x00}; // str
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_TRUE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_TRUE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_TRUE(msg.has_str());
 
 }
 
