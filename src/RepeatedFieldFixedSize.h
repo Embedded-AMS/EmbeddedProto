@@ -55,13 +55,7 @@ namespace EmbeddedProto
 
     public:
 
-      RepeatedFieldFixedSize()
-        : current_length_(0),
-          data_{}
-      {
-
-      }  
-
+      RepeatedFieldFixedSize() = default;
       ~RepeatedFieldFixedSize() override = default;
 
       //! Assign one repieted field to the other, but only when the length and type matches.
@@ -165,7 +159,7 @@ namespace EmbeddedProto
       uint32_t current_length_ = 0;
 
       //! The actual data 
-      std::array<DATA_TYPE, MAX_LENGTH> data_;
+      std::array<DATA_TYPE, MAX_LENGTH> data_ = {};
   };
 
 } // End of namespace EmbeddedProto
