@@ -291,7 +291,7 @@ namespace EmbeddedProto
   {
     public:
       FieldString() = default;
-      virtual ~FieldString() = default;
+      ~FieldString() override = default;
 
       FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
       {
@@ -321,7 +321,7 @@ namespace EmbeddedProto
   {
     public:
       FieldBytes() = default;
-      virtual ~FieldBytes() = default; 
+      ~FieldBytes() override = default; 
   };
 
 
