@@ -58,11 +58,8 @@ namespace EmbeddedProto
 
         FieldStringBytes() = default;
         
-        ~FieldStringBytes() override
-        {
-          clear();
-        }
-
+        ~FieldStringBytes() override = default;
+        
         //! Obtain the number of characters in the string right now.
         uint32_t get_length() const { return current_length_; }
 
