@@ -66,7 +66,7 @@ namespace EmbeddedProto
       }
 
       template<uint32_t MAX_LENGTH_RHS, std::enable_if_t<(MAX_LENGTH_RHS < MAX_LENGTH), int> = 0>
-      RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>& rhs) :
+      explicit RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>& rhs) :
         current_length_(rhs.get_length())
       {
         const auto& rhs_data = rhs.get_data_const();
@@ -74,7 +74,7 @@ namespace EmbeddedProto
       }
 
       template<uint32_t MAX_LENGTH_RHS, std::enable_if_t<(MAX_LENGTH_RHS < MAX_LENGTH), int> = 0>
-      RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>&& rhs) :
+      explicit RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>&& rhs) :
         current_length_(rhs.get_length())
       {
         const auto& rhs_data = rhs.get_data_const();
