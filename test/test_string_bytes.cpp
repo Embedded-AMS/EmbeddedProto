@@ -130,6 +130,21 @@ TEST(FieldString, serialize)
   EXPECT_EQ(10, msg.get_txt().get_max_length());
 }
 
+TEST(FieldString, serialize_buffer_full) 
+{
+  InSequence s;
+
+  text<10> msg;
+  Mocks::WriteBufferMock buffer;
+
+  char text[] = "Foo bar";
+  msg.mutable_txt() = text;
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
+}
+
 TEST(FieldString, deserialize) 
 {
   InSequence s;
@@ -163,6 +178,48 @@ TEST(FieldString, deserialize_error_invalid_wiretype)
   EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(buffer));
   EXPECT_EQ(0, msg.get_txt().get_length());
 }
+
+TEST(FieldString, deserialize_array_full) 
+{
+  InSequence s;
+
+  text<3> msg;
+  Mocks::ReadBufferMock buffer;
+
+  std::array<uint8_t, 2> referee = {0x0a, 0x07};
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.deserialize(buffer));
+  EXPECT_EQ(0, msg.get_txt().get_length());
+  EXPECT_STREQ(msg.txt(), "");
+}
+
+TEST(FieldString, deserialize_end_of_buffer) 
+{
+  InSequence s;
+
+  text<10> msg;
+  Mocks::ReadBufferMock buffer;
+
+  std::array<uint8_t, 7> referee = {0x0a, 0x07, 0x46, 0x6f, 0x6f, 0x20, 0x62};
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(5, msg.get_txt().get_length());
+  EXPECT_STREQ(msg.txt(), "Foo b");
+}
+
 
 TEST(FieldString, oneof_serialize)
 {

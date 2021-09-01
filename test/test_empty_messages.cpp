@@ -33,6 +33,15 @@
 
 #include "empty_message.h"
 
+#include <WireFormatter.h>
+#include <ReadBufferMock.h>
+#include <WriteBufferMock.h>
+
+using ::testing::_;
+using ::testing::InSequence;
+using ::testing::Return;
+using ::testing::SetArgReferee;
+
 namespace test_EmbeddedAMS_empty_messages
 {
 
@@ -41,5 +50,29 @@ TEST(EmptyMessages, construction)
   // Test if using a message with no fields or enums cause build errors. 
   empty_message empty;
 }
+
+TEST(EmptyMessage, clear)
+{
+  empty_message empty;
+  empty.clear();
+}
+
+TEST(EmptyMessage, serialize)
+{
+  Mocks::WriteBufferMock buffer;
+  empty_message empty;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, empty.serialize(buffer));
+}
+
+TEST(EmptyMessage, deserialize)
+{
+  Mocks::ReadBufferMock buffer;
+  InSequence s;
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x00), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x00), Return(false)));
+  empty_message empty;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, empty.deserialize(buffer));
+}
+
 
 } // End of namespace test_EmbeddedAMS_empty_messages
