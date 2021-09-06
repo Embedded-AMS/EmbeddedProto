@@ -60,3 +60,40 @@ message optional_fields
   optional bytes bytes_array = 7;
   optional string str = 8;
 }
+
+message many_opt_fields
+{
+  optional int32 a01 =  1;
+  optional int32 a02 =  2;
+  optional int32 a03 =  3;
+  optional int32 a04 =  4;
+  optional int32 a05 =  5;
+  optional int32 a06 =  6;
+  optional int32 a07 =  7;
+  optional int32 a08 =  8;
+  optional int32 a09 =  9;
+  optional int32 a10 = 10;
+  optional int32 a11 = 11;
+  optional int32 a12 = 12;
+  optional int32 a13 = 13;
+  optional int32 a14 = 14;
+  optional int32 a15 = 15;
+  optional int32 a16 = 16;
+  optional int32 a17 = 17;
+  optional int32 a18 = 18;
+  optional int32 a19 = 19;
+  optional int32 a20 = 20;
+  optional int32 a21 = 21;
+  optional int32 a22 = 22;
+  optional int32 a23 = 23;
+  optional int32 a24 = 24;
+  optional int32 a25 = 25;
+  optional int32 a26 = 26;
+  optional int32 a27 = 27;
+  optional int32 a28 = 28;
+  optional int32 a29 = 29;
+  optional int32 a30 = 30;
+  optional int32 a31 = 31;
+  optional int32 a32 = 32;
+  optional int32 a33 = 33;
+}

@@ -193,4 +193,16 @@ TEST(OptionalFields, empty_deserialization)
 
 }
 
+TEST(OptionalFields, presence_size)
+{
+  many_opt_fields msg;
+  msg.set_a33(1);
+  EXPECT_TRUE(msg.has_a33());
+  EXPECT_FALSE(msg.has_a32());
+
+  msg.set_a32(1);
+  EXPECT_TRUE(msg.has_a32());
+} 
+
+
 } // End of namespace test_EmbeddedAMS_OptionalFields
