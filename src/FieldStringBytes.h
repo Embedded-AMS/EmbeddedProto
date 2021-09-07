@@ -58,11 +58,8 @@ namespace EmbeddedProto
 
         FieldStringBytes() = default;
         
-        ~FieldStringBytes() override
-        {
-          clear();
-        }
-
+        ~FieldStringBytes() override = default;
+        
         //! Obtain the number of characters in the string right now.
         uint32_t get_length() const { return current_length_; }
 
@@ -292,7 +289,7 @@ namespace EmbeddedProto
   {
     public:
       FieldString() = default;
-      virtual ~FieldString() = default;
+      ~FieldString() override = default;
 
       FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
       {
@@ -322,7 +319,7 @@ namespace EmbeddedProto
   {
     public:
       FieldBytes() = default;
-      virtual ~FieldBytes() = default; 
+      ~FieldBytes() override = default; 
   };
 
 

@@ -141,7 +141,7 @@ namespace EmbeddedProto
         {
           // Use the packed way of serialization for base fields.
           // See if there is data to serialize.
-          const uint32_t size_x = this->serialized_size_packed(field_number);
+          const uint32_t size_x = this->serialized_size_packed();
           if((0 < size_x) || optional)
           {
             uint32_t tag = WireFormatter::MakeTag(field_number, 
@@ -220,7 +220,7 @@ namespace EmbeddedProto
           The calculation only includes the data, not the size required by the tag and 
           \return The number of bytes this field will require once serialized.
       */
-      uint32_t serialized_size_packed(int32_t field_number) const 
+      uint32_t serialized_size_packed() const 
       {
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
         serialize_packed(calcBuffer);
