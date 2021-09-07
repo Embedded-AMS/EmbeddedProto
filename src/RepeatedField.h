@@ -133,7 +133,7 @@ namespace EmbeddedProto
       };
 
       //! \see Field::serialize_with_id()
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
       {
         Error return_value = Error::NO_ERRORS;
 
@@ -142,7 +142,7 @@ namespace EmbeddedProto
           // Use the packed way of serialization for base fields.
           // See if there is data to serialize.
           const uint32_t size_x = this->serialized_size_packed();
-          if(0 < size_x)
+          if((0 < size_x) || optional)
           {
             uint32_t tag = WireFormatter::MakeTag(field_number, 
                                           WireFormatter::WireType::LENGTH_DELIMITED);

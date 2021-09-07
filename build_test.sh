@@ -41,6 +41,7 @@ protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./buil
 # to test the automatic generation of files from including them in include_other_files.proto.
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/string_bytes.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/empty_message.proto
+protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/optional_fields.proto
 
 # For validation and testing generate the same message using python
 mkdir -p ./build/python
@@ -53,6 +54,7 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/include_other_fil
 protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/subfolder/file_to_include_from_subfolder.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/string_bytes.proto
+protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.proto
 
 # Build the tests
 mkdir -p build/test

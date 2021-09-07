@@ -42,6 +42,7 @@
 #include <RepeatedFieldFixedSize.h>
 #include <FieldStringBytes.h>
 #include <Errors.h>
+#include <limits>
 
 {% endif %}
 {% if proto_file.get_dependencies() is defined %}

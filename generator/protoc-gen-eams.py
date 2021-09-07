@@ -99,6 +99,7 @@ def main_plugin():
 
     # Create response
     response = plugin.CodeGeneratorResponse()
+    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
     # Generate code
     try:
@@ -115,7 +116,6 @@ def main_plugin():
         response.error = "Embedded Proto error - TemplateError exception: " + str(e)
     except Exception as e:
         response.error = "Embedded Proto error - " + str(e)
-
 
     # Serialize response message
     output = response.SerializeToString()

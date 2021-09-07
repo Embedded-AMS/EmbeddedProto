@@ -48,7 +48,7 @@ namespace EmbeddedProto
       Field() = default;
       virtual ~Field() = default;
 
-      virtual Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const = 0;
+      virtual Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const = 0;
 
       virtual Error serialize(WriteBufferInterface& buffer) const = 0;
 
@@ -173,7 +173,7 @@ namespace EmbeddedProto
 
       ~int32() override = default;
 
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -187,7 +187,7 @@ namespace EmbeddedProto
 
       ~int64() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -201,7 +201,7 @@ namespace EmbeddedProto
 
       ~uint32() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -215,7 +215,7 @@ namespace EmbeddedProto
 
       ~uint64() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffe) final; 
   };
@@ -229,7 +229,7 @@ namespace EmbeddedProto
 
       ~sint32() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -243,7 +243,7 @@ namespace EmbeddedProto
 
       ~sint64() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -257,7 +257,7 @@ namespace EmbeddedProto
 
       ~boolean() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -271,7 +271,7 @@ namespace EmbeddedProto
 
       ~fixed32() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -285,7 +285,7 @@ namespace EmbeddedProto
 
       ~fixed64() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -299,7 +299,7 @@ namespace EmbeddedProto
 
       ~sfixed32() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -313,7 +313,7 @@ namespace EmbeddedProto
 
       ~sfixed64() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -327,7 +327,7 @@ namespace EmbeddedProto
 
       ~floatfixed() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
@@ -341,7 +341,7 @@ namespace EmbeddedProto
 
       ~doublefixed() override = default;
       
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const final;
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
       Error serialize(WriteBufferInterface& buffer) const final;
       Error deserialize(ReadBufferInterface& buffer) final; 
   };

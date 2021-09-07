@@ -40,7 +40,7 @@ namespace EmbeddedProto
     return calcBuffer.get_size();
   }
 
-  Error int32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error int32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -50,7 +50,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error int64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error int64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -60,7 +60,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error uint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error uint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -70,7 +70,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error uint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error uint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -80,7 +80,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error sint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sint32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -90,7 +90,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error sint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sint64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -100,7 +100,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error boolean::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error boolean::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -110,7 +110,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error fixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error fixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -120,7 +120,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error fixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error fixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -130,7 +130,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error sfixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sfixed32::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -140,7 +140,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error sfixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error sfixed64::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -150,7 +150,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error floatfixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error floatfixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED32), buffer);
     if(Error::NO_ERRORS == return_value)
@@ -160,7 +160,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-  Error doublefixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const
+  Error doublefixed::serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
   { 
     Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::FIXED64), buffer);
     if(Error::NO_ERRORS == return_value)

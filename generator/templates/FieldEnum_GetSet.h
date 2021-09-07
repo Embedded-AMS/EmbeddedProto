@@ -52,6 +52,26 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
   }
   {{field.get_variable_name()}} = value;
 }
+{% elif field.optional %}
+inline bool has_{{field.get_name()}}() const
+{
+  return 0 != (presence::mask(presence::fields::{{field.get_name().upper()}}) & presence_[presence::index(presence::fields::{{field.get_name().upper()}})]);
+}
+inline void clear_{{field.get_name()}}()
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] &= ~(presence::mask(presence::fields::{{field.get_name().upper()}}));
+  {{field.get_variable_name()}} = {{field.get_default_value()}};
+}
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  {{field.get_variable_name()}} = value;
+}
+inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  {{field.get_variable_name()}} = value;
+}
 {% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}} = {{field.get_default_value()}}; }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{field.get_variable_name()}} = value; }
