@@ -129,6 +129,52 @@ TEST(OptionalFields, construction_assignment)
   EXPECT_TRUE(msgD.has_str());
 }
 
+TEST(OptionalFields, clear)
+{
+  // Clearing one field should not influence the presence of another.
+  ::optional_fields<5,10> msg;
+  msg.set_b(1);
+  msg.set_y(1.0F);
+  msg.mutable_pos().set_xpos(1.0F);
+  msg.set_state(states::B);
+  msg.mutable_bytes_array()[0] = 1U;
+  msg.mutable_str().set("ABC", 3);
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_TRUE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_TRUE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_TRUE(msg.has_str());
+
+  msg.clear_y();
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_FALSE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_TRUE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_TRUE(msg.has_str());
+
+  msg.clear_state();
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_FALSE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_FALSE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_TRUE(msg.has_str());
+
+  msg.clear_str();
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_FALSE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_FALSE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_FALSE(msg.has_str());
+}
+
 TEST(OptionalFields, empty_serialization) 
 {
   ::optional_fields<5,10> msg;
