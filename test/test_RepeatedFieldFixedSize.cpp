@@ -42,6 +42,19 @@ TEST(RepeatedFieldFixedSize, construction)
 {
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
+
+  // Copy to the same size
+  x.add(1);
+  x.add(2);
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> y(x);
+  EXPECT_EQ(2, y.get_length());
+  EXPECT_EQ(1U, y.get_const(0));
+  EXPECT_EQ(2U, y.get_const(1));
+
+  // Copy to a larger array
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 2*LENGTH> z(x);
+  
+
 }
 
 TEST(RepeatedFieldFixedSize, size_uint32_t) 

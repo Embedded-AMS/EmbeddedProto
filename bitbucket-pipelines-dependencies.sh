@@ -33,7 +33,7 @@
 if [ -d "$PWD/protoc" ]; then
   echo "found protoc cache"
 else
-  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.11.0/protoc-3.11.0-linux-x86_64.zip
+  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protoc-3.17.3-linux-x86_64.zip
   unzip -o protoc-3*.zip -d protoc/
 fi
 export PATH="$PATH:$PWD/protoc/bin"

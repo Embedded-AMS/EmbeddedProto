@@ -51,7 +51,8 @@ class MessageInterface : public ::EmbeddedProto::Field
 
     //! \see Field::serialize_with_id()
     Error serialize_with_id(uint32_t field_number, 
-                            ::EmbeddedProto::WriteBufferInterface& buffer) const final;
+                            ::EmbeddedProto::WriteBufferInterface& buffer,
+                            const bool optional) const final;
 
     //! \see Field::deserialize()
     Error deserialize(ReadBufferInterface& buffer) override = 0;

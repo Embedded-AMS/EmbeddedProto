@@ -132,21 +132,34 @@ class MessageDefinition(TypeDefinition):
         # Store the id numbers of all the fields to create the ID enum.
         self.field_ids = []
 
+        # This message contains optional fields, or not.
+        self.optional_fields = []
+
         # Store all the variable fields in this message.
         self.fields = []
         for f in self.descriptor.field:
-            if not f.HasField('oneof_index'):
+            if (not f.HasField('oneof_index')) or f.proto3_optional:
                 new_field = Field.factory(f, self)
                 self.fields.append(new_field)
                 self.field_ids.append((new_field.variable_id, new_field.variable_id_name))
+
+                # Store for which fields presence needs to be tracked.
+                if f.proto3_optional:
+                    self.optional_fields.append(new_field)
 
         # Store all the oneof definitions in this message.
         self.oneofs = []
         for index, oneof in enumerate(self.descriptor.oneof_decl):
             new_oneof = Oneof(oneof, index, proto_descriptor, self)
-            self.oneofs.append(new_oneof)
-            for oneof_field in new_oneof.get_fields():
-                self.field_ids.append((oneof_field.variable_id, oneof_field.variable_id_name))
+            oneof_fields = new_oneof.get_fields()
+            # For backwards compatibility proto3 optional fields are also include as oneof's with a single field. These
+            # dummy oneof's should not actually end up in code. Lets filter them out.
+            if oneof_fields[0].optional:
+                continue
+            else:
+                self.oneofs.append(new_oneof)
+                for oneof_field in new_oneof.get_fields():
+                    self.field_ids.append((oneof_field.variable_id, oneof_field.variable_id_name))
 
         # Sort the field id's such they will appear in order in the id enum.
         self.field_ids.sort()

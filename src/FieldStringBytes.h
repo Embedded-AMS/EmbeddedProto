@@ -58,11 +58,8 @@ namespace EmbeddedProto
 
         FieldStringBytes() = default;
         
-        ~FieldStringBytes() override
-        {
-          clear();
-        }
-
+        ~FieldStringBytes() override = default;
+        
         //! Obtain the number of characters in the string right now.
         uint32_t get_length() const { return current_length_; }
 
@@ -169,11 +166,11 @@ namespace EmbeddedProto
         }
 
 
-        Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer) const override 
+        Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const override 
         {
           Error return_value = Error::NO_ERRORS;
 
-          if(0 < current_length_) 
+          if((0 < current_length_) || optional) 
           {
             const auto n_bytes_available = buffer.get_available_size();
             if(current_length_ <= n_bytes_available)
@@ -185,7 +182,8 @@ namespace EmbeddedProto
               {
                 return_value = WireFormatter::SerializeVarint(current_length_, buffer);
               }
-              if(Error::NO_ERRORS == return_value) 
+              // Check check the number of elements again for optional fields.
+              if((Error::NO_ERRORS == return_value) && (0 < current_length_)) 
               {
                 return_value = serialize(buffer);
               }
@@ -291,7 +289,7 @@ namespace EmbeddedProto
   {
     public:
       FieldString() = default;
-      virtual ~FieldString() = default;
+      ~FieldString() override = default;
 
       FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
       {
@@ -321,7 +319,7 @@ namespace EmbeddedProto
   {
     public:
       FieldBytes() = default;
-      virtual ~FieldBytes() = default; 
+      ~FieldBytes() override = default; 
   };
 
 

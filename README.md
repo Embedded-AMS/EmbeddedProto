@@ -63,12 +63,12 @@ For this reason it is unlikely that Embedded Proto will support proto2 in the fu
 # Installation
 
 What is required to be able to generate source files based on .proto files:
-1. Python 3.6
+1. Python 3.8
 2. Pip
 3. Python Venv or Virtualenv 
-4. Protobuf 3.6.1
+4. Protobuf 3.17.3
 5. Git (if you do not have it already)
-6. CMake 3.10.2 (only required to build the PC unit tests)
+6. CMake 3.16.3 (only required to build the PC unit tests)
 
 Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule of this repository. If you intent to run the PC unit tests of Embedded it is suggested that you pull in the submodules as well. 
 

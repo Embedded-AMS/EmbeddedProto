@@ -36,13 +36,14 @@ namespace EmbeddedProto
 {
 
   Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
-                                                              ::EmbeddedProto::WriteBufferInterface& buffer) const
+                                                              ::EmbeddedProto::WriteBufferInterface& buffer,
+                                                              const bool optional) const
   {
     Error return_value = Error::NO_ERRORS;
 
     // See if we have data which should be serialized.
     const uint32_t size_x = this->serialized_size();
-    if(0 < size_x)
+    if((0 < size_x) || optional)
     {
       uint32_t tag = WireFormatter::MakeTag(field_number, 
                               WireFormatter::WireType::LENGTH_DELIMITED);
