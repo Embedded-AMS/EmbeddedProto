@@ -70,9 +70,9 @@ namespace EmbeddedProto
       //! Advances the internal read index by the given value.
       /*!
           The advance is limited to the number of bytes in the buffer.
-          \param[in] N The number of bytes to advance the read index.
+          \param[in] n_bytes The number of bytes to advance the read index.
       */
-      virtual void advance(const uint32_t N) = 0;
+      virtual void advance(const uint32_t n_bytes) = 0;
 
       //! Obtain the value of the oldest byte in the buffer and remove it from the buffer.
       /*!
