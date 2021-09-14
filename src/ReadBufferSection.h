@@ -88,7 +88,7 @@ namespace EmbeddedProto
       /*!
         This will not do anything if size zero is reached.
       */
-      void advance(const uint32_t N) override;
+      void advance(const uint32_t n_bytes) override;
 
       //! Decrement the size and pop the next byte from the parent buffer.
       /*!
