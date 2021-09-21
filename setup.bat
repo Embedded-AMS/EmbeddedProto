@@ -32,5 +32,4 @@
 
 :: Setup the virtual envirounment for Python packages
 python -m venv venv
-.\venv\Scripts\activate & pip install -r requirements.txt
-
+call .\venv\Scripts\activate.bat & pip install -r requirements.txt & .\venv\Scripts\deactivate.bat
