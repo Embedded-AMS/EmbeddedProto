@@ -27,7 +27,7 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-{% if field.optional %}
+{% if (field.optional or (field.oneof is not none)) %}
 if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {% else %}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
