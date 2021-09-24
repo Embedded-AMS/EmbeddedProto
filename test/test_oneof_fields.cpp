@@ -68,41 +68,52 @@ TEST(OneofField, set_get_clear)
 {
   message_oneof msg;
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_FALSE(msg.has_x());
   msg.set_x(1);
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(message_oneof::id::X, msg.get_which_xyz());
+  EXPECT_TRUE(msg.has_x());
   msg.clear_x();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_FALSE(msg.has_y());
   msg.set_y(1);
   EXPECT_EQ(1, msg.get_y());
   EXPECT_EQ(message_oneof::id::Y, msg.get_which_xyz());
+  EXPECT_TRUE(msg.has_y());
   msg.clear_y();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_FALSE(msg.has_z());
   msg.set_z(1);
   EXPECT_EQ(1, msg.get_z());
   EXPECT_EQ(message_oneof::id::Z, msg.get_which_xyz());
+  EXPECT_TRUE(msg.has_z());
   msg.clear_z();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
   msg.set_state(message_oneof::States::Run);
   EXPECT_EQ(message_oneof::States::Run, msg.get_state());
   EXPECT_EQ(message_oneof::id::STATE, msg.get_which_xyz());
+  EXPECT_TRUE(msg.has_state());
   msg.clear_state();
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
+  EXPECT_FALSE(msg.has_state());
 
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  EXPECT_FALSE(msg.has_msg_ABC());
   msg.mutable_msg_ABC().set_varA(1);
   msg.mutable_msg_ABC().set_varB(22);
   msg.mutable_msg_ABC().set_varC(333);
   EXPECT_EQ(message_oneof::id::MSG_ABC, msg.get_which_message());
+  EXPECT_TRUE(msg.has_msg_ABC());
   EXPECT_EQ(1, msg.msg_ABC().varA());
   EXPECT_EQ(22, msg.msg_ABC().varB());
   EXPECT_EQ(333, msg.msg_ABC().varC());
   msg.clear_msg_ABC();
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+  EXPECT_FALSE(msg.has_msg_ABC());
 
   msg.set_x(1);
   msg.mutable_msg_ABC().set_varA(1);
@@ -111,6 +122,33 @@ TEST(OneofField, set_get_clear)
   msg.clear();
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_xyz());
   EXPECT_EQ(message_oneof::id::NOT_SET, msg.get_which_message());
+}
+
+TEST(OneofField, serizlize_set_zeros) 
+{
+  // Oneof fields should serialize optional fields which are set to the default value.
+  InSequence s;
+  message_oneof msg;
+  Mocks::WriteBufferMock buffer;
+
+  msg.set_x(0);
+  EXPECT_TRUE(msg.has_x());
+  
+  msg.mutable_msg_ABC().clear();
+  EXPECT_TRUE(msg.has_msg_ABC());
+
+  msg.set_u(0.0F);
+  EXPECT_TRUE(msg.has_u());
+
+  std::array<uint8_t, 10> expected = { 0x28, 0x00, // x
+                                       0x7d, 0x00, 0x00, 0x00, 0x00, // u
+                                       0xa2, 0x01, 0x00}; // msg ABC
+
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OneofField, serialize_ones) 
@@ -351,3 +389,53 @@ TEST(OneofField, nested_assign)
   EXPECT_EQ(22, top_level_msg.get_msg_oneof().msg_ABC().varB());
   EXPECT_EQ(333, top_level_msg.get_msg_oneof().msg_ABC().varC());
 }
+
+TEST(OneofField, sb_oneof_has)
+{
+  string_bytes_oneof<10, 10> msg;
+
+  msg.mutable_name() = "John Doe";
+  EXPECT_TRUE(msg.has_name());
+  msg.mutable_name().clear();
+  EXPECT_TRUE(msg.has_name());
+  msg.clear_name();
+  EXPECT_FALSE(msg.has_name());
+  
+  std::array<uint8_t, 3> d = {1, 2, 3};
+  msg.mutable_data().set(d.data(), 3);
+  EXPECT_TRUE(msg.has_data());
+  msg.clear_data();
+  EXPECT_FALSE(msg.has_data());
+}
+
+TEST(OneofField, sb_oneof_serialize_empty)
+{
+  InSequence s;
+  string_bytes_oneof<10, 10> msg;
+  Mocks::WriteBufferMock buffer;
+
+  msg.mutable_name().clear();
+  EXPECT_TRUE(msg.has_name());
+
+  std::array<uint8_t, 2> expected = { 0x0a, 0x00}; // name
+
+  for(auto e : expected) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  msg.mutable_data().clear();
+  EXPECT_TRUE(msg.has_data());
+
+
+  std::array<uint8_t, 2> expected2 = { 0x12, 0x00}; // name
+
+  for(auto e : expected2) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+}
+

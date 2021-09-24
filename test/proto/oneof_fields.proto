@@ -84,3 +84,12 @@ message message_oneof
 message nested_oneof {
   message_oneof msg_oneof = 1;
 }
+
+message string_bytes_oneof
+{
+  oneof sb
+  {
+    string name = 1;
+    bytes  data = 2;
+  }
+}

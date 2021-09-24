@@ -247,11 +247,14 @@ def test_repeated_string_bytes():
 
 
 def test_oneof_fields():
-    msg = of.message_oneof()
+    # msg = of.message_oneof()
+    # msg.msg_DEF.varD = 1
+    # msg.msg_DEF.varE = 22
+    # msg.msg_DEF.varF = 333
 
-    msg.msg_DEF.varD = 1
-    msg.msg_DEF.varE = 22
-    msg.msg_DEF.varF = 333
+    msg = of.string_bytes_oneof()
+    #msg.name = ""
+    msg.data = bytes()
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -320,6 +323,6 @@ def test_optional_empty():
 #test_bytes()
 #test_repeated_string_bytes()
 #test_nested_message()
-#test_oneof_fields()
+test_oneof_fields()
 #test_included_proto()
-test_optional_empty()
+#test_optional_empty()
