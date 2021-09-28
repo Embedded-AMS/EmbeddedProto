@@ -34,17 +34,6 @@
 # Linux. The reason this has to be used is that protoc expects a binary or
 # terminal script as plugin. Directly calling python scripts is not supported.
 
-EmbeddedProtoDir=.
 
-# Get the options
-while getopts ":hn:" option; do
-   case $option in
-      embedded_proto_dir_opt) # Enter the location of Embedded Proto
-         EmbeddedProtoDir=$OPTARG;;
-     \?) # Invalid option
-         echo "Error: Invalid option"
-         exit;;
-   esac
-done
-
+EmbeddedProtoDir=$(dirname "$0")
 $EmbeddedProtoDir/venv/bin/python $EmbeddedProtoDir/generator/protoc-gen-eams.py --protoc-plugin
