@@ -34,4 +34,6 @@
 # Linux. The reason this has to be used is that protoc expects a binary or
 # terminal script as plugin. Directly calling python scripts is not supported.
 
-./venv/bin/python generator/protoc-gen-eams.py --protoc-plugin
+
+EmbeddedProtoDir=$(dirname "$0")
+$EmbeddedProtoDir/venv/bin/python $EmbeddedProtoDir/generator/protoc-gen-eams.py --protoc-plugin
