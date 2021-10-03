@@ -28,6 +28,10 @@ Postal address:
   the Netherlands
 #}
 {% if field.oneof is not none %}
+inline bool has_{{field.get_name()}}() const
+{
+  return id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}};
+}
 inline void clear_{{field.get_name()}}()
 {
   if(id::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})

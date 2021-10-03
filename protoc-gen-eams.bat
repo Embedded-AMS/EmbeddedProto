@@ -34,4 +34,5 @@
 :: Windows. The reason this has to be used is that protoc expects a binary or
 :: terminal script as plugin. Directly calling python scripts is not supported.
 
-venv\Scripts\python generator\protoc-gen-eams.py --protoc-plugin
+set EmbeddedProtoDir=%~dp0
+%EmbeddedProtoDir%\venv\Scripts\python %EmbeddedProtoDir%\generator\protoc-gen-eams.py --protoc-plugin
