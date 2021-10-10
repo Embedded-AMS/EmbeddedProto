@@ -1,0 +1,99 @@
+/*
+ *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://EmbeddedProto.com/license/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Johan Huizingalaan 763a
+ *    1066 VH, Amsterdam
+ *    the Netherlands
+ */
+
+// This file is used to test optional fields.
+
+syntax = "proto3";
+
+
+message position 
+{
+  double xpos = 1;
+  double ypos = 2;
+  double zpos = 3;
+}
+
+enum states
+{
+  A = 0;
+  B = 1;
+  C = 2;
+}
+
+message optional_fields 
+{
+  int32 a = 1;
+  optional int32 b = 2;
+
+  float x = 3;  
+  optional float y = 4;
+
+  optional position pos = 5;
+  optional states state = 6;
+  optional bytes bytes_array = 7;
+  optional string str = 8;
+}
+
+message many_opt_fields
+{
+  optional int32 a01 =  1;
+  optional int32 a02 =  2;
+  optional int32 a03 =  3;
+  optional int32 a04 =  4;
+  optional int32 a05 =  5;
+  optional int32 a06 =  6;
+  optional int32 a07 =  7;
+  optional int32 a08 =  8;
+  optional int32 a09 =  9;
+  optional int32 a10 = 10;
+  optional int32 a11 = 11;
+  optional int32 a12 = 12;
+  optional int32 a13 = 13;
+  optional int32 a14 = 14;
+  optional int32 a15 = 15;
+  optional int32 a16 = 16;
+  optional int32 a17 = 17;
+  optional int32 a18 = 18;
+  optional int32 a19 = 19;
+  optional int32 a20 = 20;
+  optional int32 a21 = 21;
+  optional int32 a22 = 22;
+  optional int32 a23 = 23;
+  optional int32 a24 = 24;
+  optional int32 a25 = 25;
+  optional int32 a26 = 26;
+  optional int32 a27 = 27;
+  optional int32 a28 = 28;
+  optional int32 a29 = 29;
+  optional int32 a30 = 30;
+  optional int32 a31 = 31;
+  optional int32 a32 = 32;
+  optional int32 a33 = 33;
+}

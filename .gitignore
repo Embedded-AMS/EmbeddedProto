@@ -30,6 +30,7 @@ CMakeFiles/**
 **/*.a
 build/
 *.bin
+**/__pycache__/**
 
 # Ignore sonar scanner binaries
 sonar-scanner**

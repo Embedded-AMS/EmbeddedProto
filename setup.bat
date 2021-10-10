@@ -1,5 +1,3 @@
-@echo off
-
 ::
 :: Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
 ::
@@ -30,9 +28,8 @@
 ::   the Netherlands
 ::
 
-:: This file is used to invoke protoc-gen-eams.py as a plugin to protoc on 
-:: Windows. The reason this has to be used is that protoc expects a binary or
-:: terminal script as plugin. Directly calling python scripts is not supported.
+:: This script will setup the environment to generate source code in your project.
 
-set EmbeddedProtoDir=%~dp0
-%EmbeddedProtoDir%\venv\Scripts\python %EmbeddedProtoDir%\generator\protoc-gen-eams.py --protoc-plugin
+:: Setup the virtual envirounment for Python packages
+python -m venv venv
+call .\venv\Scripts\activate.bat & pip install -r requirements.txt & .\venv\Scripts\deactivate.bat

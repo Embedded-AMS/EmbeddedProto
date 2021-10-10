@@ -30,5 +30,8 @@ Postal address:
 {% if field.oneof is not none %}
 return_value = deserialize_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}}, {{field.get_variable_name()}}, buffer, wire_type);
 {% else %}
+{% if field.optional %}
+presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+{% endif %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, wire_type);
 {%- endif -%}

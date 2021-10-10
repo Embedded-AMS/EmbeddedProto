@@ -27,9 +27,13 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
+{% if (field.optional or (field.oneof is not none)) %}
+if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
+{% else %}
 if(({{field.get_default_value()}} != {{field.get_variable_name()}}) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
+{% endif %}
 {
   EmbeddedProto::uint32 value = 0;
   value.set(static_cast<uint32_t>({{field.get_variable_name()}}));
-  return_value = value.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
+  return_value = value.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, {{ "true" if (field.optional or (field.oneof is not none)) else "false" }});
 }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/sh
 
 #
 # Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
@@ -30,10 +30,29 @@
 #   the Netherlands
 #
 
-# This file is used to invoke protoc-gen-eams.py as a plugin to protoc on 
-# Linux. The reason this has to be used is that protoc expects a binary or
-# terminal script as plugin. Directly calling python scripts is not supported.
 
+if [ $# -eq 0 ]; then
+  echo "Please provice version number: \"./release_to_github.sh X.Y.Z\""
+else
+  git fetch --prune
+  
+  git checkout develop
+  git pull
+  git push github develop
 
-EmbeddedProtoDir=$(dirname "$0")
-$EmbeddedProtoDir/venv/bin/python $EmbeddedProtoDir/generator/protoc-gen-eams.py --protoc-plugin
+  git checkout master
+  git pull
+  git push github master
+
+  git tag -d latest
+  git push --delete origin latest
+  git push --delete github latest
+
+  git tag latest
+  git push origin latest
+  git push github latest
+
+  git tag "$1"
+  git push origin "$1"
+  git push github "$1"
+fi

@@ -39,6 +39,7 @@ import file_to_include_pb2 as fti
 import include_other_files_pb2 as iof
 from subfolder import file_to_include_from_subfolder_pb2 as ftis
 import string_bytes_pb2 as sb
+import optional_fields_pb2 as op
 
 
 def test_simple_types():
@@ -246,11 +247,14 @@ def test_repeated_string_bytes():
 
 
 def test_oneof_fields():
-    msg = of.message_oneof()
+    # msg = of.message_oneof()
+    # msg.msg_DEF.varD = 1
+    # msg.msg_DEF.varE = 22
+    # msg.msg_DEF.varF = 333
 
-    msg.msg_DEF.varD = 1
-    msg.msg_DEF.varE = 22
-    msg.msg_DEF.varF = 333
+    msg = of.string_bytes_oneof()
+    #msg.name = ""
+    msg.data = bytes()
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -293,6 +297,25 @@ def test_included_proto():
     print()
 
 
+def test_optional_empty():
+    msg = op.optional_fields()
+    msg.b = 0
+    msg.y = 0.0
+    msg.pos.xpos = 0.0
+    msg.state = op.states.A
+    msg.bytes_array = bytes()
+    msg.str = ""
+
+    str = ""
+    msg_str = msg.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
 #test_simple_types()
 #test_repeated_fields()
 #test_repeated_message()
@@ -300,6 +323,6 @@ def test_included_proto():
 #test_bytes()
 #test_repeated_string_bytes()
 #test_nested_message()
-#test_oneof_fields()
-test_included_proto()
-
+test_oneof_fields()
+#test_included_proto()
+#test_optional_empty()

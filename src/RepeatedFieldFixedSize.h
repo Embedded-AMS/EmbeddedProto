@@ -55,14 +55,31 @@ namespace EmbeddedProto
 
     public:
 
-      RepeatedFieldFixedSize()
-        : current_length_(0),
-          data_{}
-      {
-
-      }  
-
+      RepeatedFieldFixedSize() = default;
       ~RepeatedFieldFixedSize() override = default;
+
+      RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH>& rhs) :
+        current_length_(rhs.get_length()),
+        data_(rhs.get_data_const())
+      {
+        // Use the initializer list.
+      }
+
+      template<uint32_t MAX_LENGTH_RHS, std::enable_if_t<(MAX_LENGTH_RHS < MAX_LENGTH), int> = 0>
+      explicit RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>& rhs) :
+        current_length_(rhs.get_length())
+      {
+        const auto& rhs_data = rhs.get_data_const();
+        std::copy(rhs_data.begin(), rhs_data.end(), data_.begin());
+      }
+
+      template<uint32_t MAX_LENGTH_RHS, std::enable_if_t<(MAX_LENGTH_RHS < MAX_LENGTH), int> = 0>
+      explicit RepeatedFieldFixedSize(const RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH_RHS>&& rhs) :
+        current_length_(rhs.get_length())
+      {
+        const auto& rhs_data = rhs.get_data_const();
+        std::copy(rhs_data.begin(), rhs_data.end(), data_.begin());
+      }
 
       //! Assign one repieted field to the other, but only when the length and type matches.
       RepeatedFieldFixedSize<DATA_TYPE, MAX_LENGTH>& operator=(const 
@@ -159,13 +176,16 @@ namespace EmbeddedProto
         current_length_ = 0;
       }
 
+      //! Return a reference to the internal data storage array.
+      const std::array<DATA_TYPE, MAX_LENGTH>& get_data_const() const { return data_; }
+
     private:
 
       //! Number of item in the data array.
       uint32_t current_length_ = 0;
 
       //! The actual data 
-      std::array<DATA_TYPE, MAX_LENGTH> data_;
+      std::array<DATA_TYPE, MAX_LENGTH> data_ = {};
   };
 
 } // End of namespace EmbeddedProto

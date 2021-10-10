@@ -28,6 +28,10 @@ Postal address:
   the Netherlands
 #}
 {% if field.oneof is not none %}
+inline bool has_{{field.get_name()}}() const
+{
+  return FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}};
+}
 inline void clear_{{field.get_name()}}()
 {
   if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
@@ -67,6 +71,31 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
     init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
   {{field.get_variable_name()}} = value;
+}
+{% elif field.optional %}
+inline bool has_{{field.get_name()}}() const
+{
+  return 0 != (presence::mask(presence::fields::{{field.get_name().upper()}}) & presence_[presence::index(presence::fields::{{field.get_name().upper()}})]);
+}
+inline void clear_{{field.get_name()}}()
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] &= ~(presence::mask(presence::fields::{{field.get_name().upper()}}));
+  {{field.get_variable_name()}}.clear();
+}
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  {{field.get_variable_name()}} = value;
+}
+inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  {{field.get_variable_name()}} = value;
+}
+inline {{field.get_type()}}& mutable_{{field.get_name()}}()
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  return {{field.get_variable_name()}};
 }
 {% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
