@@ -55,7 +55,7 @@ class MessageInterface : public ::EmbeddedProto::Field
                             const bool optional) const final;
 
     //! \see Field::deserialize()
-    Error deserialize(ReadBufferInterface& buffer) override = 0;
+    Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override = 0;
 
     //! \see Field::deserialize()
     Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
@@ -66,6 +66,17 @@ class MessageInterface : public ::EmbeddedProto::Field
         The defaults are to be set according to the Protobuf standard.
     */
     void clear() override = 0;
+    
+
+  protected:
+    //! When deserializing skip the bytes in the buffer of an unknown field.
+    /*! 
+        This function is used when a field with an unknown id is encountered to move through the 
+        buffer to the next tag.
+    */
+    Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer, 
+                             const ::EmbeddedProto::WireFormatter::WireType& wire_typ) const;
+
 
 };
 

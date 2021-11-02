@@ -165,6 +165,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             break;
 
           default:
+            return_value = skip_unknown_field(buffer, wire_type);
             break;
         }
 

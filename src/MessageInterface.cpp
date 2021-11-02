@@ -71,7 +71,7 @@ namespace EmbeddedProto
   }
 
 
-  Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+  Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                                  const ::EmbeddedProto::WireFormatter::WireType& wire_type)
   {
     Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
@@ -86,6 +86,57 @@ namespace EmbeddedProto
         return_value = deserialize(bufferSection);
       }
     }
+    return return_value;
+  }
+
+
+  Error MessageInterface::skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer,
+                                             const ::EmbeddedProto::WireFormatter::WireType& wire_type) const
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    // Depending on the wire type select one of its valid variable types and deserialize the value.
+    switch(wire_type) {
+      case ::EmbeddedProto::WireFormatter::WireType::VARINT:
+      {
+        // Use a 64 bit variable to decode the maximum possible number of bytes. As we do not know
+        // the actual type.
+        uint64_t dummy;
+        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, dummy);
+      }
+      break;
+
+      case ::EmbeddedProto::WireFormatter::WireType::FIXED64:
+      {
+        double dummy;
+        return_value = ::EmbeddedProto::WireFormatter::DeserializeDouble(buffer, dummy);
+      }
+      break;
+
+      case ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED:
+      {
+        // First read the number of bytes 
+        uint32_t n_bytes = 0;
+        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, n_bytes);
+        if(Error::NO_ERRORS == return_value)
+        {
+          buffer.advance(n_bytes);
+        }
+      }
+      break;
+
+      case ::EmbeddedProto::WireFormatter::WireType::FIXED32:
+      {
+        float dummy;
+        return_value = ::EmbeddedProto::WireFormatter::DeserializeFloat(buffer, dummy);
+      }      
+      break;
+
+      default:
+        // We should never get here. DeserializeTag catches this case.
+      break;
+    }
+
     return return_value;
   }
 
