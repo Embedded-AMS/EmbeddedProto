@@ -33,8 +33,9 @@ import sys
 import os
 from support.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
+from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 import jinja2
-
+from toposort import toposort, toposort_flatten
 
 # -----------------------------------------------------------------------------
 
@@ -161,9 +162,66 @@ def main_cli():
 # -----------------------------------------------------------------------------
 
 
+def add_msg(msg, namespace, dependency_data):
+
+    local_definitions = []
+
+    for nested_msg in msg.nested_type:
+        dependency_data = add_msg(nested_msg, msg.name, dependency_data)
+        local_definitions.append(nested_msg.name)
+
+    for nested_enum in msg.enum_type:
+        local_definitions.append(nested_enum.name)
+
+    dependencies = {namespace}
+
+    for f in msg.field:
+        if (FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type):
+            types = f.type_name.strip(".").split(".")
+            if types[-1] not in local_definitions:
+                for t in types:
+                    dependencies.add(t)
+            else:
+                pass
+
+    # If we have any dependencies add them
+    if 0 < len(dependencies):
+        dependency_data[msg.name] = dependencies
+
+    return dependency_data
+
+
+def main_dependency_tree():
+
+    with open("debug_embbeded_proto.bin", 'rb') as file:
+        data = file.read()
+        request = plugin.CodeGeneratorRequest.FromString(data)
+        dependency_data = {}
+
+        for proto_file in request.proto_file:
+            namespace = ""
+            if proto_file.package:
+                package_list = proto_file.package.split(".")
+                namespace = package_list[0]
+                for package in package_list[1:]:
+                    dependency_data[package] = namespace
+                    namespace = package
+
+            for msg in proto_file.message_type:
+                dependency_data = add_msg(msg, namespace, dependency_data)
+
+        sorted_list = toposort_flatten(dependency_data)
+        for msg in sorted_list:
+            print(msg)
+
+# -----------------------------------------------------------------------------
+
+
 if __name__ == '__main__':
     # Check if we are running as a plugin under protoc
     if '--protoc-plugin' in sys.argv:
         main_plugin()
+    elif '--tree' in sys.argv:
+        main_dependency_tree()
     else:
         main_cli()
