@@ -165,28 +165,28 @@ def main_cli():
 def add_msg(msg, namespace, dependency_data):
 
     local_definitions = []
+    local_namespace = namespace + "." + msg.name
 
     for nested_msg in msg.nested_type:
-        dependency_data = add_msg(nested_msg, msg.name, dependency_data)
-        local_definitions.append(nested_msg.name)
-
-    for nested_enum in msg.enum_type:
-        local_definitions.append(nested_enum.name)
+        dependency_data = add_msg(nested_msg, local_namespace, dependency_data)
+        full_msg_type = local_namespace + "." + nested_msg.name
+        local_definitions.append(full_msg_type)
 
     dependencies = {namespace}
 
+    for nested_enum in msg.enum_type:
+        full_enum_type = local_namespace + "." + nested_enum.name
+        dependency_data[full_enum_type] = {local_namespace}
+        local_definitions.append(full_enum_type)
+
     for f in msg.field:
-        if (FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type):
-            types = f.type_name.strip(".").split(".")
-            if types[-1] not in local_definitions:
-                for t in types:
-                    dependencies.add(t)
-            else:
-                pass
+        if ((FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type)) \
+                and (f.type_name not in local_definitions):
+            dependencies.add(f.type_name)
 
     # If we have any dependencies add them
     if 0 < len(dependencies):
-        dependency_data[msg.name] = dependencies
+        dependency_data[local_namespace] = dependencies
 
     return dependency_data
 
@@ -201,11 +201,7 @@ def main_dependency_tree():
         for proto_file in request.proto_file:
             namespace = ""
             if proto_file.package:
-                package_list = proto_file.package.split(".")
-                namespace = package_list[0]
-                for package in package_list[1:]:
-                    dependency_data[package] = namespace
-                    namespace = package
+                namespace = "." + proto_file.package
 
             for msg in proto_file.message_type:
                 dependency_data = add_msg(msg, namespace, dependency_data)
