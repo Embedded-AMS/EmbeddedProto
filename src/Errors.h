@@ -42,6 +42,7 @@ namespace EmbeddedProto
     BUFFER_FULL      = 2, //!< The write buffer is full, unable to push more bytes in to it.
     INVALID_WIRETYPE = 3, //!< When reading a Wiretype from the tag we got an invalid value.
     ARRAY_FULL       = 4, //!< The array is full, it is not possible to push more items in it.
+    INVALID_FIELD_ID = 5, //!< When the id obtained from the tag equeals zero.
   };
 
 }; // End of namespace EmbeddedProto
