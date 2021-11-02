@@ -68,8 +68,12 @@ TEST(EmptyMessage, deserialize)
 {
   Mocks::ReadBufferMock buffer;
   InSequence s;
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x00), Return(true)));
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x00), Return(false)));
+
+  // Some actual data we try to use to deserialize an empty message.
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x08), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+  
   empty_message empty;
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, empty.deserialize(buffer));
 }
