@@ -98,45 +98,59 @@ namespace EmbeddedProto
     // Depending on the wire type select one of its valid variable types and deserialize the value.
     switch(wire_type) {
       case ::EmbeddedProto::WireFormatter::WireType::VARINT:
-      {
-        // Use a 64 bit variable to decode the maximum possible number of bytes. As we do not know
-        // the actual type.
-        uint64_t dummy;
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, dummy);
-      }
-      break;
+        return_value = skip_varint(buffer);
+        break;
 
       case ::EmbeddedProto::WireFormatter::WireType::FIXED64:
-      {
-        double dummy;
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeDouble(buffer, dummy);
-      }
-      break;
+        return_value = skip_fixed64(buffer);
+        break;
 
       case ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED:
-      {
-        // First read the number of bytes 
-        uint32_t n_bytes = 0;
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, n_bytes);
-        if(Error::NO_ERRORS == return_value)
-        {
-          buffer.advance(n_bytes);
-        }
-      }
-      break;
+        return_value = skip_length_delimited(buffer);
+        break;
 
       case ::EmbeddedProto::WireFormatter::WireType::FIXED32:
-      {
-        float dummy;
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeFloat(buffer, dummy);
-      }      
-      break;
+        return_value = skip_fixed32(buffer);
+        break;
 
       default:
         // We should never get here. DeserializeTag catches this case.
-      break;
+        break;
     }
 
+    return return_value;
+  }
+
+
+  Error MessageInterface::skip_varint(::EmbeddedProto::ReadBufferInterface& buffer) const
+  {
+    // Use a 64 bit variable to decode the maximum possible number of bytes. As we do not know
+    // the actual type.
+    uint64_t dummy;
+    return ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, dummy);
+  }
+
+  Error MessageInterface::skip_fixed32(::EmbeddedProto::ReadBufferInterface& buffer) const
+  {
+    float dummy;
+    return ::EmbeddedProto::WireFormatter::DeserializeFloat(buffer, dummy);
+  }
+
+  Error MessageInterface::skip_fixed64(::EmbeddedProto::ReadBufferInterface& buffer) const
+  {
+    double dummy;
+    return ::EmbeddedProto::WireFormatter::DeserializeDouble(buffer, dummy);
+  }
+
+  Error MessageInterface::skip_length_delimited(::EmbeddedProto::ReadBufferInterface& buffer) const
+  {
+    // First read the number of bytes 
+    uint32_t n_bytes = 0;
+    const Error return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, n_bytes);
+    if(Error::NO_ERRORS == return_value)
+    {
+      buffer.advance(n_bytes);
+    }
     return return_value;
   }
 

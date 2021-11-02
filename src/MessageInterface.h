@@ -75,8 +75,12 @@ class MessageInterface : public ::EmbeddedProto::Field
         buffer to the next tag.
     */
     Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer, 
-                             const ::EmbeddedProto::WireFormatter::WireType& wire_typ) const;
+                             const ::EmbeddedProto::WireFormatter::WireType& wire_type) const;
 
+    Error skip_varint(::EmbeddedProto::ReadBufferInterface& buffer) const;
+    Error skip_fixed32(::EmbeddedProto::ReadBufferInterface& buffer) const;
+    Error skip_fixed64(::EmbeddedProto::ReadBufferInterface& buffer) const;
+    Error skip_length_delimited(::EmbeddedProto::ReadBufferInterface& buffer) const;
 
 };
 
