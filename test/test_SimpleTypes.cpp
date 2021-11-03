@@ -494,4 +494,24 @@ TEST(SimpleTypes, deserialize_enum_beond_range)
 
 }
 
+TEST(SimpleTypes, deserialize_fault_overlong_varint)
+{
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  constexpr uint32_t N_BYTES = 6;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(N_BYTES));
+
+  ::Test_Simple_Types msg;
+
+  std::array<uint8_t, N_BYTES> referee = { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };// Invalid closing byte for a_int32
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+}
+
 } // End of namespace test_EmbeddedAMS_SimpleTypes
