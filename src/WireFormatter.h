@@ -370,7 +370,9 @@ namespace EmbeddedProto
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeInt.");
         
-        uint64_t uint_value;
+        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+
+        UINT_TYPE uint_value;
         Error result = DeserializeVarint(buffer, uint_value);
         if(Error::NO_ERRORS == result) 
         {
@@ -385,7 +387,9 @@ namespace EmbeddedProto
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeSInt.");
         
-        uint64_t uint_value;
+        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+
+        UINT_TYPE uint_value;
         Error result = DeserializeVarint(buffer, uint_value);
         if(Error::NO_ERRORS == result) 
         {
@@ -435,7 +439,7 @@ namespace EmbeddedProto
         static_assert(std::is_same<STYPE, int32_t>::value || 
                       std::is_same<STYPE, int64_t>::value, "Wrong type passed to DeserializeSFixed.");
 
-        using USTYPE =std::make_unsigned_t<STYPE>;
+        using USTYPE = std::make_unsigned_t<STYPE>;
         USTYPE temp_unsigned_value = 0;
         Error result = DeserializeFixed(buffer, temp_unsigned_value);
         if(Error::NO_ERRORS == result)
@@ -546,28 +550,25 @@ namespace EmbeddedProto
         
         // Calculate how many bytes there are in a varint 128 base encoded number. This should 
         // yield 5 for a 32bit number and 10 for a 64bit number.
-        static constexpr auto N_BYTES_IN_VARINT = static_cast<uint8_t>(constexpr_ceil(
-                                                          std::numeric_limits<UINT_TYPE>::digits 
-                                                        / static_cast<float>(VARINT_SHIFT_N_BITS)));
+        constexpr auto N_DIGITS = std::numeric_limits<UINT_TYPE>::digits;
+        constexpr auto N_BITS_FLOAT = static_cast<float>(VARINT_SHIFT_N_BITS);
+        constexpr auto DIV_RESULT = N_DIGITS / N_BITS_FLOAT;
+        constexpr auto DIV_CEIL = constexpr_ceil(DIV_RESULT);
+        constexpr auto N_BYTES_IN_VARINT = static_cast<uint8_t>(DIV_CEIL);
         
         UINT_TYPE temp_value = 0;
         uint8_t byte = 0;
-        bool result = buffer.pop(byte);
-        // Loop until the end of the encoded varint or until there is no more data in the buffer.
-        for(uint8_t i = 0; (i < N_BYTES_IN_VARINT) && result; ++i) 
+        uint8_t i = 0;
+        bool result = false;
+        do 
         {
-          temp_value |= static_cast<UINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
-          if(byte & VARINT_MSB_BYTE) 
+          result = buffer.pop(byte);
+          if(result) 
           {
-            // Continue
-            result = buffer.pop(byte);
+            temp_value |= static_cast<UINT_TYPE>(byte & (~VARINT_MSB_BYTE)) << (i * VARINT_SHIFT_N_BITS);
           }
-          else
-          {
-            // The varint is complete
-            break;
-          }
-        }
+          ++i;
+        } while((byte & VARINT_MSB_BYTE) && (i < N_BYTES_IN_VARINT) && result);
 
         Error return_value = Error::NO_ERRORS;
         if(result)
