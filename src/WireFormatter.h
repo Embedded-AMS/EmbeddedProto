@@ -573,7 +573,16 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         if(result)
         {
-          value = temp_value;
+          if(byte & VARINT_MSB_BYTE)
+          {
+            // This varint was not closed properly.
+            return_value = Error::OVERLONG_VARINT;
+          }
+          else
+          {
+            // All is well.
+            value = temp_value;
+          }
         }
         else 
         {

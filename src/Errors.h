@@ -43,6 +43,7 @@ namespace EmbeddedProto
     INVALID_WIRETYPE = 3, //!< When reading a Wiretype from the tag we got an invalid value.
     ARRAY_FULL       = 4, //!< The array is full, it is not possible to push more items in it.
     INVALID_FIELD_ID = 5, //!< When the id obtained from the tag equeals zero.
+    OVERLONG_VARINT  = 6, //!< The maximum number of bytes where read for this varint but we did not reach the end of the data.
   };
 
 }; // End of namespace EmbeddedProto
