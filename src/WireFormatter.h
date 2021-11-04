@@ -394,7 +394,7 @@ namespace EmbeddedProto
         if(Error::NO_ERRORS == result) 
         {
           using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
-          UINT_TYPE uint_value = static_cast<UINT_TYPE>(uint_value64);
+          const auto uint_value = static_cast<UINT_TYPE>(uint_value64);
           value = ZigZagDecode(uint_value);
         }
         return result;
