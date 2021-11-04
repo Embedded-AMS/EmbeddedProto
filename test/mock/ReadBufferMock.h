@@ -47,8 +47,8 @@ namespace Mocks
       
       MOCK_CONST_METHOD1(peek, bool(uint8_t&));
       
-      MOCK_METHOD0(advance, void());
-      MOCK_METHOD1(advance, void(uint32_t));
+      MOCK_METHOD0(advance, bool());
+      MOCK_METHOD1(advance, bool(uint32_t));
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
