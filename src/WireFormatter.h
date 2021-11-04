@@ -370,13 +370,13 @@ namespace EmbeddedProto
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeInt.");
         
-        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
-
-        UINT_TYPE uint_value;
-        Error result = DeserializeVarint(buffer, uint_value);
+        // Use a 64 value even for 32 bit as some implementations serialize 32 bit values with 10 bytes.
+        uint64_t uint_value64;
+        
+        Error result = DeserializeVarint(buffer, uint_value64);
         if(Error::NO_ERRORS == result) 
         {
-          value = static_cast<INT_TYPE>(uint_value);
+          value = static_cast<INT_TYPE>(uint_value64);
         }
         return result;
       }
@@ -387,12 +387,14 @@ namespace EmbeddedProto
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeSInt.");
         
-        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+        // Use a 64 value even for 32 bit as some implementations serialize 32 bit values with 10 bytes.
+        uint64_t uint_value64;
 
-        UINT_TYPE uint_value;
-        Error result = DeserializeVarint(buffer, uint_value);
+        Error result = DeserializeVarint(buffer, uint_value64);
         if(Error::NO_ERRORS == result) 
         {
+          using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+          const auto uint_value = static_cast<UINT_TYPE>(uint_value64);
           value = ZigZagDecode(uint_value);
         }
         return result;

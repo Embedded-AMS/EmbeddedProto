@@ -140,8 +140,8 @@ TEST(SimpleTypes, serialize_max)
 
 
   std::array<uint8_t, 100> expected = { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07, 
-                                        0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-                                        0x7F, 0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 
+                                        0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 
+                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 
                                         0x20, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 
                                         0x28, 0xFE, 0xFF, 0xFF, 0xFF, 0x0F, 
                                         0x30, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 
@@ -319,6 +319,32 @@ TEST(SimpleTypes, deserialize_one)
   EXPECT_EQ(1U, msg.get_a_fixed32());
   EXPECT_EQ(1, msg.get_a_sfixed32()); 
   EXPECT_EQ(1.0F, msg.get_a_float());
+}
+
+TEST(SimpleTypes, deserialize_10_byte_int32)
+{
+  // Some implementations serialize 32bit integers in 10 bytes instead of the theoretical 5.
+  // Data in the higher bytes should be ignored.
+
+  InSequence s;
+  Mocks::ReadBufferMock buffer;
+  
+  constexpr uint32_t N_BYTES = 11;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(N_BYTES));
+
+  ::Test_Simple_Types msg;
+
+  std::array<uint8_t, N_BYTES>  referee = { 0x08, 0x81, 0x80, 0x80, 0x80, 0x80, 0x8F, 0x8F, 0x8F, 0x8F, 0x0F };
+
+  for(auto r: referee) {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_a_int32());   
 }
 
 TEST(SimpleTypes, deserialize_max) 
@@ -499,13 +525,13 @@ TEST(SimpleTypes, deserialize_fault_overlong_varint)
   InSequence s;
   Mocks::ReadBufferMock buffer;
   
-  constexpr uint32_t N_BYTES = 6;
+  constexpr uint32_t N_BYTES = 11;
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(N_BYTES));
 
   ::Test_Simple_Types msg;
 
-  std::array<uint8_t, N_BYTES> referee = { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };// Invalid closing byte for a_int32
+  std::array<uint8_t, N_BYTES> referee = { 0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };// Invalid closing byte for a_int64
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
