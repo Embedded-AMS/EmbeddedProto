@@ -64,23 +64,27 @@ namespace EmbeddedProto
     return result;
   }
 
-  void ReadBufferSection::advance()
+  bool ReadBufferSection::advance()
   {
-    if(0 < size_) 
+    bool result = 0 < size_;
+    if(result) 
     {
-      buffer_.advance();
+      result = buffer_.advance();
       --size_;
     }
+    return result;
   }
 
-  void ReadBufferSection::advance(const uint32_t n_bytes)
+  bool ReadBufferSection::advance(const uint32_t n_bytes)
   {
-    if(0 < size_) 
+    bool result = 0 < size_;
+    if(result) 
     {
       uint32_t n = (n_bytes <= size_) ? n_bytes : size_;
-      buffer_.advance(n);
+      result = buffer_.advance(n);
       size_ -= n;
     }
+    return result;
   }
 
   bool ReadBufferSection::pop(uint8_t& byte)
