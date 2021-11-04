@@ -525,13 +525,13 @@ TEST(SimpleTypes, deserialize_fault_overlong_varint)
   InSequence s;
   Mocks::ReadBufferMock buffer;
   
-  constexpr uint32_t N_BYTES = 6;
+  constexpr uint32_t N_BYTES = 11;
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(N_BYTES));
 
   ::Test_Simple_Types msg;
 
-  std::array<uint8_t, N_BYTES> referee = { 0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };// Invalid closing byte for a_int32
+  std::array<uint8_t, N_BYTES> referee = { 0x10, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };// Invalid closing byte for a_int64
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
