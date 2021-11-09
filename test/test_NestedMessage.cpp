@@ -53,18 +53,25 @@ namespace test_EmbeddedAMS_NestedMessage
 constexpr uint32_t SIZE_MSG_A = 3;
 constexpr uint32_t SIZE_MSG_D = 5;
 
-TEST(NestedMessage, serialize_zero) 
+
+TEST(NestedMessage, assign_by_set)
 {
-  // Test if a unset message results in zero bytes in the buffer.
+    ::demo::space::message_a<SIZE_MSG_A> msg_a;
+    msg_a.mutable_z() = 1;
 
-  ::demo::space::message_b<SIZE_MSG_A> msg;
-  Mocks::WriteBufferMock buffer;
-  EXPECT_CALL(buffer, push(_)).Times(0);
-  EXPECT_CALL(buffer, push(_,_)).Times(0);
+    ::demo::space::message_b<SIZE_MSG_A> msg_b;
+    msg_b.set_nested_a(msg_a);
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+    EXPECT_EQ(1, msg_b.nested_a().z());
+}
 
-  EXPECT_EQ(0, msg.serialized_size());
+TEST(NestedMessage, assign_by_refrence)
+{
+    ::demo::space::message_b<SIZE_MSG_A> msg_b;
+    auto& msg_a = msg_b.mutable_nested_a();
+    msg_a.mutable_z() = 1;
+
+    EXPECT_EQ(1, msg_b.nested_a().z());
 }
 
 TEST(NestedMessage, serialize_one) 
