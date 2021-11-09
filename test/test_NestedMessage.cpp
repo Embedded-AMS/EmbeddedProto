@@ -88,7 +88,6 @@ TEST(NestedMessage, serialize_zero)
   EXPECT_EQ(0, msg.serialized_size());
 }
 
-
 TEST(NestedMessage, serialize_one) 
 {
   InSequence s;
