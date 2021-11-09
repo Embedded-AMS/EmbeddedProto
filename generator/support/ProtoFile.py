@@ -111,6 +111,21 @@ class ProtoFile:
             if self.scope:
                 my_scope = "." + self.scope.get_scope_str().replace("::", ".")
                 message_order.remove(my_scope)
+
+            # Based on the desired order assign each message definition an index.
+            for index, msg_name in enumerate(message_order):
+                for msg_def in self.msg_definitions:
+                    if msg_def.name == msg_name.replace(my_scope + ".", ''):
+                        msg_def.sorted_index = index
+                        break
+
+            # Next sort the messages based on their index.
+            self.msg_definitions.sort(key=lambda msg: msg.sorted_index)
+
+            # Sort al the nested message definitions.
+            for msg in self.msg_definitions:
+                msg.sort_nested_msg_definitions(message_order)
+
         except CircularDependencyError as e:
             raise Exception("There are possible circular dependencies in the message definitions of "
                             + proto_descriptor.name + ". Embedded Proto is not able to support this. "
