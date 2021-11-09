@@ -74,6 +74,21 @@ TEST(NestedMessage, assign_by_refrence)
     EXPECT_EQ(1, msg_b.nested_a().z());
 }
 
+TEST(NestedMessage, serialize_zero) 
+{
+  // Test if a unset message results in zero bytes in the buffer.
+
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+  Mocks::WriteBufferMock buffer;
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_,_)).Times(0);
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  EXPECT_EQ(0, msg.serialized_size());
+}
+
+
 TEST(NestedMessage, serialize_one) 
 {
   InSequence s;
