@@ -159,6 +159,9 @@ def main_cli():
             print(response_file.name)
             print(response_file.content)
 
+        if response.error:
+            print(response.error)
+
 # -----------------------------------------------------------------------------
 
 
