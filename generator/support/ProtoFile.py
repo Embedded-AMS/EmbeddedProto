@@ -175,3 +175,10 @@ class ProtoFile:
         template = jinja_environment.get_template(template_file)
         file_str = template.render(proto_file=self, environment=jinja_environment)
         return file_str
+
+    def print_template_data(self, indent):
+        print(indent + "File: " + self.filename_without_folder)
+        if self.msg_definitions:
+            for msg in self.msg_definitions:
+                msg.print_template_data(indent + "\t")
+

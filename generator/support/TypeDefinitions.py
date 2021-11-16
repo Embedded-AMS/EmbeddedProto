@@ -242,3 +242,14 @@ class MessageDefinition(TypeDefinition):
 
     def get_type(self):
         return self.scope.get_scope_str()
+
+    def print_template_data(self, indent):
+        print(indent + "Message definition: " + self.name)
+        if self.nested_msg_definitions:
+            for msg in self.nested_msg_definitions:
+                msg.print_template_data(indent + "\t")
+
+        if self.fields:
+            for field in self.fields:
+                print(indent + "Field: " + field.name, end='')
+                print(field.get_template_parameters())
