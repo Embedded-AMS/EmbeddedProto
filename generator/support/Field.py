@@ -233,7 +233,7 @@ class BaseStringBytes(Field):
         super().__init__(proto_descriptor, parent_msg, "FieldString.h", oneof)
 
         # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "LENGTH"
+        self.template_param_str = self.parent.name + "_" + self.variable_name + "LENGTH"
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -398,7 +398,7 @@ class FieldMessage(Field):
         templates = copy.deepcopy(self.definition.get_templates())
         # Next add our variable name to make them unique.
         for tmp in templates:
-            tmp["name"] = self.variable_name + tmp["name"]
+            tmp["name"] = self.parent.name + "_" + self.variable_name + tmp["name"]
         return templates
 
     def match_field_with_definitions(self, all_types_definitions):
@@ -447,7 +447,7 @@ class FieldRepeated(Field):
         self.actual_type = Field.factory(proto_descriptor, parent_msg, oneof, already_nested=True)
 
         # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "REP_LENGTH"
+        self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
