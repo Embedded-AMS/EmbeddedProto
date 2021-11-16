@@ -62,7 +62,15 @@ class Field:
     # object.
     # The last parameter is not to be used manually. It is set when we are already in a FieldNested class.
     def factory(proto_descriptor, parent_msg, oneof=None, already_nested=False):
-        if (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and not already_nested:
+
+        # If this field has the same type as the parent we got a recursive inclusion. We can not solve the template
+        # parameters in this case. This field is thus replaced by a dummy with a warning. Toposort is used to find more
+        # complex recursive inclusions which we can not solve like this.
+        parent_msg_type = "." + parent_msg.scope.get_scope_str().replace("::", ".")
+        if proto_descriptor.type_name == parent_msg_type:
+            result = FieldErrorRecursive(proto_descriptor, parent_msg, oneof)
+        # Now continue constructing the normal fields.
+        elif (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and not already_nested:
             result = FieldRepeated(proto_descriptor, parent_msg, oneof)
         elif FieldDescriptorProto.TYPE_MESSAGE == proto_descriptor.type:
             result = FieldMessage(proto_descriptor, parent_msg, oneof)
@@ -477,3 +485,25 @@ class FieldRepeated(Field):
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
         return str.rstrip()
+
+# -----------------------------------------------------------------------------
+
+
+# This class represents a field we can not include because it causes a recursive inclusion.
+class FieldErrorRecursive(Field):
+    def __init__(self, proto_descriptor, parent_msg, oneof=None):
+        super().__init__(proto_descriptor, parent_msg, "FieldRepeated.h", oneof)
+
+        self.descriptor.type_name = "FieldErrorRecursive"
+
+    def render_get_set(self, jinja_env):
+        return "#warning \"You have a recursive inclusion with the field: \'" + self.name + "\'. " \
+                         "Embedded Proto is unable to determine the template parameters in this case. We could only " \
+                         "generate this message by leaving it out.\""
+
+    def render_serialize(self, jinja_env):
+        return ""
+
+    def render_deserialize(self, jinja_env):
+        return ""
+
