@@ -41,10 +41,18 @@ import "repeated_fields.proto";
 // Import something from a subfolder.
 import "subfolder/file_to_include_from_subfolder.proto";
 
+// Import something from the google folder.
+import "google/protobuf/descriptor.proto";
+
 
 message IncludedMessages {
   some.external.lib.CommonStates  state = 1;
   some.external.lib.CommonMessage msg   = 2;
   repeated_fields rf  = 3;
   sub.package.other_folder_msg sub_msg = 4;
+}
+
+// Use a random message from the google file.
+message DummyMessage {
+  google.protobuf.GeneratedCodeInfo info = 1;
 }
