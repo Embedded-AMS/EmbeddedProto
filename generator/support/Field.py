@@ -496,10 +496,11 @@ class FieldErrorRecursive(Field):
 
         self.descriptor.type_name = "FieldErrorRecursive"
 
+    def get_type(self):
+        return "//"
+
     def render_get_set(self, jinja_env):
-        return "#warning \"You have a recursive inclusion with the field: \'" + self.name + "\'. " \
-                         "Embedded Proto is unable to determine the template parameters in this case. We could only " \
-                         "generate this message by leaving it out.\""
+        return self.render("FieldErrorRecursive_GetSet.h", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
         return ""
