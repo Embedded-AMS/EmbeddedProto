@@ -35,7 +35,6 @@ from support.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
 
-
 # -----------------------------------------------------------------------------
 
 
@@ -157,6 +156,9 @@ def main_cli():
         for response_file in response.file:
             print(response_file.name)
             print(response_file.content)
+
+        if response.error:
+            print(response.error)
 
 # -----------------------------------------------------------------------------
 

@@ -416,7 +416,7 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
   repeated_message<Y_SIZE> msg;
   Mocks::ReadBufferMock buffer;
 
-  static constexpr uint32_t SIZE = 15;
+  static constexpr uint32_t SIZE = 14;
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
