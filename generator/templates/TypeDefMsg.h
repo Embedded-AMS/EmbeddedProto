@@ -29,7 +29,7 @@ Postal address:
 #}
 {% import 'TypeOneof.h' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
-{{"template<" if loop.first}}{{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{">" if loop.last}}
+{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{"\n>" if loop.last}}
 {% endfor %}
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
@@ -160,7 +160,12 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
           {% endfor %}
           {% endfor %}
+          case id::NOT_SET:
+            return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
+            break;
+
           default:
+            return_value = skip_unknown_field(buffer, wire_type);
             break;
         }
 
