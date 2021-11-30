@@ -160,7 +160,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
           {% endfor %}
           {% endfor %}
-          case id::NOT_SET:
+          case FieldNumber::NOT_SET:
             return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
             break;
 
