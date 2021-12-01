@@ -40,7 +40,7 @@ inline void clear_{{field.get_name()}}()
     {{field.get_variable_name()}}.~{{field.get_short_type()}}(); // NOSONAR Unions require this.
   }
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}::FIELD_TYPE& value)
+inline void set_{{field.get_name()}}(const {{field.get_type()}}::TYPE& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
@@ -48,7 +48,7 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}::FIELD_TYPE& val
   }
   {{field.get_variable_name()}}.set(value);
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}::FIELD_TYPE&& value)
+inline void set_{{field.get_name()}}(const {{field.get_type()}}::TYPE&& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
@@ -104,4 +104,4 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value) { {{fie
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
-inline {{field.get_type()}}::FIELD_TYPE {{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
+inline {{field.get_type()}}::TYPE {{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
