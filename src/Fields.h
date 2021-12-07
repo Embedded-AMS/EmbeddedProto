@@ -35,8 +35,10 @@
 #include "WireFormatter.h"
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
+#include "MessageSizeCalculator.h"
 
 #include <cstdint>
+#include <memory>
 
 
 namespace EmbeddedProto 
@@ -57,14 +59,14 @@ namespace EmbeddedProto
         enumeration,
         fixed64, 
         sfixed64, 
-        double_fixed,
+        doublefixed,
         string, 
         bytes, 
         message,
         repeated,
         fixed32, 
         sfixed32, 
-        float_fixed
+        floatfixed
       };
 
 
@@ -102,19 +104,20 @@ namespace EmbeddedProto
   };
 
   template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE>
-  class FieldTemplate : public Field
+  class FieldTemplate
   {
     public:
       using TYPE = VARIABLE_TYPE;
       using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE>;
 
       FieldTemplate() = default;
-       FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
-       FieldTemplate(const VARIABLE_TYPE&& v) : value_(v) { };
-       FieldTemplate(const CLASS_TYPE& ft) : value_(ft.value_) { };
-      ~FieldTemplate() override = default;
+      FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
+      FieldTemplate(const VARIABLE_TYPE&& v) : value_(v) { };
+      FieldTemplate(const CLASS_TYPE& ft) : value_(ft.value_) { };
 
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
+      ~FieldTemplate() = default;
+
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
       {
         Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
         if(Error::NO_ERRORS == return_value)
@@ -124,7 +127,7 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      Error serialize(WriteBufferInterface& buffer) const final
+      Error serialize(WriteBufferInterface& buffer) const 
       {
         Error return_value = Error::NO_ERRORS;
         if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
@@ -172,11 +175,11 @@ namespace EmbeddedProto
         {
           return_value = WireFormatter::SerialzieSFixedNoTag(get(), buffer);
         }
-        else if constexpr(Field::FieldTypes::float_fixed == FIELDTYPE)
+        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
         {
           return_value = WireFormatter::SerialzieFloatNoTag(get(), buffer);
         }
-        else if constexpr(Field::FieldTypes::double_fixed == FIELDTYPE)
+        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
         {
           return_value = WireFormatter::SerialzieDoubleNoTag(get(), buffer);
         }
@@ -186,7 +189,7 @@ namespace EmbeddedProto
         return return_value;
       }
     
-      Error deserialize(ReadBufferInterface& buffer) final
+      Error deserialize(ReadBufferInterface& buffer)
       {
         Error return_value = Error::NO_ERRORS;
         if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
@@ -233,11 +236,11 @@ namespace EmbeddedProto
         {
           return_value = WireFormatter::DeserializeSFixed(buffer, get());
         }
-        else if constexpr(Field::FieldTypes::float_fixed == FIELDTYPE)
+        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
         {
           return_value = WireFormatter::DeserializeFloat(buffer, get());
         }
-        else if constexpr(Field::FieldTypes::double_fixed == FIELDTYPE)
+        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
         {
           return_value = WireFormatter::DeserializeDouble(buffer, get());
         }
@@ -249,7 +252,7 @@ namespace EmbeddedProto
 
       //! \see Field::deserialize()
       Error deserialize_check_type(ReadBufferInterface& buffer, 
-                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type)
       {
         Error return_value = WIRETYPE == wire_type ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
         if(Error::NO_ERRORS == return_value) 
@@ -319,9 +322,16 @@ namespace EmbeddedProto
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
       bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ <= rhs.get(); }
 
-      void clear() override { value_ = static_cast<VARIABLE_TYPE>(0); }
+      void clear() { value_ = static_cast<VARIABLE_TYPE>(0); }
 
-    //private:
+      uint32_t serialized_size() const
+      {
+        ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+        this->serialize(calcBuffer);
+        return calcBuffer.get_size();
+      }
+
+    private:
 
       VARIABLE_TYPE value_;
   };
@@ -338,8 +348,8 @@ namespace EmbeddedProto
   using fixed64 = FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>; 
   using sfixed32 = FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>; 
   using sfixed64 = FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>; 
-  using floatfixed = FieldTemplate<Field::FieldTypes::float_fixed, float, WireFormatter::WireType::FIXED32>; 
-  using doublefixed = FieldTemplate<Field::FieldTypes::double_fixed, double, WireFormatter::WireType::FIXED64>; 
+  using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>; 
+  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>; 
 
 } // End of namespace EmbeddedProto.
 #endif
