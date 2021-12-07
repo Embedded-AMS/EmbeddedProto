@@ -113,7 +113,7 @@ TEST(RepeatedFieldFixedSize, get)
 
   // When going out of bound the last element should be returned.
   EXPECT_EQ(0U, x.get_const(2));
-  x.get(3) = 3;
+  x.get(3) = 3U;
   EXPECT_EQ(3U, x.get_const(2));
   EXPECT_EQ(3U, x.get_const(3));
 }

@@ -264,13 +264,10 @@ namespace EmbeddedProto
 
       void set(const VARIABLE_TYPE& v) { value_ = v; }      
       void set(const VARIABLE_TYPE&& v) { value_ = v; }
+
       void set(const CLASS_TYPE& ft) { value_ = ft.value_; }
       void set(const CLASS_TYPE&& ft) { value_ = ft.value_; }
-      CLASS_TYPE& operator=(const VARIABLE_TYPE v) 
-      { 
-        value_ = v;
-        return *this;
-      }
+      
       CLASS_TYPE& operator=(const VARIABLE_TYPE& v) 
       { 
         value_ = v;

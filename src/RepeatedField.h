@@ -49,8 +49,8 @@ namespace EmbeddedProto
   template<class DATA_TYPE>
   class RepeatedField : public Field
   {
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+    static constexpr bool IS_BASIC_TYPE = 
+                     std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
@@ -62,7 +62,9 @@ namespace EmbeddedProto
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value
                   || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value, 
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value;
+
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || IS_BASIC_TYPE, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
