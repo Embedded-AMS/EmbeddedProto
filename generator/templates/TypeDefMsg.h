@@ -155,10 +155,10 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
           case FieldNumber::{{field.get_variable_id_name()}}:
-            {{ field.render_deserialize(environment)|indent(12) }}
+          {% endfor %}
+            return_value = deserialize_{{oneof.get_name()}}(id_tag, buffer, wire_type);
             break;
 
-          {% endfor %}
           {% endfor %}
           case FieldNumber::NOT_SET:
             return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
@@ -263,6 +263,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
-      {{ TypeOneof.deserialize(oneof)|indent(6) }}
+      {{ TypeOneof.deserialize(oneof, environment)|indent(6) }}
       {% endfor %}
 };

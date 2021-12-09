@@ -49,7 +49,23 @@ namespace EmbeddedProto
   template<class DATA_TYPE>
   class RepeatedField : public Field
   {
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
+    static constexpr bool IS_BASIC_TYPE = 
+                     std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
+                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value;
+
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || IS_BASIC_TYPE, 
+                  "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
