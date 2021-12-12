@@ -277,7 +277,7 @@ namespace EmbeddedProto
         uint32_t current_length_ = 0;
 
         //! The text.
-        std::array<DATA_TYPE, MAX_LENGTH> data_ = {0};
+        std::array<DATA_TYPE, MAX_LENGTH> data_ = {{0}};
 
     }; // End of class FieldStringBytes
 
