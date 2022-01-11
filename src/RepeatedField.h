@@ -319,8 +319,7 @@ namespace EmbeddedProto
 
         // For repeated messages, strings or bytes
         // First allocate an element in the array.
-        const uint32_t index = this->get_length();
-        if(this->get_max_length() > index)
+        if(const uint32_t index = this->get_length(); this->get_max_length() > index)
         {
           // For messages read the size here, with strings and byte arrays this is include in 
           // deserialize.
