@@ -64,13 +64,13 @@ namespace EmbeddedProto
                   || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>
                   || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>;
 
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || IS_BASIC_TYPE, 
+    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || IS_BASIC_TYPE, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of<MessageInterface, DATA_TYPE>::value 
-            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
+          !(std::is_base_of_v<MessageInterface, DATA_TYPE> 
+            || std::is_base_of_v<internal::BaseStringBytes, DATA_TYPE>);
 
     public:
 
