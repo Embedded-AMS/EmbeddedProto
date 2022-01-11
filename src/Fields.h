@@ -117,7 +117,7 @@ namespace EmbeddedProto
 
       ~FieldTemplate() = default;
 
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, [[maybe_unused]] const bool optional) const
       {
         Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
         if(Error::NO_ERRORS == return_value)
