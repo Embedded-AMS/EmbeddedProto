@@ -50,27 +50,27 @@ namespace EmbeddedProto
   class RepeatedField : public Field
   {
     static constexpr bool IS_BASIC_TYPE = 
-                     std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>::value
-                  || std::is_same<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>::value;
+                     std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>
+                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>;
 
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || IS_BASIC_TYPE, 
+    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || IS_BASIC_TYPE, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of<MessageInterface, DATA_TYPE>::value 
-            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
+          !(std::is_base_of_v<MessageInterface, DATA_TYPE> 
+            || std::is_base_of_v<internal::BaseStringBytes, DATA_TYPE>);
 
     public:
 
@@ -319,8 +319,7 @@ namespace EmbeddedProto
 
         // For repeated messages, strings or bytes
         // First allocate an element in the array.
-        const uint32_t index = this->get_length();
-        if(this->get_max_length() > index)
+        if(const uint32_t index = this->get_length(); this->get_max_length() > index)
         {
           // For messages read the size here, with strings and byte arrays this is include in 
           // deserialize.
