@@ -169,7 +169,7 @@ class FieldBasic(Field):
                              FieldDescriptorProto.TYPE_SINT32:   "0",
                              FieldDescriptorProto.TYPE_SINT64:   "0"}
 
-    # A dictionary to convert the protobuf wire type into a C++ type.
+    # A dictionary to convert the protobuf wire type into an Embedded Proto C++ type.
     type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "EmbeddedProto::doublefixed",
                         FieldDescriptorProto.TYPE_FLOAT:    "EmbeddedProto::floatfixed",
                         FieldDescriptorProto.TYPE_INT64:    "EmbeddedProto::int64",
@@ -183,6 +183,21 @@ class FieldBasic(Field):
                         FieldDescriptorProto.TYPE_SFIXED64: "EmbeddedProto::sfixed64",
                         FieldDescriptorProto.TYPE_SINT32:   "EmbeddedProto::sint32",
                         FieldDescriptorProto.TYPE_SINT64:   "EmbeddedProto::sint64"}
+
+    # A dictionary to convert the protobuf wire type into a C++ type.
+    type_to_cstdint = {FieldDescriptorProto.TYPE_DOUBLE:   "double",
+                       FieldDescriptorProto.TYPE_FLOAT:    "float",
+                       FieldDescriptorProto.TYPE_INT64:    "int64_t",
+                       FieldDescriptorProto.TYPE_UINT64:   "uint64_t",
+                       FieldDescriptorProto.TYPE_INT32:    "int32_t",
+                       FieldDescriptorProto.TYPE_FIXED64:  "uint64_t",
+                       FieldDescriptorProto.TYPE_FIXED32:  "uint32_t",
+                       FieldDescriptorProto.TYPE_BOOL:     "bool",
+                       FieldDescriptorProto.TYPE_UINT32:   "uint32_t",
+                       FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
+                       FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
+                       FieldDescriptorProto.TYPE_SINT32:   "int32_t",
+                       FieldDescriptorProto.TYPE_SINT64:   "int64_t"}
 
     # A dictionary to convert the wire type number into a wire type string.
     type_to_wire_type = {FieldDescriptorProto.TYPE_INT32:    "VARINT",
@@ -210,6 +225,9 @@ class FieldBasic(Field):
 
     def get_short_type(self):
         return self.get_type().split("::")[-1]
+
+    def get_cstdint_type(self):
+        return self.type_to_cstdint[self.descriptor.type]
 
     def get_default_value(self):
         return self.type_to_default_value[self.descriptor.type]
