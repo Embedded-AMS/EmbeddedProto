@@ -106,9 +106,13 @@ def main_plugin():
     # If desired output debug data.
     if '--debug' in sys.argv:
         # Write the requests to a file for easy debugging.
-        with open("./debug_embbeded_proto.bin", 'wb') as file:
+        with open("./debug_embedded_proto.bin", 'wb') as file:
             file.write(request.SerializeToString())
 
+        from google.protobuf.json_format import MessageToJson
+        
+        with open("./debug_embedded_proto.json", 'w') as file:
+            file.write(MessageToJson(request))
 
     # Generate code
     try:
@@ -139,7 +143,7 @@ def main_cli():
     # The main function when running from the command line and debugging.  Instead of receiving data from protoc this
     # will read in a binary file stored the previous time main_plugin() is ran.
 
-    with open("debug_embbeded_proto.bin", 'rb') as file:
+    with open("debug_embedded_proto.bin", 'rb') as file:
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
 
