@@ -468,6 +468,7 @@ class FieldRepeated(Field):
         self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
         # Find options we know and use in this type of field.
+        self.MaxLength = None
         try:
             import embedded_proto_options_pb2
         except Exception as e:
