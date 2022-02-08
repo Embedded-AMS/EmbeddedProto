@@ -39,8 +39,9 @@ import jinja2
 
 
 def generate_code(request, respones):
-    # Create definitions for al proto files in the request.
-    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file]
+    # Create definitions for al proto files in the request except for our own options file which is not required.
+    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file
+                        if "embedded_proto_options.proto" not in proto_file.name]
 
     # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
     # create template parameters.
