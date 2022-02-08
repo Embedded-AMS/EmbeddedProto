@@ -44,7 +44,7 @@ class Field:
         # Is this field optional, so do we need to track the presence of the field.
         self.optional = self.descriptor.proto3_optional
 
-        # If this field is part of a oneof this is the reference to it.
+        # If this field is part of an oneof this is the reference to it.
         self.oneof = oneof
 
         self.name = self.descriptor.name
@@ -467,6 +467,15 @@ class FieldRepeated(Field):
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
+        # Find options we know and use in this type of field.
+        try:
+            import embedded_proto_options_pb2
+        except Exception as e:
+            pass
+        else:
+            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.eamsMaxLength):
+                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.eamsMaxLength]
+
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
 
@@ -484,6 +493,9 @@ class FieldRepeated(Field):
 
     def get_template_parameters(self):
         result = [{"name": self.template_param_str, "type": "uint32_t"}]
+        # If we have a default length add this object to the template list.
+        if self.MaxLength:
+            result[0]["MaxLength"] = self.MaxLength
         result.extend(self.actual_type.get_template_parameters())
         return result
 
