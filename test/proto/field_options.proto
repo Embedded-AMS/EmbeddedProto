@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+import "embedded_proto_options.proto";
+
+message ConfigUpdate {
+  repeated uint32 config_id = 1 [(eamsMaxLength) = 10];
+}

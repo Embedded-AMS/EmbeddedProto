@@ -39,3 +39,6 @@ build-wrapper**
 
 # Ignore code coverage reports
 code_coverage_report/**
+
+# Ignore the generated options file.
+generator/embedded_proto_options_pb2.py

@@ -87,18 +87,28 @@ def main_plugin():
     # The main function when running the scrip as a protoc plugin. It will read in the protoc data from the stdin and
     # write back the output to stdout.
 
+    # Create the response object
+    response = plugin.CodeGeneratorResponse()
+    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+    # See if we can import the options file.
+    try:
+        import embedded_proto_options_pb2
+    except ImportError:
+        response.error = "Embedded Proto warning - Unable to load the Embedded Proto Options file. " \
+                         "Did you run the setup script? The script should generate the file. This run we will not " \
+                         "include the options specified in your *.proto file."
+
     # Read request message from stdin
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
 
+    # If desired output debug data.
     if '--debug' in sys.argv:
         # Write the requests to a file for easy debugging.
         with open("./debug_embbeded_proto.bin", 'wb') as file:
             file.write(request.SerializeToString())
 
-    # Create response
-    response = plugin.CodeGeneratorResponse()
-    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
     # Generate code
     try:
@@ -133,8 +143,16 @@ def main_cli():
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
 
-        # Create response
+        # Create the response object
         response = plugin.CodeGeneratorResponse()
+        response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+        # See if we can import the options file.
+        try:
+            import embedded_proto_options_pb2
+        except ImportError:
+            response.error = "Embedded Proto error - Unable to load the Embedded Proto Options file. " \
+                             "Did you run the setup script? The script should generate the file."
 
         # Generate code
         try:
