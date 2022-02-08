@@ -146,9 +146,6 @@ def main_cli():
     # will read in a binary file stored the previous time main_plugin() is ran.
 
     with open("debug_embedded_proto.bin", 'rb') as file:
-        data = file.read()
-        request = plugin.CodeGeneratorRequest.FromString(data)
-
         # Create the response object
         response = plugin.CodeGeneratorResponse()
         response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
@@ -159,6 +156,8 @@ def main_cli():
         except ImportError:
             response.error = "Embedded Proto error - Unable to load the Embedded Proto Options file. " \
                              "Did you run the setup script? The script should generate the file."
+        data = file.read()
+        request = plugin.CodeGeneratorRequest.FromString(data)
 
         # Generate code
         try:
