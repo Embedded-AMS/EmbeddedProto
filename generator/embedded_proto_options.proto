@@ -2,6 +2,8 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
+package EmbeddedProto;
+
 extend google.protobuf.FieldOptions { 
-  uint32 eamsMaxLength = 5099; 
+  uint32 MaxLength = 76543;  
 }
