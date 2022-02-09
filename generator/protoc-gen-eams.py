@@ -39,10 +39,27 @@ import jinja2
 
 
 def generate_code(request, respones):
-    # Create definitions for al proto files in the request except for our own options file which is not required.
-    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file
-                        if ("embedded_proto_options.proto" not in proto_file.name) and
-                        ("google/protobuf/descriptor.proto" not in proto_file.name)]
+    # Create definitions for al proto files in the request except for our own options file which is not required in cpp
+    # code. First also ignore the google descriptor file, only add it later if it is required by the user.
+    file_definitions = []
+    google_descriptor_file = None
+    add_google_descriptor_file = False
+    for proto_file in request.proto_file:
+        if ("embedded_proto_options.proto" not in proto_file.name) and \
+           ("google/protobuf/descriptor.proto" not in proto_file.name):
+            file_definitions.append(ProtoFile(proto_file))
+            if "google/protobuf/descriptor.proto" in file_definitions[-1].descriptor.dependency:
+                add_google_descriptor_file = True
+
+        # If we come by the descriptor just store it so we can easily use it when needed.
+        if "google/protobuf/descriptor.proto" in proto_file.name:
+            google_descriptor_file = proto_file
+
+    # See if we should include google/protobuf/descriptor.proto after all as it is directly include by one of user
+    # defined proto files.
+    if add_google_descriptor_file and google_descriptor_file:
+        # Insert it at the front so the header file will include it before the classes requiring it.
+        file_definitions.insert(0, ProtoFile(google_descriptor_file))
 
     # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
     # create template parameters.
