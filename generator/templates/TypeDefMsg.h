@@ -29,7 +29,7 @@ Postal address:
 #}
 {% import 'TypeOneof.h' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
-{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{% if 'MaxLength' in tmpl_param.keys() %} = {{tmpl_param['MaxLength']}}{% endif %}{{", " if not loop.last}}{{"\n>" if loop.last}}
+{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{"\n>" if loop.last}}
 {% endfor %}
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {

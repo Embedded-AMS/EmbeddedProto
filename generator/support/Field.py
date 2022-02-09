@@ -481,8 +481,12 @@ class FieldRepeated(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", " + \
-               self.template_param_str + ">"
+        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+        if self.MaxLength:
+            type_str += str(self.MaxLength) + ">"
+        else:
+           type_str += self.template_param_str + ">"
+        return type_str
 
     def get_short_type(self):
         return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_short_type() + ", " + \
@@ -493,10 +497,10 @@ class FieldRepeated(Field):
         return self.actual_type.get_type()
 
     def get_template_parameters(self):
-        result = [{"name": self.template_param_str, "type": "uint32_t"}]
-        # If we have a default length add this object to the template list.
-        if self.MaxLength:
-            result[0]["MaxLength"] = self.MaxLength
+        result = []
+        # When we do not have a maximum length specified add the length as a template param.
+        if not self.MaxLength:
+            result.append({"name": self.template_param_str, "type": "uint32_t"})
         result.extend(self.actual_type.get_template_parameters())
         return result
 
