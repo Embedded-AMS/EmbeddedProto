@@ -485,12 +485,16 @@ class FieldRepeated(Field):
         if self.MaxLength:
             type_str += str(self.MaxLength) + ">"
         else:
-           type_str += self.template_param_str + ">"
+            type_str += self.template_param_str + ">"
         return type_str
 
     def get_short_type(self):
-        return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_short_type() + ", " + \
-               self.template_param_str + ">"
+        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+        if self.MaxLength:
+            type_str += str(self.MaxLength) + ">"
+        else:
+            type_str += self.template_param_str + ">"
+        return type_str
 
     # As this is a repeated field we need a function to get the type we are repeating.
     def get_base_type(self):

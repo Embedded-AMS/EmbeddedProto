@@ -44,8 +44,27 @@ using ::testing::SetArgReferee;
 
 namespace test_EmbeddedAMS_FieldOptions
 {
-TEST(FieldOptions, construction) 
+TEST(FieldOptions, repeated_get_max_length) 
 {
   ConfigUpdate<3> msg;
+  // The ten used here is defined in field_options.proto as a custom option of embedded proto.
+  EXPECT_EQ(10, msg.a().get_max_length());
+
+  NestedConfigUpdate<3> msgNested;
+  EXPECT_EQ(10, msgNested.update().a().get_max_length());
 }
+
+TEST(FieldOptions, repeated_clear) 
+{
+  // The clear function is influenced by the get_short_type function which changed for the options.
+  ConfigUpdate<3> msg;
+  // Add some data
+  msg.mutable_a().add(1);
+  msg.mutable_a().add(2);
+  EXPECT_EQ(2, msg.a().get_length());
+
+  msg.mutable_a().clear();
+  EXPECT_EQ(0U, msg.a().get_length());
+}
+
 } // End of namespace test_EmbeddedAMS_FieldOptions
