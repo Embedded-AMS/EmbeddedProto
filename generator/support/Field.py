@@ -260,8 +260,8 @@ class BaseStringBytes(Field):
         except Exception as e:
             pass
         else:
-            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.MaxLength):
-                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.MaxLength]
+            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -500,8 +500,8 @@ class FieldRepeated(Field):
         except Exception as e:
             pass
         else:
-            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.MaxLength):
-                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.MaxLength]
+            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
