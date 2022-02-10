@@ -10,3 +10,18 @@ message ConfigUpdate {
 message NestedConfigUpdate {
   ConfigUpdate update = 1;
 }
+
+message BytesMaxLength {
+  bytes b = 1 [(EmbeddedProto.MaxLength) = 100];
+}
+
+message StringMaxLength {
+  string s = 1 [(EmbeddedProto.MaxLength) = 256];
+}
+
+message OneofWithMaxLength {
+  oneof content {
+    bytes b = 1 [(EmbeddedProto.MaxLength) = 100];
+    string s = 2 [(EmbeddedProto.MaxLength) = 256];
+  }
+}
