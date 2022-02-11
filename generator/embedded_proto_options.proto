@@ -9,5 +9,5 @@ message Options {
 }
 
 extend google.protobuf.FieldOptions { 
-  Options options = 76543;  
+  Options options = 1141;  
 }
