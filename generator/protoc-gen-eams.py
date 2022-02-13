@@ -39,8 +39,27 @@ import jinja2
 
 
 def generate_code(request, respones):
-    # Create definitions for al proto files in the request.
-    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file]
+    # Create definitions for al proto files in the request except for our own options file which is not required in cpp
+    # code. First also ignore the google descriptor file, only add it later if it is required by the user.
+    file_definitions = []
+    google_descriptor_file = None
+    add_google_descriptor_file = False
+    for proto_file in request.proto_file:
+        if ("embedded_proto_options.proto" not in proto_file.name) and \
+           ("google/protobuf/descriptor.proto" not in proto_file.name):
+            file_definitions.append(ProtoFile(proto_file))
+            if "google/protobuf/descriptor.proto" in file_definitions[-1].descriptor.dependency:
+                add_google_descriptor_file = True
+
+        # If we come by the descriptor just store it so we can easily use it when needed.
+        if "google/protobuf/descriptor.proto" in proto_file.name:
+            google_descriptor_file = proto_file
+
+    # See if we should include google/protobuf/descriptor.proto after all as it is directly include by one of user
+    # defined proto files.
+    if add_google_descriptor_file and google_descriptor_file:
+        # Insert it at the front so the header file will include it before the classes requiring it.
+        file_definitions.insert(0, ProtoFile(google_descriptor_file))
 
     # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
     # create template parameters.
@@ -87,18 +106,32 @@ def main_plugin():
     # The main function when running the scrip as a protoc plugin. It will read in the protoc data from the stdin and
     # write back the output to stdout.
 
+    # Create the response object
+    response = plugin.CodeGeneratorResponse()
+    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+    # See if we can import the options file.
+    try:
+        import embedded_proto_options_pb2
+    except ImportError:
+        response.error = "Embedded Proto warning - Unable to load the Embedded Proto Options file. " \
+                         "Did you run the setup script? The script should generate the file. This run we will not " \
+                         "include the options specified in your *.proto file."
+
     # Read request message from stdin
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
 
+    # If desired output debug data.
     if '--debug' in sys.argv:
         # Write the requests to a file for easy debugging.
-        with open("./debug_embbeded_proto.bin", 'wb') as file:
+        with open("./debug_embedded_proto.bin", 'wb') as file:
             file.write(request.SerializeToString())
 
-    # Create response
-    response = plugin.CodeGeneratorResponse()
-    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+        from google.protobuf.json_format import MessageToJson
+        
+        with open("./debug_embedded_proto.json", 'w') as file:
+            file.write(MessageToJson(request))
 
     # Generate code
     try:
@@ -129,12 +162,19 @@ def main_cli():
     # The main function when running from the command line and debugging.  Instead of receiving data from protoc this
     # will read in a binary file stored the previous time main_plugin() is ran.
 
-    with open("debug_embbeded_proto.bin", 'rb') as file:
+    with open("debug_embedded_proto.bin", 'rb') as file:
+        # Create the response object
+        response = plugin.CodeGeneratorResponse()
+        response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+        # See if we can import the options file.
+        try:
+            import embedded_proto_options_pb2
+        except ImportError:
+            response.error = "Embedded Proto error - Unable to load the Embedded Proto Options file. " \
+                             "Did you run the setup script? The script should generate the file."
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
-
-        # Create response
-        response = plugin.CodeGeneratorResponse()
 
         # Generate code
         try:
