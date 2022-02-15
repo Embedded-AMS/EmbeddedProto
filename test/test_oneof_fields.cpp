@@ -45,6 +45,7 @@ using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
+using ::testing::DoAll;
 
 
 TEST(OneofField, construction) 

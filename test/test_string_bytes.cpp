@@ -47,6 +47,7 @@ using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 using ::testing::ElementsAre;
+using ::testing::DoAll;
 
 namespace test_EmbeddedAMS_string_bytes
 {
