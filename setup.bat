@@ -27,12 +27,24 @@
 ::   1066 VH, Amsterdam
 ::   the Netherlands
 ::
+@echo off
 
 :: This script will setup the environment to generate source code in your project.
 
 :: Setup the virtual envirounment for Python packages
 python -m venv venv
-call .\venv\Scripts\activate.bat & pip install -r requirements.txt & .\venv\Scripts\deactivate.bat
+call (.\venv\Scripts\activate.bat & pip install -r requirements.txt & .\venv\Scripts\deactivate.bat)
 
-:: Build the protobuf extension file used to include Embedded Proto custom options.
-protoc -I.\generator --python_out=.\generator embedded_proto_options.proto 
+:: Build the protobuf extension file used to include Embedded Proto custom options: 
+:: embedded_proto_options_pb2.py. Read from the parameters the location of the 
+:: google/protobuf/descriptor.proto file. This should be in your protobuf\src folder.
+IF [%1] == [] ( 
+  echo Warning:
+  echo   Unable to generate embedded_proto_options_pb2.py because no commandline parameter for 
+  echo   google/protobuf/descriptor.proto location was given.
+  echo   This means you will be unable to use Embedded Proto custom options in your proto files.
+) ELSE (
+  protoc -I%1 -I.\generator --python_out=.\generator .\generator\embedded_proto_options.proto 
+)
+
+
