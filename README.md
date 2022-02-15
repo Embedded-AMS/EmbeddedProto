@@ -93,6 +93,13 @@ You can now use the Embedded Proto protoc plugin in your projects. You are also 
 
 Clone the Embedded Proto repository using your favorite git tool. Unit tests have not been validated for windows so pulling the submodule for GTest and GMock is not required.
 
+### Version 3.0.0 and up
+Next you go to the Embedded Proto folder and open a terminal. In this terminal run the batch script to setup the required virtual environment for the generator and build the Embedded Proto options file. The options file is used when setting fixed repeated, string and bytes field lengths. This options file requires a reference to google/protobuf/descriptor.proto. This file is located in your protobuf installation src folder. For example when installed directly on the C:\ drive call:
+```bash
+.\setup.bat C:\protobuf\src
+```
+
+### Prior to version 3.0.0
 Next you go to the Embedded Proto folder and run `setup.bat` either by clicking on it or from a command line terminal. This will create the required virtual environment for the generator to work. You can now use the Embedded Proto protoc plugin. 
 
 
