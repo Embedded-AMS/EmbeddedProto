@@ -498,7 +498,7 @@ namespace EmbeddedProto
       template<class ENUM_TYPE>
       static Error DeserializeEnum(ReadBufferInterface& buffer, ENUM_TYPE& value) 
       {
-        static_assert(std::is_enum<ENUM_TYPE>::value, "No enum given to DeserializeEnum parameter value.");
+        static_assert(std::is_enum_v<ENUM_TYPE>, "No enum given to DeserializeEnum parameter value.");
         uint64_t temp_value;
         Error result = DeserializeVarint(buffer, temp_value);
         if(Error::NO_ERRORS == result)
