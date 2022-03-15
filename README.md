@@ -56,72 +56,60 @@ singular | Full
 repeated | Templated maximum length
 maps | Under consideration
 
-All features mentioned abovr are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
+All features mentioned above are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
 For this reason it is unlikely that Embedded Proto will support proto2 in the future.
 
 # Installation
 
 What is required to be able to generate source files based on .proto files:
-1. Python 3.8
+1. Python 3.8 and up
 2. Pip
-3. Python Venv or Virtualenv 
-4. Protobuf 3.17.3
-5. Git (if you do not have it already)
-6. CMake 3.16.3 (only required to build the PC unit tests)
+3. Protobuf 3.17.3 and up
+4. Git
 
-Install the required software and continue with checking out the repository. For PC unit testing gtest is used which is included as a submodule of this repository. If you intent to run the PC unit tests of Embedded it is suggested that you pull in the submodules as well. 
-
-In the following to paragraphs a generic installation of Embedded Proto is described for both Linux and Windows. If you are interested in a more specific example on how to integrate Embedded Proto into your toolchain, please visit the [Examples](https://embeddedproto.com/category/examples/project-setup/) page on the website.
-
-## Linux
-Install the required software and continue with checking out the repository. For PC unit testing GTest and GMock is used which are linked to as a git submodule. If you intent to run the PC unit tests of Embedded Proto it is suggested that you pull in the submodules as well. 
+After installing the requirements continue by cloning the Embedded Proto repo:
 ```bash
-git clone --recursive URL_TO_EMBEDDED_AMS
+git clone https://github.com/Embedded-AMS/EmbeddedProto.git
 ```
-Otherwise you can clone the Embedded Proto repository as you usually do.
+Enter the new folder and a terminal to run the setup script. Depending on your system Linux or Windows you need to run a different script.
 
-Next you enter the Embedded Proto folder and run the setup script. This will create virtual environment for the python scripts to run in. In this environment the required packages are installed by the script.
+On Linux:
 ```bash
 ./setup.sh
 ```
 
-You can now use the Embedded Proto protoc plugin in your projects. You are also ready to build the PC unit tests if you have installed CMake.
-
-
-## Windows
-
-Clone the Embedded Proto repository using your favorite git tool. Unit tests have not been validated for windows so pulling the submodule for GTest and GMock is not required.
-
-### Version 3.0.0 and up
-Next you go to the Embedded Proto folder and open a terminal. In this terminal run the batch script to setup the required virtual environment for the generator and build the Embedded Proto options file. The options file is used when setting fixed repeated, string and bytes field lengths. This options file requires a reference to google/protobuf/descriptor.proto. This file is located in your protobuf installation src folder. For example when installed directly on the C:\ drive call:
+On Windows:
 ```bash
 .\setup.bat C:\protobuf\src
 ```
+In which `C:\protobuf\src` referse to the folder in which you installed Google Protobuf.
 
-### Prior to version 3.0.0
-Next you go to the Embedded Proto folder and run `setup.bat` either by clicking on it or from a command line terminal. This will create the required virtual environment for the generator to work. You can now use the Embedded Proto protoc plugin. 
+After running the setup script you are ready to use Embedded Proto.
 
+More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).
 
 
 # Usage
 
-When working on your project you write your proto files defining the message structure. Next you would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler `protoc-gen-eams.py`. To generate the code use the following command for Linux:
+When working on your project you write your proto files defining the message structure. Next you would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler protoc-gen-eams.py. To generate the code use the following command:
+
+On Linux:
 ```bash
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./LOCATION/PROTO/FILES --eams_out=./generated_src PROTO_MESSAGE_FILE.proto
-```
-and on Windows:
+protoc --plugin=protoc-gen-eams -I./LOCATION/PROTO/FILES --eams_out=./generated_src PROTO_MESSAGE_FILE.proto
+``` 
+On Windows:
 ```bash
 protoc --plugin=protoc-gen-eams=protoc-gen-eams.bat -I.\LOCATION\PROTO\FILES --eams_out=.\generated_src PROTO_MESSAGE_FILE.proto
 ```
-What happens is that protoc is toled to use our plugin with the option `--plugin`. Next the the standard option `-I` includes a folder where your \*.proto files are located. The option `--eams_out` specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
 
-As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called `protoc-gen-eams` and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
+What happens is that protoc is instucted to use our plugin with the option --plugin. Next the the standard option -I includes the folder where your \*.proto files are located. The option --eams_out specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
 
-After running protoc without any errors the generated source code is located in the folder specified by `---eams_out`. This folder is to be included into your project. This is not the only folder to be included. The generated source files depend on other header and source files. These files can be found in `EmbeddedProto/src`. You are thus required to include this folder as well in you toolchain. 
+As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called protoc-gen-eams and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
 
-Various examples how to use and integrate Embedded in your project are given on the [Examples](https://embeddedproto.com/examples/) page of the Embedded Proto web page. ‎
+After running protoc without any errors the generated source code is located in the folder specified by --eams_out. This folder is to be included into your project. This is not the only folder to be included. The generated source files depend on other header and source files. These files can be found in EmbeddedProto/src. You are thus required to include this folder as well in you toolchain.
 
+Various examples how to use and integrate Embedded Proto in your project are given in the [Examples](https://embeddedproto.com/examples/) section.
 
 
 
