@@ -19,10 +19,19 @@ In a .proto file you define the structure of your message. Next you use the prot
 Natively however protocol buffers are not suitable for micro controllers. The C++ generated is written for server and desktop processors. This is where Embedded offers a alternative. Embedded Proto is a plugin for *protoc* generating C++ code suitable for micro controllers. In this way Embedded provides an easy to use interface to exchange data between embedded devices and the out side world. Specifying the data format between your IOT device and other devices, servers, apps or desktop applications in a standardized way.
 
 This document details the following:
+* Examples
 * Supported Features
 * Installation
 * Usage
 * Development
+
+
+# Examples 
+
+Our website hosts an array of [examples](https://embeddedproto.com/examples/) detailing possible use cases and tutorials on toolchain integrations. This includes:
+* [A Command and Control structure](https://EmbeddedProto.com/a-simple-uart-example-with-embedded-proto/),
+* [Ethernet Communication](https://EmbeddedProto.com/mbed-example-with-embedded-proto/),
+* and [Makefile integration](https://EmbeddedProto.com/how-to-set-up-a-project-with-embeddedproto-using-makefiles).
 
 
 # Supported Features
@@ -60,6 +69,7 @@ optional | Full
 All features mentioned above are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
 For this reason it is unlikely that Embedded Proto will support proto2 in the future.
+
 
 # Installation
 
@@ -113,23 +123,6 @@ After running protoc without any errors the generated source code is located in 
 Various examples how to use and integrate Embedded Proto in your project are given in the [Examples](https://embeddedproto.com/examples/) section.
 
 
-
 # Development
 
-## PC Unit Tests
-
-The unit tests for PC are meant to test the logic of Embedded Proto. The test are build upon the GTest and GMock libraries which are include as a submodule in this repository. 
-
-The tests are build using a small script in the root folder of the project:
-```bash
-./build_test.sh
-```
-This will:
-1. Generate message source files. The generated files are located in `./build/EAMS/`.
-2. Compile GTest and GMock into `./build/google/`.
-3. Build the unit tests into `./build/test`.
-
-To run the unit test execute:
-```bash
-./build/test/test_EmbeddedProto
-```
+If you consider helping with the development of Embedded Proto please consider reading [this](https://embeddedproto.com/documentation/intallation/#for-embedded-proto-developers). It details how you can build the unit tests included in this repo.
