@@ -57,6 +57,11 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
     ~{{ typedef.get_name() }}() override = default;
 
+    struct EmbeddedProtoDescriptor {
+        static constexpr char kMessageName[] = "{{ typedef.get_name() }}";
+        static constexpr char kFullTypeName[] = "{{ typedef.get_path() }}";
+    };
+
     {% for enum in typedef.nested_enum_definitions %}
     {{ enum.render(environment)|indent(4) }}
 
