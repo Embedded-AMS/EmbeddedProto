@@ -32,10 +32,10 @@ This document details the following:
 
 ## 3.0.0
 The most notable improvements in this version are:
-* The lenght of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
-* The ram size of messages has been reduced. This was done by using less polymorphim in the low level field classes. This required upgrading to C++17 and up.
-* In a .proto file it is now possible to use a message or enum before it is defined. The plugin will make a depencencie tree of the messages and enums defined and sort them before generating the source code. Recusive inclusion are not supported.
-* Some of the message functions changed. The functions where already marked as depricated in the latest 2.X.X release.
+* The length of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
+* The ram size of messages has been reduced. This was done by using less polymorphism in the low level field classes. This required upgrading to C++17 and up.
+* In a .proto file it is now possible to use a message or enum before it is defined. The plugin will make a dependency tree of the messages and enums defined and sort them before generating the source code. Recursive inclusion are not supported.
+* Some of the message functions changed. The functions where already marked as deprecated in the latest 2.X.X release.
 
 
 # Examples 
@@ -142,7 +142,7 @@ If you consider helping with the development of Embedded Proto please consider r
 
 # License
 
-Embedded Proto uses a dual licensing model. One for open source projects and one for comercial usage.
+Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
 
 ## Open Source
 You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available, only if you have a commercial license. For open source projects you can download the source code from Github. The code is licensed under the GNU General Public License V3.0 and you can use is for all your non commercial projects. 
@@ -153,5 +153,5 @@ If you are developing a commercial product you need to buy a commercial license 
 * Professional support
 * MISRA code quality report
 
-You can request more information about a comercial license on our [website](https://embeddedproto.com/pricing).
+You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
 
