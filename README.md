@@ -25,6 +25,7 @@ This document details the following:
 * Installation
 * Usage
 * Development
+* License
 
 
 # What is new
@@ -137,3 +138,20 @@ Various examples how to use and integrate Embedded Proto in your project are giv
 # Development
 
 If you consider helping with the development of Embedded Proto please consider reading [this](https://embeddedproto.com/documentation/intallation/#for-embedded-proto-developers). It details how you can build the unit tests included in this repo.
+
+
+# License
+
+Embedded Proto uses a dual licensing model. One for open source projects and one for comercial usage.
+
+## Open Source
+You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available, only if you have a commercial license. For open source projects you can download the source code from Github. The code is licensed under the GNU General Public License V3.0 and you can use is for all your non commercial projects. 
+
+## Commercial License
+If you are developing a commercial product you need to buy a commercial license from Embedded Proto. There is a suitable license for each magnitude of business, from startup to enterprise. Depending on the license, it may give you access to:
+* An unlimited number of mcu’s
+* Professional support
+* MISRA code quality report
+
+You can request more information about a comercial license on our [website](https://embeddedproto.com/pricing).
+
