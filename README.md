@@ -26,6 +26,7 @@ This document details the following:
 * Usage
 * Development
 * License
+* Gratitude
 
 
 # What is new
@@ -155,3 +156,9 @@ If you are developing a commercial product you need to buy a commercial license 
 
 You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
 
+
+# Gratitude
+
+The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you use our library. If you like working with it Follow and Start the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
+
+To stay up to date you can also follow our company on [LinkedIn](https://www.linkedin.com/company/embeddedams/) and signup for our [newsletter](https://EmbeddedProto.com/newsletter).
