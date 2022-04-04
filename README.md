@@ -44,17 +44,18 @@ fixed64 | Full
 sfixed32 | Full
 sfixed64 | Full
 bool | Full
-string | Templated maximum length
-bytes | Templated maximum length
+string | Length fixed via template or custom option
+bytes | Length fixed via template or custom option
 
 | Feature | Support |
 | --- | --- |
 Enum | Full
-Other Messages | Full
+Messages as variables | Full
+Defining messages in messages | Minimal
 oneof | Full
 singular | Full
-repeated | Templated maximum length
-maps | Under consideration
+repeated | Length fixed via template or custom option
+optional | Full
 
 All features mentioned above are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
