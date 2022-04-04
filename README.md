@@ -19,11 +19,22 @@ In a .proto file you define the structure of your message. Next you use the prot
 Natively however protocol buffers are not suitable for micro controllers. The C++ generated is written for server and desktop processors. This is where Embedded offers a alternative. Embedded Proto is a plugin for *protoc* generating C++ code suitable for micro controllers. In this way Embedded provides an easy to use interface to exchange data between embedded devices and the out side world. Specifying the data format between your IOT device and other devices, servers, apps or desktop applications in a standardized way.
 
 This document details the following:
+* What is new
 * Examples
 * Supported Features
 * Installation
 * Usage
 * Development
+
+
+# What is new
+
+## 3.0.0
+The most notable improvements in this version are:
+* The lenght of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
+* The ram size of messages has been reduced. This was done by using less polymorphim in the low level field classes. This required upgrading to C++17 and up.
+* In a .proto file it is now possible to use a message or enum before it is defined. The plugin will make a depencencie tree of the messages and enums defined and sort them before generating the source code. Recusive inclusion are not supported.
+* Some of the message functions changed. The functions where already marked as depricated in the latest 2.X.X release.
 
 
 # Examples 
