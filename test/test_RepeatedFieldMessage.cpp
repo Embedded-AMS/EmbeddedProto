@@ -539,4 +539,10 @@ TEST(RepeatedFieldMessage, assign_a_nested_message)
 
 }
 
+
+TEST(RepeatedFieldMessage, assign_repeated_enum) 
+{
+  repeated_enum<Y_SIZE> enum_msg;
+}
+
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage

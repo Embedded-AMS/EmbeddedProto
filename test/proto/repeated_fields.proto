@@ -56,3 +56,13 @@ message nested_repeated_message
 {
     repeated_fields rf = 1;
 }
+
+enum SomeEnum {
+  none = 0;
+  A = 1;
+  B = 2;
+}
+
+message repeated_enum {
+  repeated SomeEnum enum_values = 1;
+}

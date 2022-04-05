@@ -344,7 +344,7 @@ class FieldEnum(Field):
     def get_wire_type_str(self):
         return "VARINT"
 
-    def get_type(self):
+    def get_type_as_defined(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
             type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
@@ -364,17 +364,21 @@ class FieldEnum(Field):
                 type_name += scope["name"] + "::"
             # Remove the last ::
             type_name = type_name[:-2]
+
         return type_name
 
+    def get_type(self):
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined() + ">"
+
     def get_short_type(self):
-        return self.get_type().split("::")[-1]
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined().split("::")[-1] + ">"
 
     def get_default_value(self):
-        return "static_cast<" + self.get_type() + ">(0)"
+        return "static_cast<" + self.get_type_as_defined() + ">(0)"
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
-        my_type = self.get_type()
+        my_type = self.get_type_as_defined()
         for enum_defs in all_types_definitions["enums"]:
             other_scope = enum_defs.scope.get_scope_str()
             if my_type == other_scope:
