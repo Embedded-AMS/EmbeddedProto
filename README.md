@@ -159,6 +159,6 @@ You can request more information about a commercial license on our [website](htt
 
 # Gratitude
 
-The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you use our library. If you like working with it Follow and Start the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
+The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you use our library. If you like working with it consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
 
-To stay up to date you can also follow our company on [LinkedIn](https://www.linkedin.com/company/embeddedams/) and signup for our [newsletter](https://EmbeddedProto.com/newsletter).
+To stay up to date you can also follow our company on [LinkedIn](https://www.linkedin.com/company/embeddedams/) or signup for our [newsletter](https://EmbeddedProto.com/#newsletter).
