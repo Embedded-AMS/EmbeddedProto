@@ -58,9 +58,9 @@ message nested_repeated_message
 }
 
 enum SomeEnum {
-  none = 0;
-  A = 1;
-  B = 2;
+  SE_A = 0;
+  SE_B = 1;
+  SE_C = 2;
 }
 
 message repeated_enum {

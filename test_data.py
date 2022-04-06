@@ -195,6 +195,20 @@ def test_repeated_message():
     print(str)
     print()
 
+    msg_enum = rf.repeated_enum()
+    msg_enum.enum_values.append(rf.SomeEnum.SE_A)
+    msg_enum.enum_values.append(rf.SomeEnum.SE_B)
+    msg_enum.enum_values.append(rf.SomeEnum.SE_C)
+
+    str = ""
+    msg_str = msg_enum.SerializeToString()
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
 
 def test_string():
     msg = sb.text()
@@ -318,11 +332,11 @@ def test_optional_empty():
 
 #test_simple_types()
 #test_repeated_fields()
-#test_repeated_message()
+test_repeated_message()
 #test_string()
 #test_bytes()
 #test_repeated_string_bytes()
 #test_nested_message()
-test_oneof_fields()
+#test_oneof_fields()
 #test_included_proto()
 #test_optional_empty()
