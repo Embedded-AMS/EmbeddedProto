@@ -37,10 +37,10 @@ inline void clear_{{field.get_name()}}()
   if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
   {
     {{field.get_which_oneof()}} = FieldNumber::NOT_SET;
-    {{field.get_variable_name()}} = {{field.get_default_value()}};
+    {{field.get_variable_name()}}.clear();
   }
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
@@ -48,7 +48,7 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
   }
   {{field.get_variable_name()}} = value;
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
@@ -64,22 +64,22 @@ inline bool has_{{field.get_name()}}() const
 inline void clear_{{field.get_name()}}()
 {
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] &= ~(presence::mask(presence::fields::{{field.get_name().upper()}}));
-  {{field.get_variable_name()}} = {{field.get_default_value()}};
+  {{field.get_variable_name()}}.clear();
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value)
 {
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
   {{field.get_variable_name()}} = value;
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& value)
 {
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
   {{field.get_variable_name()}} = value;
 }
 {% else %}
-inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}} = {{field.get_default_value()}}; }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{field.get_variable_name()}} = value; }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value) { {{field.get_variable_name()}} = value; }
+inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value) { {{field.get_variable_name()}} = value; }
+inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& value) { {{field.get_variable_name()}} = value; }
 {% endif %}
-inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
-inline {{field.get_type()}} {{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+inline const {{field.get_type_as_defined()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
+inline {{field.get_type_as_defined()}} {{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }

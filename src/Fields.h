@@ -159,6 +159,10 @@ namespace EmbeddedProto
           const uint8_t byte = get() ? 0x01 : 0x00;
           return_value = buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL;
         }
+        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
+        }
         else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
         {
           return_value = WireFormatter::SerializeFixedNoTag(get(), buffer);
@@ -219,6 +223,15 @@ namespace EmbeddedProto
         else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
         {
           return_value = WireFormatter::DeserializeBool(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
+        {
+          uint32_t value = 0;
+          return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
+          if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+          {
+            value_ = static_cast<VARIABLE_TYPE>(value);
+          }
         }
         else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
         {
@@ -346,7 +359,10 @@ namespace EmbeddedProto
   using sfixed32 = FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>; 
   using sfixed64 = FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>; 
   using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>; 
-  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>; 
+  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>;
+
+  template<class ENUM_TYPE>
+  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT>;
 
 } // End of namespace EmbeddedProto.
 #endif

@@ -49,22 +49,21 @@ namespace EmbeddedProto
   template<class DATA_TYPE>
   class RepeatedField : public Field
   {
-    static constexpr bool IS_BASIC_TYPE = 
-                     std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>, DATA_TYPE>
-                  || std::is_same_v<::EmbeddedProto::FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>, DATA_TYPE>;
 
-    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || IS_BASIC_TYPE, 
+    //! Definition of a trait to check if DATA_TYPE is NOT a specialization of the FieldTemplate.
+    template<typename>
+    struct is_specialization_of_FieldTemplate : std::false_type {};
+
+    //! Definition of a trait to check if DATA_TYPE is a specialization of the FieldTemplate.
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W>
+    struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W>> : std::true_type {};
+
+    //! Definition of a trait to check if DATA_TYPE is or is not a specialization of the FieldTemplate.
+    template<typename T>
+    static constexpr auto is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
+
+    //! This class only supports Field and FieldTemplate classes as template parameter.
+    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
@@ -166,7 +165,6 @@ namespace EmbeddedProto
             if(Error::NO_ERRORS == return_value) 
             {
               return_value = WireFormatter::SerializeVarint(size_x, buffer);
-
 
               if(Error::NO_ERRORS == return_value)
               {          
@@ -289,7 +287,7 @@ namespace EmbeddedProto
 
       Error deserialize_packed(ReadBufferInterface& buffer)
       {
-        uint32_t size;
+        uint32_t size = 0;
         Error return_value = WireFormatter::DeserializeVarint(buffer, size);
         ReadBufferSection bufferSection(buffer, size);
         DATA_TYPE x;

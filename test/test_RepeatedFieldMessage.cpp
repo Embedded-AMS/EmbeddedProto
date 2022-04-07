@@ -539,4 +539,69 @@ TEST(RepeatedFieldMessage, assign_a_nested_message)
 
 }
 
+TEST(RepeatedFieldMessage, assign_repeated_enum) 
+{
+  repeated_enum<Y_SIZE> enum_msg;
+  enum_msg.add_enum_values(SomeEnum::SE_A);
+  enum_msg.add_enum_values(SomeEnum::SE_B);
+  enum_msg.add_enum_values(SomeEnum::SE_C);
+
+  EXPECT_EQ(SomeEnum::SE_A, enum_msg.get_enum_values()[0]);
+  EXPECT_EQ(SomeEnum::SE_B, enum_msg.get_enum_values()[1]);
+  EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
+}
+
+TEST(RepeatedFieldMessage, serialize_repeated_enum)
+{
+  InSequence s;
+
+  repeated_enum<Y_SIZE> enum_msg;
+  Mocks::WriteBufferMock buffer;
+
+  enum_msg.add_enum_values(SomeEnum::SE_A);
+  enum_msg.add_enum_values(SomeEnum::SE_B);
+  enum_msg.add_enum_values(SomeEnum::SE_C);
+  
+  EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x03)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(3));
+
+  std::array<uint8_t, 3> expected = {0x00, 0x01, 0x02}; // enum values
+
+  for(auto e : expected) 
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, enum_msg.serialize(buffer));
+}
+
+TEST(RepeatedFieldMessage, deserialize_repeated_enum)
+{
+  InSequence s;
+
+  repeated_enum<Y_SIZE> enum_msg;
+  Mocks::ReadBufferMock buffer;
+
+  static constexpr uint32_t SIZE = 5;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  std::array<uint8_t, SIZE> referee = { 0x0a, 0x03, 0x00, 0x01, 0x02}; 
+
+  for(auto r: referee) 
+  {
+    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
+  }
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, enum_msg.deserialize(buffer));
+  
+  EXPECT_EQ(3, enum_msg.get_enum_values().get_length());
+  EXPECT_EQ(SomeEnum::SE_A, enum_msg.get_enum_values()[0]);
+  EXPECT_EQ(SomeEnum::SE_B, enum_msg.get_enum_values()[1]);
+  EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
+}
+
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage
