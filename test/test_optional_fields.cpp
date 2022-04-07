@@ -98,7 +98,6 @@ TEST(OptionalFields, construction_assignment)
 {
   ::optional_fields<5,10> msgA;
   msgA.set_b(1);
-  msgA.set_y(1.0F);
   msgA.mutable_pos().set_xpos(1.0F);
   msgA.set_state(states::B);
   msgA.mutable_bytes_array()[0] = 1U;
@@ -106,7 +105,7 @@ TEST(OptionalFields, construction_assignment)
 
   optional_fields<5,10> msgB(msgA);
   EXPECT_TRUE(msgB.has_b());
-  EXPECT_TRUE(msgB.has_y());
+  EXPECT_FALSE(msgB.has_y());
   EXPECT_TRUE(msgB.has_pos());
   EXPECT_TRUE(msgB.has_state());
   EXPECT_TRUE(msgB.has_bytes_array());
@@ -114,7 +113,7 @@ TEST(OptionalFields, construction_assignment)
 
   optional_fields<5,10> msgC = msgA;
   EXPECT_TRUE(msgC.has_b());
-  EXPECT_TRUE(msgC.has_y());
+  EXPECT_FALSE(msgC.has_y());
   EXPECT_TRUE(msgC.has_pos());
   EXPECT_TRUE(msgC.has_state());
   EXPECT_TRUE(msgC.has_bytes_array());
@@ -123,7 +122,7 @@ TEST(OptionalFields, construction_assignment)
   optional_fields<5,10> msgD;
   msgD = msgA;
   EXPECT_TRUE(msgD.has_b());
-  EXPECT_TRUE(msgD.has_y());
+  EXPECT_FALSE(msgD.has_y());
   EXPECT_TRUE(msgD.has_pos());
   EXPECT_TRUE(msgD.has_state());
   EXPECT_TRUE(msgD.has_bytes_array());
