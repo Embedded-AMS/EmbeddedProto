@@ -287,7 +287,7 @@ namespace EmbeddedProto
 
       Error deserialize_packed(ReadBufferInterface& buffer)
       {
-        uint32_t size;
+        uint32_t size = 0;
         Error return_value = WireFormatter::DeserializeVarint(buffer, size);
         ReadBufferSection bufferSection(buffer, size);
         DATA_TYPE x;
