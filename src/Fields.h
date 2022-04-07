@@ -346,5 +346,42 @@ namespace EmbeddedProto
       Error deserialize(ReadBufferInterface& buffer) final; 
   };
 
+  template<class ENUM_TYPE>
+  class enumeration : public FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>
+  { 
+    public: 
+      enumeration() : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(static_cast<ENUM_TYPE>(0)) {};
+      enumeration(const ENUM_TYPE& v) : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(v) {};
+      enumeration(const ENUM_TYPE&& v) : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(v) {};
+      
+      ~enumeration() override = default;
+      
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
+      { 
+        Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
+        if(Error::NO_ERRORS == return_value)
+        {
+          return_value = serialize(buffer);
+        }
+        return return_value;
+      };
+
+      Error serialize(WriteBufferInterface& buffer) const final
+      {
+        return WireFormatter::SerializeVarint(static_cast<uint32_t>(this->get()), buffer);
+      }
+
+      Error deserialize(ReadBufferInterface& buffer) final
+      {
+        uint32_t enum_value = 0;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, enum_value);
+        if(Error::NO_ERRORS == return_value) 
+        {
+          this->set(static_cast<ENUM_TYPE>(enum_value));
+        }
+        return return_value;
+      }
+  };
+
 } // End of namespace EmbeddedProto.
 #endif
