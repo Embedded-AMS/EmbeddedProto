@@ -56,7 +56,7 @@ singular | Full
 repeated | Templated maximum length
 maps | Under consideration
 
-All features mentioned abovr are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
+All features mentioned above are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
 For this reason it is unlikely that Embedded Proto will support proto2 in the future.
 
@@ -107,7 +107,7 @@ and on Windows:
 ```bash
 protoc --plugin=protoc-gen-eams=protoc-gen-eams.bat -I.\LOCATION\PROTO\FILES --eams_out=.\generated_src PROTO_MESSAGE_FILE.proto
 ```
-What happens is that protoc is toled to use our plugin with the option `--plugin`. Next the the standard option `-I` includes a folder where your \*.proto files are located. The option `--eams_out` specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
+What happens is that protoc is told to use our plugin with the option `--plugin`. Next the the standard option `-I` includes a folder where your \*.proto files are located. The option `--eams_out` specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
 
 As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called `protoc-gen-eams` and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
 
