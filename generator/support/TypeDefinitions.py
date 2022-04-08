@@ -243,6 +243,14 @@ class MessageDefinition(TypeDefinition):
     def get_type(self):
         return self.scope.get_scope_str()
 
+    def get_path(self):
+        path = [self.get_name()]
+        node = self.scope
+        while (node.parent):
+            path.append(node.parent.name)
+            node = node.parent
+        return '.'.join(reversed(path))
+
     def print_template_data(self, indent):
         print(indent + "Message definition: " + self.name)
         if self.nested_msg_definitions:
