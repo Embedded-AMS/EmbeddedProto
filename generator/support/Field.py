@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -44,7 +44,7 @@ class Field:
         # Is this field optional, so do we need to track the presence of the field.
         self.optional = self.descriptor.proto3_optional
 
-        # If this field is part of a oneof this is the reference to it.
+        # If this field is part of an oneof this is the reference to it.
         self.oneof = oneof
 
         self.name = self.descriptor.name
@@ -62,7 +62,15 @@ class Field:
     # object.
     # The last parameter is not to be used manually. It is set when we are already in a FieldNested class.
     def factory(proto_descriptor, parent_msg, oneof=None, already_nested=False):
-        if (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and not already_nested:
+
+        # If this field has the same type as the parent we got a recursive inclusion. We can not solve the template
+        # parameters in this case. This field is thus replaced by a dummy with a warning. Toposort is used to find more
+        # complex recursive inclusions which we can not solve like this.
+        parent_msg_type = "." + parent_msg.scope.get_scope_str().replace("::", ".")
+        if proto_descriptor.type_name == parent_msg_type:
+            result = FieldErrorRecursive(proto_descriptor, parent_msg, oneof)
+        # Now continue constructing the normal fields.
+        elif (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and not already_nested:
             result = FieldRepeated(proto_descriptor, parent_msg, oneof)
         elif FieldDescriptorProto.TYPE_MESSAGE == proto_descriptor.type:
             result = FieldMessage(proto_descriptor, parent_msg, oneof)
@@ -161,7 +169,7 @@ class FieldBasic(Field):
                              FieldDescriptorProto.TYPE_SINT32:   "0",
                              FieldDescriptorProto.TYPE_SINT64:   "0"}
 
-    # A dictionary to convert the protobuf wire type into a C++ type.
+    # A dictionary to convert the protobuf wire type into an Embedded Proto C++ type.
     type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "EmbeddedProto::doublefixed",
                         FieldDescriptorProto.TYPE_FLOAT:    "EmbeddedProto::floatfixed",
                         FieldDescriptorProto.TYPE_INT64:    "EmbeddedProto::int64",
@@ -225,7 +233,7 @@ class BaseStringBytes(Field):
         super().__init__(proto_descriptor, parent_msg, "FieldString.h", oneof)
 
         # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "LENGTH"
+        self.template_param_str = self.parent.name + "_" + self.variable_name + "LENGTH"
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -292,7 +300,7 @@ class FieldEnum(Field):
     def get_wire_type_str(self):
         return "VARINT"
 
-    def get_type(self):
+    def get_type_as_defined(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
             type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
@@ -312,17 +320,21 @@ class FieldEnum(Field):
                 type_name += scope["name"] + "::"
             # Remove the last ::
             type_name = type_name[:-2]
+
         return type_name
 
+    def get_type(self):
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined() + ">"
+
     def get_short_type(self):
-        return self.get_type().split("::")[-1]
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined().split("::")[-1] + ">"
 
     def get_default_value(self):
-        return "static_cast<" + self.get_type() + ">(0)"
+        return "static_cast<" + self.get_type_as_defined() + ">(0)"
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
-        my_type = self.get_type()
+        my_type = self.get_type_as_defined()
         for enum_defs in all_types_definitions["enums"]:
             other_scope = enum_defs.scope.get_scope_str()
             if my_type == other_scope:
@@ -390,7 +402,7 @@ class FieldMessage(Field):
         templates = copy.deepcopy(self.definition.get_templates())
         # Next add our variable name to make them unique.
         for tmp in templates:
-            tmp["name"] = self.variable_name + tmp["name"]
+            tmp["name"] = self.parent.name + "_" + self.variable_name + tmp["name"]
         return templates
 
     def match_field_with_definitions(self, all_types_definitions):
@@ -439,7 +451,7 @@ class FieldRepeated(Field):
         self.actual_type = Field.factory(proto_descriptor, parent_msg, oneof, already_nested=True)
 
         # This is the name given to the template parameter for the length.
-        self.template_param_str = self.variable_name + "REP_LENGTH"
+        self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -477,3 +489,26 @@ class FieldRepeated(Field):
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
         return str.rstrip()
+
+# -----------------------------------------------------------------------------
+
+
+# This class represents a field we can not include because it causes a recursive inclusion.
+class FieldErrorRecursive(Field):
+    def __init__(self, proto_descriptor, parent_msg, oneof=None):
+        super().__init__(proto_descriptor, parent_msg, "FieldRepeated.h", oneof)
+
+        self.descriptor.type_name = "FieldErrorRecursive"
+
+    def get_type(self):
+        return "//"
+
+    def render_get_set(self, jinja_env):
+        return self.render("FieldErrorRecursive_GetSet.h", jinja_environment=jinja_env)
+
+    def render_serialize(self, jinja_env):
+        return ""
+
+    def render_deserialize(self, jinja_env):
+        return ""
+

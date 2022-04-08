@@ -29,7 +29,7 @@ Postal address:
 #}
 {% import 'TypeOneof.h' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
-{{"template<" if loop.first}}{{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{">" if loop.last}}
+{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{"\n>" if loop.last}}
 {% endfor %}
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
@@ -38,7 +38,19 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ typedef.get_name() }}(const {{typedef.get_name()}}& rhs )
     {
       {% for field in typedef.fields %}
+      {% if typedef.optional_fields is defined and field in typedef.optional_fields %}
+      if(rhs.has_{{field.get_name()}}())
+      {
+        set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      }
+      else
+      {
+        clear_{{ field.get_name() }}();
+      }
+
+      {% else %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endif %}
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}
@@ -48,7 +60,19 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ typedef.get_name() }}(const {{typedef.get_name()}}&& rhs ) noexcept
     {
       {% for field in typedef.fields %}
+      {% if typedef.optional_fields is defined and field in typedef.optional_fields %}
+      if(rhs.has_{{field.get_name()}}())
+      {
+        set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      }
+      else
+      {
+        clear_{{ field.get_name() }}();
+      }
+
+      {% else %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endif %}
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}
@@ -76,7 +100,19 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
     {
       {% for field in typedef.fields %}
+      {% if typedef.optional_fields is defined and field in typedef.optional_fields %}
+      if(rhs.has_{{field.get_name()}}())
+      {
+        set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      }
+      else
+      {
+        clear_{{ field.get_name() }}();
+      }
+
+      {% else %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endif %}
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}
@@ -87,7 +123,19 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ typedef.name }}& operator=(const {{ typedef.name }}&& rhs) noexcept
     {
       {% for field in typedef.fields %}
+      {% if typedef.optional_fields is defined and field in typedef.optional_fields %}
+      if(rhs.has_{{field.get_name()}}())
+      {
+        set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      }
+      else
+      {
+        clear_{{ field.get_name() }}();
+      }
+      
+      {% else %}
       set_{{ field.get_name() }}(rhs.get_{{ field.get_name() }}());
+      {% endif %}
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       {{ TypeOneof.assign(oneof)|indent(6) }}

@@ -30,8 +30,42 @@
 
 from .TypeDefinitions import *
 import os
-import jinja2
+from toposort import CircularDependencyError, toposort_flatten
+from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 
+
+# -----------------------------------------------------------------------------
+
+def toposort_add_msg(msg, namespace, dependency_data):
+
+    local_definitions = []
+    local_namespace = namespace + "." + msg.name
+
+    for nested_msg in msg.nested_type:
+        dependency_data = toposort_add_msg(nested_msg, local_namespace, dependency_data)
+        full_msg_type = local_namespace + "." + nested_msg.name
+        local_definitions.append(full_msg_type)
+
+    dependencies = {namespace}
+
+    for nested_enum in msg.enum_type:
+        full_enum_type = local_namespace + "." + nested_enum.name
+        dependency_data[full_enum_type] = {local_namespace}
+        local_definitions.append(full_enum_type)
+
+    for f in msg.field:
+        if ((FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type)) \
+                and (f.type_name not in local_definitions):
+            dependencies.add(f.type_name)
+
+    # If we have any dependencies add them
+    if 0 < len(dependencies):
+        dependency_data[local_namespace] = dependencies
+
+    return dependency_data
+
+
+# -----------------------------------------------------------------------------
 
 class ProtoFile:
     def __init__(self, proto_descriptor):
@@ -58,6 +92,44 @@ class ProtoFile:
         self.msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.message_type]
 
         self.all_parameters_registered = False
+
+        # Sort the message definitions such that the dependencies work out.
+        dependency_data = {}
+        toposort_namespace = ""
+        if self.descriptor.package:
+            toposort_namespace = "." + self.descriptor.package
+
+        for msg in self.descriptor.message_type:
+            dependency_data = toposort_add_msg(msg, toposort_namespace, dependency_data)
+
+        try:
+            # Sort the message in the order they should appear in the code.
+            message_order = toposort_flatten(dependency_data)
+
+            # If we are in a namespace this appears in the list and should be removed.
+            my_scope = ""
+            if self.scope:
+                my_scope = "." + self.scope.get_scope_str().replace("::", ".")
+                message_order.remove(my_scope)
+
+            # Based on the desired order assign each message definition an index.
+            for index, msg_name in enumerate(message_order):
+                for msg_def in self.msg_definitions:
+                    if msg_def.name == msg_name.replace(my_scope + ".", ''):
+                        msg_def.sorted_index = index
+                        break
+
+            # Next sort the messages based on their index.
+            self.msg_definitions.sort(key=lambda msg: msg.sorted_index)
+
+            # Sort al the nested message definitions.
+            for msg in self.msg_definitions:
+                msg.sort_nested_msg_definitions(message_order)
+
+        except CircularDependencyError as e:
+            raise Exception("There are possible circular dependencies in the message definitions of "
+                            + proto_descriptor.name + ". Embedded Proto is not able to support this. "
+                            "Please remove these dependencies.")
 
     def get_dependencies(self):
         imported_dependencies = []
@@ -103,3 +175,10 @@ class ProtoFile:
         template = jinja_environment.get_template(template_file)
         file_str = template.render(proto_file=self, environment=jinja_environment)
         return file_str
+
+    def print_template_data(self, indent):
+        print(indent + "File: " + self.filename_without_folder)
+        if self.msg_definitions:
+            for msg in self.msg_definitions:
+                msg.print_template_data(indent + "\t")
+

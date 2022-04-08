@@ -171,6 +171,27 @@ class MessageDefinition(TypeDefinition):
         # Does this message definition contains fields with template parameters.
         self.contains_template_parameters = False
 
+        # The index where in the source file this definition should be placed. This is later set by the ProtoFile class
+        # when the dependencies on other messages has been sorted.
+        self.sorted_index = 0
+
+    # Sort the nested message defintions based on the dependencies found by the sort algorithms.
+    def sort_nested_msg_definitions(self, message_order):
+        my_scope = "." + self.scope.get_scope_str().replace("::", ".")
+
+        for index, msg_name in enumerate(message_order):
+            for msg_def in self.nested_msg_definitions:
+                if msg_def.name == msg_name.replace(my_scope + ".", ''):
+                    msg_def.sorted_index = index
+                    break
+
+        # Next sort the messages based on their index.
+        self.nested_msg_definitions.sort(key=lambda msg: msg.sorted_index)
+
+        # Sort al the nested message definitions in the nested message definitions.
+        for nested_msg in self.nested_msg_definitions:
+            nested_msg.sort_nested_msg_definitions(message_order)
+
     # Obtain a dictionary with references to all nested enums and messages
     def get_all_nested_types(self):
         nested_types = {"enums": [], "messages": []}
@@ -221,3 +242,14 @@ class MessageDefinition(TypeDefinition):
 
     def get_type(self):
         return self.scope.get_scope_str()
+
+    def print_template_data(self, indent):
+        print(indent + "Message definition: " + self.name)
+        if self.nested_msg_definitions:
+            for msg in self.nested_msg_definitions:
+                msg.print_template_data(indent + "\t")
+
+        if self.fields:
+            for field in self.fields:
+                print(indent + "Field: " + field.name, end='')
+                print(field.get_template_parameters())
