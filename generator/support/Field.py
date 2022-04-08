@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -44,7 +44,7 @@ class Field:
         # Is this field optional, so do we need to track the presence of the field.
         self.optional = self.descriptor.proto3_optional
 
-        # If this field is part of a oneof this is the reference to it.
+        # If this field is part of an oneof this is the reference to it.
         self.oneof = oneof
 
         self.name = self.descriptor.name
@@ -169,7 +169,7 @@ class FieldBasic(Field):
                              FieldDescriptorProto.TYPE_SINT32:   "0",
                              FieldDescriptorProto.TYPE_SINT64:   "0"}
 
-    # A dictionary to convert the protobuf wire type into a C++ type.
+    # A dictionary to convert the protobuf wire type into an Embedded Proto C++ type.
     type_to_cpp_type = {FieldDescriptorProto.TYPE_DOUBLE:   "EmbeddedProto::doublefixed",
                         FieldDescriptorProto.TYPE_FLOAT:    "EmbeddedProto::floatfixed",
                         FieldDescriptorProto.TYPE_INT64:    "EmbeddedProto::int64",
@@ -300,7 +300,7 @@ class FieldEnum(Field):
     def get_wire_type_str(self):
         return "VARINT"
 
-    def get_type(self):
+    def get_type_as_defined(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
             type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
@@ -320,17 +320,21 @@ class FieldEnum(Field):
                 type_name += scope["name"] + "::"
             # Remove the last ::
             type_name = type_name[:-2]
+
         return type_name
 
+    def get_type(self):
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined() + ">"
+
     def get_short_type(self):
-        return self.get_type().split("::")[-1]
+        return "EmbeddedProto::enumeration<" + self.get_type_as_defined().split("::")[-1] + ">"
 
     def get_default_value(self):
-        return "static_cast<" + self.get_type() + ">(0)"
+        return "static_cast<" + self.get_type_as_defined() + ">(0)"
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
-        my_type = self.get_type()
+        my_type = self.get_type_as_defined()
         for enum_defs in all_types_definitions["enums"]:
             other_scope = enum_defs.scope.get_scope_str()
             if my_type == other_scope:
