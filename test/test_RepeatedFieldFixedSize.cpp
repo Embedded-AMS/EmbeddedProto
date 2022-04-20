@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -113,7 +113,7 @@ TEST(RepeatedFieldFixedSize, get)
 
   // When going out of bound the last element should be returned.
   EXPECT_EQ(0U, x.get_const(2));
-  x.get(3) = 3;
+  x.get(3) = 3U;
   EXPECT_EQ(3U, x.get_const(2));
   EXPECT_EQ(3U, x.get_const(3));
 }

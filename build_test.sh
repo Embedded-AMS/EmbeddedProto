@@ -1,7 +1,7 @@
 #! /bin/sh
 
 #
-# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -42,6 +42,7 @@ protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./buil
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/string_bytes.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/empty_message.proto
 protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/optional_fields.proto
+protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto -I./generator --eams_out=./build/EAMS ./test/proto/field_options.proto
 
 # For validation and testing generate the same message using python
 mkdir -p ./build/python
@@ -55,6 +56,7 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.p
 protoc -I./test/proto --python_out=./build/python ./test/proto/subfolder/file_to_include_from_subfolder.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/string_bytes.proto
 protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.proto
+protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/field_options.proto
 
 # Build the tests
 mkdir -p build/test

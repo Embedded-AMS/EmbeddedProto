@@ -1,5 +1,5 @@
 {#
-Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 
 This file is part of Embedded Proto.
 
@@ -89,7 +89,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {{ msg.render(environment)|indent(4) }}
 
     {% endfor %}
-    enum class id : uint32_t
+    enum class FieldNumber : uint32_t
     {
       NOT_SET = 0,
       {% for id_set in typedef.field_ids %}
@@ -148,7 +148,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
     {% endfor %}
     {% for oneof in typedef.oneofs %}
-    id get_which_{{oneof.get_name()}}() const { return {{oneof.get_which_oneof()}}; }
+    FieldNumber get_which_{{oneof.get_name()}}() const { return {{oneof.get_which_oneof()}}; }
 
     {% for field in oneof.fields %}
     {{ field.render_get_set(environment)|indent(4) }}
@@ -168,7 +168,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       switch({{oneof.get_which_oneof()}})
       {
         {% for field in oneof.get_fields() %}
-        case id::{{field.variable_id_name}}:
+        case FieldNumber::{{field.variable_id_name}}:
           {{ field.render_serialize(environment)|indent(10) }}
           break;
 
@@ -186,29 +186,29 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
       ::EmbeddedProto::WireFormatter::WireType wire_type = ::EmbeddedProto::WireFormatter::WireType::VARINT;
       uint32_t id_number = 0;
-      id id_tag = id::NOT_SET;
+      FieldNumber id_tag = FieldNumber::NOT_SET;
 
       ::EmbeddedProto::Error tag_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id_number);
       while((::EmbeddedProto::Error::NO_ERRORS == return_value) && (::EmbeddedProto::Error::NO_ERRORS == tag_value))
       {
-        id_tag = static_cast<id>(id_number);
+        id_tag = static_cast<FieldNumber>(id_number);
         switch(id_tag)
         {
           {% for field in typedef.fields %}
-          case id::{{field.get_variable_id_name()}}:
+          case FieldNumber::{{field.get_variable_id_name()}}:
             {{ field.render_deserialize(environment)|indent(12) }}
             break;
 
           {% endfor %}
           {% for oneof in typedef.oneofs %}
           {% for field in oneof.get_fields() %}
-          case id::{{field.get_variable_id_name()}}:
-            {{ field.render_deserialize(environment)|indent(12) }}
+          case FieldNumber::{{field.get_variable_id_name()}}:
+          {% endfor %}
+            return_value = deserialize_{{oneof.get_name()}}(id_tag, buffer, wire_type);
             break;
 
           {% endfor %}
-          {% endfor %}
-          case id::NOT_SET:
+          case FieldNumber::NOT_SET:
             return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
             break;
 
@@ -296,7 +296,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
 
       {% for oneof in typedef.oneofs %}
-      id {{oneof.get_which_oneof()}} = id::NOT_SET;
+      FieldNumber {{oneof.get_which_oneof()}} = FieldNumber::NOT_SET;
       union {{oneof.get_name()}}
       {
         {{oneof.get_name()}}() {}
@@ -311,6 +311,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
-      {{ TypeOneof.deserialize(oneof)|indent(6) }}
+      {{ TypeOneof.deserialize(oneof, environment)|indent(6) }}
       {% endfor %}
 };

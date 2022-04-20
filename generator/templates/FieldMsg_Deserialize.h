@@ -1,5 +1,5 @@
 {#
-Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 
 This file is part of Embedded Proto.
 
@@ -27,11 +27,7 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
-{% if field.oneof is not none %}
-return_value = deserialize_{{field.get_oneof_name()}}(id::{{field.get_variable_id_name()}}, {{field.get_variable_name()}}, buffer, wire_type);
-{% else %}
 {% if field.optional %}
 presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, wire_type);
-{%- endif -%}

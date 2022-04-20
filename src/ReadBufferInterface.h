@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -65,14 +65,18 @@ namespace EmbeddedProto
       virtual bool peek(uint8_t& byte) const = 0;
 
       //! Advances the internal read index by one when the buffer is not empty.
-      [[deprecated("From version 3.0.0 onwards this function will return a boolean.")]] virtual void advance() = 0;
+      /*!
+          \return True when the buffer was not empty.
+      */
+      virtual bool advance() = 0;
 
       //! Advances the internal read index by the given value.
       /*!
           The advance is limited to the number of bytes in the buffer.
           \param[in] n_bytes The number of bytes to advance the read index.
+          \return True when the buffer held the n_bytes or more.
       */
-      [[deprecated("From version 3.0.0 onwards this function will return a boolean.")]] virtual void advance(const uint32_t n_bytes) = 0;
+      virtual bool advance(const uint32_t n_bytes) = 0;
 
       //! Obtain the value of the oldest byte in the buffer and remove it from the buffer.
       /*!

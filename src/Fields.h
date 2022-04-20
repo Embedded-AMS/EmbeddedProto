@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -35,8 +35,10 @@
 #include "WireFormatter.h"
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
+#include "MessageSizeCalculator.h"
 
 #include <cstdint>
+#include <memory>
 
 
 namespace EmbeddedProto 
@@ -45,6 +47,29 @@ namespace EmbeddedProto
   class Field 
   {
     public:
+      enum class FieldTypes
+      {
+        int32,
+        int64, 
+        uint32, 
+        uint64, 
+        sint32, 
+        sint64, 
+        boolean, 
+        enumeration,
+        fixed64, 
+        sfixed64, 
+        doublefixed,
+        string, 
+        bytes, 
+        message,
+        repeated,
+        fixed32, 
+        sfixed32, 
+        floatfixed
+      };
+
+
       Field() = default;
       virtual ~Field() = default;
 
@@ -78,21 +103,169 @@ namespace EmbeddedProto
       virtual void clear() = 0;
   };
 
-  template<class TYPE, WireFormatter::WireType WIRETYPE>
-  class FieldTemplate : public Field
+  template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE>
+  class FieldTemplate
   {
     public:
-      using FIELD_TYPE = TYPE;
+      using TYPE = VARIABLE_TYPE;
+      using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE>;
 
       FieldTemplate() = default;
-      explicit FieldTemplate(const TYPE& v) : value_(v) { };
-      explicit FieldTemplate(const TYPE&& v) : value_(v) { };
-      explicit FieldTemplate(const FieldTemplate<TYPE, WIRETYPE>& ft) : value_(ft.value_) { };
-      ~FieldTemplate() override = default;
+      FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
+      FieldTemplate(const VARIABLE_TYPE&& v) : value_(v) { };
+      FieldTemplate(const CLASS_TYPE& ft) : value_(ft.value_) { };
+
+      ~FieldTemplate() = default;
+
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, [[maybe_unused]] const bool optional) const
+      {
+        Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
+        if(Error::NO_ERRORS == return_value)
+        {
+          return_value = serialize(buffer);
+        }
+        return return_value;
+      }
+
+      Error serialize(WriteBufferInterface& buffer) const 
+      {
+        Error return_value = Error::NO_ERRORS;
+        if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
+        }
+        else if constexpr(Field::FieldTypes::int64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer);
+        }
+        else if constexpr(Field::FieldTypes::uint32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::uint64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::sint32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
+        }
+        else if constexpr(Field::FieldTypes::sint64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
+        }
+        else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
+        {
+          const uint8_t byte = get() ? 0x01 : 0x00;
+          return_value = buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL;
+        }
+        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
+        }
+        else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeFixedNoTag(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::fixed64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerializeFixedNoTag(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::sfixed32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerialzieSFixedNoTag(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::sfixed64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerialzieSFixedNoTag(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerialzieFloatNoTag(get(), buffer);
+        }
+        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
+        {
+          return_value = WireFormatter::SerialzieDoubleNoTag(get(), buffer);
+        }
+        else {
+          // No else
+        }
+        return return_value;
+      }
+    
+      Error deserialize(ReadBufferInterface& buffer)
+      {
+        Error return_value = Error::NO_ERRORS;
+        if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::int64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::uint32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeUInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::uint64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeUInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::sint32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeSInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::sint64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeSInt(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeBool(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
+        {
+          uint32_t value = 0;
+          return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
+          if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+          {
+            value_ = static_cast<VARIABLE_TYPE>(value);
+          }
+        }
+        else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeFixed(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::fixed64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeFixed(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::sfixed32 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeSFixed(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::sfixed64 == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeSFixed(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeFloat(buffer, get());
+        }
+        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
+        {
+          return_value = WireFormatter::DeserializeDouble(buffer, get());
+        }
+        else {
+          // No else
+        }
+        return return_value;
+      }
 
       //! \see Field::deserialize()
       Error deserialize_check_type(ReadBufferInterface& buffer, 
-                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type)
       {
         Error return_value = WIRETYPE == wire_type ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
         if(Error::NO_ERRORS == return_value) 
@@ -102,286 +275,94 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      void set(const TYPE& v) { value_ = v; }      
-      void set(const TYPE&& v) { value_ = v; }
-      void set(const FieldTemplate<TYPE, WIRETYPE>& ft) { value_ = ft.value_; }
-      void set(const FieldTemplate<TYPE, WIRETYPE>&& ft) { value_ = ft.value_; }
-      FieldTemplate<TYPE, WIRETYPE>& operator=(const TYPE& v) 
+      void set(const VARIABLE_TYPE& v) { value_ = v; }      
+      void set(const VARIABLE_TYPE&& v) { value_ = v; }
+
+      void set(const CLASS_TYPE& ft) { value_ = ft.value_; }
+      void set(const CLASS_TYPE&& ft) { value_ = ft.value_; }
+      
+      CLASS_TYPE& operator=(const VARIABLE_TYPE& v) 
       { 
         value_ = v;
         return *this;
       }
-      FieldTemplate<TYPE, WIRETYPE>& operator=(const TYPE&& v) 
+      CLASS_TYPE& operator=(const VARIABLE_TYPE&& v) 
       { 
         value_ = v;
         return *this;
       }
-      FieldTemplate<TYPE, WIRETYPE>& operator=(const FieldTemplate<TYPE, WIRETYPE>& ft)
+      CLASS_TYPE& operator=(const CLASS_TYPE& ft)
       { 
         value_ = ft.value_; 
         return *this; 
       }
-      FieldTemplate<TYPE, WIRETYPE>& operator=(const FieldTemplate<TYPE, WIRETYPE>&& ft) noexcept
+      CLASS_TYPE& operator=(const CLASS_TYPE&& ft) noexcept
       { 
         value_ = ft.value_;
         return *this;
       }
 
-      const TYPE& get() const { return value_; }
-      TYPE& get() { return value_; }
+      const VARIABLE_TYPE& get() const { return value_; }
+      VARIABLE_TYPE& get() { return value_; }
 
       //! This is the conversion operator. 
       /*! 
         Sonar would like this to be explicit but this is not practial in normal usage with other 
         integer and floating point types.
       */
-      operator TYPE() const { return value_; } //NOSONAR
+      operator VARIABLE_TYPE() const { return value_; } //NOSONAR
 
-      bool operator==(const TYPE& rhs) { return value_ == rhs; }
-      bool operator!=(const TYPE& rhs) { return value_ != rhs; }
-      bool operator>(const TYPE& rhs) { return value_ > rhs; }
-      bool operator<(const TYPE& rhs) { return value_ < rhs; }
-      bool operator>=(const TYPE& rhs) { return value_ >= rhs; }
-      bool operator<=(const TYPE& rhs) { return value_ <= rhs; }
+      bool operator==(const VARIABLE_TYPE& rhs) { return value_ == rhs; }
+      bool operator!=(const VARIABLE_TYPE& rhs) { return value_ != rhs; }
+      bool operator>(const VARIABLE_TYPE& rhs) { return value_ > rhs; }
+      bool operator<(const VARIABLE_TYPE& rhs) { return value_ < rhs; }
+      bool operator>=(const VARIABLE_TYPE& rhs) { return value_ >= rhs; }
+      bool operator<=(const VARIABLE_TYPE& rhs) { return value_ <= rhs; }
 
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator==(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ == rhs.get(); }
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator!=(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ != rhs.get(); }
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator>(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ > rhs.get(); }
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator<(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ < rhs.get(); }
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator>=(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ >= rhs.get(); }
-      template<class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator<=(const FieldTemplate<TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ <= rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator==(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ == rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator!=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ != rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator>(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ > rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator<(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ < rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator>=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ >= rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
+      bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ <= rhs.get(); }
 
-      void clear() override { value_ = static_cast<TYPE>(0); }
+      void clear() { value_ = static_cast<VARIABLE_TYPE>(0); }
+
+      uint32_t serialized_size() const
+      {
+        ::EmbeddedProto::MessageSizeCalculator calcBuffer;
+        this->serialize(calcBuffer);
+        return calcBuffer.get_size();
+      }
 
     private:
 
-      TYPE value_;
+      VARIABLE_TYPE value_;
   };
 
-  class int32 : public FieldTemplate<int32_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      int32() : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(0) {};
-      int32(const int32_t& v) : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(v) {};
-      int32(const int32_t&& v) : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(v) {};
 
-      ~int32() override = default;
-
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class int64 : public FieldTemplate<int64_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      int64() : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(0) {};
-      int64(const int64_t& v) : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(v) {};
-      int64(const int64_t&& v) : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(v) {};
-
-      ~int64() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class uint32 : public FieldTemplate<uint32_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      uint32() : FieldTemplate<uint32_t, WireFormatter::WireType::VARINT>(0) {};
-      uint32(const uint32_t& v) : FieldTemplate<uint32_t, WireFormatter::WireType::VARINT>(v) {};
-      uint32(const uint32_t&& v) : FieldTemplate<uint32_t, WireFormatter::WireType::VARINT>(v) {};
-
-      ~uint32() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class uint64 : public FieldTemplate<uint64_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      uint64() : FieldTemplate<uint64_t, WireFormatter::WireType::VARINT>(0) {};
-      uint64(const uint64_t& v) : FieldTemplate<uint64_t, WireFormatter::WireType::VARINT>(v) {};
-      uint64(const uint64_t&& v) : FieldTemplate<uint64_t, WireFormatter::WireType::VARINT>(v) {};
-
-      ~uint64() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffe) final; 
-  };
-
-  class sint32 : public FieldTemplate<int32_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      sint32() : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(0) {};
-      sint32(const int32_t& v) : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(v) {};
-      sint32(const int32_t&& v) : FieldTemplate<int32_t, WireFormatter::WireType::VARINT>(v) {};
-
-      ~sint32() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class sint64 : public FieldTemplate<int64_t, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      sint64() : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(0) {};
-      sint64(const int64_t& v) : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(v) {};
-      sint64(const int64_t&& v) : FieldTemplate<int64_t, WireFormatter::WireType::VARINT>(v) {};
-
-      ~sint64() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class boolean : public FieldTemplate<bool, WireFormatter::WireType::VARINT> 
-  { 
-    public: 
-      boolean() : FieldTemplate<bool, WireFormatter::WireType::VARINT>(false) {};
-      boolean(const bool& v) : FieldTemplate<bool, WireFormatter::WireType::VARINT>(v) {};
-      boolean(const bool&& v) : FieldTemplate<bool, WireFormatter::WireType::VARINT>(v) {};
-
-      ~boolean() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class fixed32 : public FieldTemplate<uint32_t, WireFormatter::WireType::FIXED32> 
-  { 
-    public: 
-      fixed32() : FieldTemplate<uint32_t, WireFormatter::WireType::FIXED32>(0) {};
-      fixed32(const uint32_t& v) : FieldTemplate<uint32_t, WireFormatter::WireType::FIXED32>(v) {};
-      fixed32(const uint32_t&& v) : FieldTemplate<uint32_t, WireFormatter::WireType::FIXED32>(v) {};
-
-      ~fixed32() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class fixed64 : public FieldTemplate<uint64_t, WireFormatter::WireType::FIXED64> 
-  { 
-    public: 
-      fixed64() : FieldTemplate<uint64_t, WireFormatter::WireType::FIXED64>(0) {};
-      fixed64(const uint64_t& v) : FieldTemplate<uint64_t, WireFormatter::WireType::FIXED64>(v) {};
-      fixed64(const uint64_t&& v) : FieldTemplate<uint64_t, WireFormatter::WireType::FIXED64>(v) {};
-
-      ~fixed64() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class sfixed32 : public FieldTemplate<int32_t, WireFormatter::WireType::FIXED32> 
-  { 
-    public: 
-      sfixed32() : FieldTemplate<int32_t, WireFormatter::WireType::FIXED32>(0) {};
-      sfixed32(const int32_t& v) : FieldTemplate<int32_t, WireFormatter::WireType::FIXED32>(v) {};
-      sfixed32(const int32_t&& v) : FieldTemplate<int32_t, WireFormatter::WireType::FIXED32>(v) {};
-
-      ~sfixed32() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class sfixed64 : public FieldTemplate<int64_t, WireFormatter::WireType::FIXED64> 
-  { 
-    public: 
-      sfixed64() : FieldTemplate<int64_t, WireFormatter::WireType::FIXED64>(0) {};
-      sfixed64(const int64_t& v) : FieldTemplate<int64_t, WireFormatter::WireType::FIXED64>(v) {};
-      sfixed64(const int64_t&& v) : FieldTemplate<int64_t, WireFormatter::WireType::FIXED64>(v) {};
-
-      ~sfixed64() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class floatfixed : public FieldTemplate<float, WireFormatter::WireType::FIXED32> 
-  { 
-    public: 
-      floatfixed() : FieldTemplate<float, WireFormatter::WireType::FIXED32>(0.0F) {};
-      floatfixed(const float& v) : FieldTemplate<float, WireFormatter::WireType::FIXED32>(v) {};
-      floatfixed(const float&& v) : FieldTemplate<float, WireFormatter::WireType::FIXED32>(v) {};
-
-      ~floatfixed() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
-
-  class doublefixed : public FieldTemplate<double, WireFormatter::WireType::FIXED64> 
-  { 
-    public: 
-      doublefixed() : FieldTemplate<double, WireFormatter::WireType::FIXED64>(0.0) {};
-      doublefixed(const double& v) : FieldTemplate<double, WireFormatter::WireType::FIXED64>(v) {};
-      doublefixed(const double&& v) : FieldTemplate<double, WireFormatter::WireType::FIXED64>(v) {};
-
-      ~doublefixed() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final;
-      Error serialize(WriteBufferInterface& buffer) const final;
-      Error deserialize(ReadBufferInterface& buffer) final; 
-  };
+  using int32 = FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>;
+  using int64 = FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>;
+  using uint32 = FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>; 
+  using uint64 = FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>; 
+  using sint32 = FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>; 
+  using sint64 = FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>; 
+  using boolean = FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>; 
+  using fixed32 = FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>; 
+  using fixed64 = FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>; 
+  using sfixed32 = FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>; 
+  using sfixed64 = FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>; 
+  using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>; 
+  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>;
 
   template<class ENUM_TYPE>
-  class enumeration : public FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>
-  { 
-    public: 
-      enumeration() : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(static_cast<ENUM_TYPE>(0)) {};
-      enumeration(const ENUM_TYPE& v) : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(v) {};
-      enumeration(const ENUM_TYPE&& v) : FieldTemplate<ENUM_TYPE, WireFormatter::WireType::VARINT>(v) {};
-      
-      ~enumeration() override = default;
-      
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
-      { 
-        Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WireFormatter::WireType::VARINT), buffer);
-        if(Error::NO_ERRORS == return_value)
-        {
-          return_value = serialize(buffer);
-        }
-        return return_value;
-      };
-
-      Error serialize(WriteBufferInterface& buffer) const final
-      {
-        return WireFormatter::SerializeVarint(static_cast<uint32_t>(this->get()), buffer);
-      }
-
-      Error deserialize(ReadBufferInterface& buffer) final
-      {
-        uint32_t enum_value = 0;
-        Error return_value = WireFormatter::DeserializeVarint(buffer, enum_value);
-        if(Error::NO_ERRORS == return_value) 
-        {
-          this->set(static_cast<ENUM_TYPE>(enum_value));
-        }
-        return return_value;
-      }
-  };
+  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT>;
 
 } // End of namespace EmbeddedProto.
 #endif

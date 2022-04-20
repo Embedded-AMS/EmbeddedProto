@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package EmbeddedProto;
+
+message Options {
+  uint32 maxLength = 1;
+}
+
+extend google.protobuf.FieldOptions { 
+  Options options = 1141;  
+}

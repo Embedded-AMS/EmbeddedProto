@@ -1,5 +1,5 @@
 {#
-Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 
 This file is part of Embedded Proto.
 
@@ -37,7 +37,7 @@ if(rhs.get_which_{{_oneof.get_name()}}() != {{_oneof.get_which_oneof()}})
 switch(rhs.get_which_{{_oneof.get_name()}}())
 {
   {% for field in _oneof.get_fields() %}
-  case id::{{field.get_variable_id_name()}}:
+  case FieldNumber::{{field.get_variable_id_name()}}:
     set_{{field.get_name()}}(rhs.get_{{field.name}}());
     break;
 
@@ -50,9 +50,9 @@ switch(rhs.get_which_{{_oneof.get_name()}}())
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
 {% macro init(_oneof) %}
-void init_{{_oneof.get_name()}}(const id field_id)
+void init_{{_oneof.get_name()}}(const FieldNumber field_id)
 {
-  if(id::NOT_SET != {{_oneof.get_which_oneof()}})
+  if(FieldNumber::NOT_SET != {{_oneof.get_which_oneof()}})
   {
     // First delete the old object in the oneof.
     clear_{{_oneof.get_name()}}();
@@ -64,9 +64,9 @@ void init_{{_oneof.get_name()}}(const id field_id)
   {
     {% for field in _oneof.get_fields() %}
     {% if field.oneof_allocation_required() %}
-    case id::{{field.get_variable_id_name()}}:
+    case FieldNumber::{{field.get_variable_id_name()}}:
       new(&{{field.get_variable_name()}}) {{field.get_type()}};
-      {{_oneof.get_which_oneof()}} = id::{{field.get_variable_id_name()}};
+      {{_oneof.get_which_oneof()}} = FieldNumber::{{field.get_variable_id_name()}};
       break;
 
     {% endif %}
@@ -88,11 +88,11 @@ void clear_{{_oneof.get_name()}}()
   switch({{_oneof.get_which_oneof()}})
   {
     {% for field in _oneof.get_fields() %}
-    case id::{{field.get_variable_id_name()}}:
+    case FieldNumber::{{field.get_variable_id_name()}}:
       {% if field.oneof_allocation_required() %}
-      {{field.get_variable_name()}}.~{{field.get_short_type()}}(); // NOSONAR Unions require this.
-	  {% elif field.of_type_enum %}
-	  {{field.get_variable_name()}} = {{field.get_default_value()}};
+      std::destroy_at(&{{field.get_variable_name()}});
+	    {% elif field.of_type_enum %}
+	    {{field.get_variable_name()}} = {{field.get_default_value()}};
       {% else %}
       {{field.get_variable_name()}}.set(0);
       {% endif %}
@@ -101,22 +101,35 @@ void clear_{{_oneof.get_name()}}()
     default:
       break;
   }
-  {{_oneof.get_which_oneof()}} = id::NOT_SET;
+  {{_oneof.get_which_oneof()}} = FieldNumber::NOT_SET;
 }
 {% endmacro %}
 {# #}
 {# ------------------------------------------------------------------------------------------------------------------ #}
 {# #}
-{% macro deserialize(_oneof) %}
-::EmbeddedProto::Error deserialize_{{_oneof.get_name()}}(const id field_id, ::EmbeddedProto::Field& field,
+{% macro deserialize(_oneof, _environment) %}
+::EmbeddedProto::Error deserialize_{{_oneof.get_name()}}(const FieldNumber field_id, 
                               ::EmbeddedProto::ReadBufferInterface& buffer,
                               const ::EmbeddedProto::WireFormatter::WireType wire_type)
 {
+  ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+  
   if(field_id != {{_oneof.get_which_oneof()}})
   {
     init_{{_oneof.get_name()}}(field_id);
   }
-  ::EmbeddedProto::Error return_value = field.deserialize_check_type(buffer, wire_type);
+
+  switch({{_oneof.get_which_oneof()}})
+  {
+    {% for field in _oneof.get_fields() %}
+    case FieldNumber::{{field.get_variable_id_name()}}:
+      {{ field.render_deserialize(_environment)|indent(6) }}
+      break;
+    {% endfor %}
+    default:
+      break;
+  }
+
   if(::EmbeddedProto::Error::NO_ERRORS != return_value)
   {
     clear_{{_oneof.get_name()}}();

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -135,7 +135,7 @@ class ProtoFile:
         imported_dependencies = []
         if self.descriptor.dependency:
             imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in
-                                     self.descriptor.dependency]
+                                     self.descriptor.dependency if "embedded_proto_options.proto" not in dependency]
         return imported_dependencies
 
     def get_namespaces(self):

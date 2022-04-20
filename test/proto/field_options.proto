@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+import "embedded_proto_options.proto";
+
+message ConfigUpdate {
+  repeated uint32 a = 1 [(EmbeddedProto.options).maxLength = 10];
+  repeated uint32 b = 2;
+}
+
+message NestedConfigUpdate {
+  ConfigUpdate update = 1;
+}
+
+message BytesMaxLength {
+  bytes b = 1 [(EmbeddedProto.options).maxLength = 100];
+}
+
+message StringMaxLength {
+  string s = 1 [(EmbeddedProto.options).maxLength = 256];
+}
+
+message OneofWithMaxLength {
+  oneof content {
+    bytes b = 1 [(EmbeddedProto.options).maxLength = 100];
+    string s = 2 [(EmbeddedProto.options).maxLength = 256];
+  }
+}

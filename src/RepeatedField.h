@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -49,12 +49,27 @@ namespace EmbeddedProto
   template<class DATA_TYPE>
   class RepeatedField : public Field
   {
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value, "A Field can only be used as template paramter.");
+
+    //! Definition of a trait to check if DATA_TYPE is NOT a specialization of the FieldTemplate.
+    template<typename>
+    struct is_specialization_of_FieldTemplate : std::false_type {};
+
+    //! Definition of a trait to check if DATA_TYPE is a specialization of the FieldTemplate.
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W>
+    struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W>> : std::true_type {};
+
+    //! Definition of a trait to check if DATA_TYPE is or is not a specialization of the FieldTemplate.
+    template<typename T>
+    static constexpr auto is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
+
+    //! This class only supports Field and FieldTemplate classes as template parameter.
+    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
+                  "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of<MessageInterface, DATA_TYPE>::value 
-            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
+          !(std::is_base_of_v<MessageInterface, DATA_TYPE> 
+            || std::is_base_of_v<internal::BaseStringBytes, DATA_TYPE>);
 
     public:
 
@@ -150,7 +165,6 @@ namespace EmbeddedProto
             if(Error::NO_ERRORS == return_value) 
             {
               return_value = WireFormatter::SerializeVarint(size_x, buffer);
-
 
               if(Error::NO_ERRORS == return_value)
               {          
@@ -273,7 +287,7 @@ namespace EmbeddedProto
 
       Error deserialize_packed(ReadBufferInterface& buffer)
       {
-        uint32_t size;
+        uint32_t size = 0;
         Error return_value = WireFormatter::DeserializeVarint(buffer, size);
         ReadBufferSection bufferSection(buffer, size);
         DATA_TYPE x;
@@ -303,8 +317,7 @@ namespace EmbeddedProto
 
         // For repeated messages, strings or bytes
         // First allocate an element in the array.
-        const uint32_t index = this->get_length();
-        if(this->get_max_length() > index)
+        if(const uint32_t index = this->get_length(); this->get_max_length() > index)
         {
           // For messages read the size here, with strings and byte arrays this is include in 
           // deserialize.
