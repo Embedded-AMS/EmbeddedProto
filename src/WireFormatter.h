@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -93,8 +93,8 @@ namespace EmbeddedProto
       template<class INT_TYPE>
       static constexpr auto ZigZagEncode(const INT_TYPE n) 
       {
-        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
-                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ZigZagEncode.");
+        static_assert(std::is_same_v<INT_TYPE, int32_t> || 
+                      std::is_same_v<INT_TYPE, int64_t>, "Wrong type passed to ZigZagEncode.");
 
         using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
         constexpr uint8_t N_BITS_TO_ZIGZAG = std::numeric_limits<UINT_TYPE>::digits - 1;
@@ -112,8 +112,8 @@ namespace EmbeddedProto
       template<class UINT_TYPE>
       static constexpr auto ZigZagDecode(const UINT_TYPE n) 
       {
-        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to ZigZagDecode.");
+        static_assert(std::is_same_v<UINT_TYPE, uint32_t> || 
+                      std::is_same_v<UINT_TYPE, uint64_t>, "Wrong type passed to ZigZagDecode.");
 
         using INT_TYPE = std::make_signed_t<UINT_TYPE>;
 
@@ -140,8 +140,8 @@ namespace EmbeddedProto
       template<class UINT_TYPE>
       static Error SerializeFixedNoTag(const UINT_TYPE value, WriteBufferInterface& buffer)
       {
-        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerializeFixedNoTag.");
+        static_assert(std::is_same_v<UINT_TYPE, uint32_t> || 
+                      std::is_same_v<UINT_TYPE, uint64_t>, "Wrong type passed to SerializeFixedNoTag.");
 
         // Push the data little endian to the buffer.
         // TODO Define a little endian flag to support memcpy the data to the buffer.
@@ -160,8 +160,8 @@ namespace EmbeddedProto
       template<class INT_TYPE>
       static Error SerialzieSFixedNoTag(const INT_TYPE value, WriteBufferInterface& buffer)
       {
-        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
-                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to SerialzieSFixedNoTag.");
+        static_assert(std::is_same_v<INT_TYPE, int32_t> || 
+                      std::is_same_v<INT_TYPE, int64_t>, "Wrong type passed to SerialzieSFixedNoTag.");
 
         using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
 
@@ -358,8 +358,8 @@ namespace EmbeddedProto
       template<class UINT_TYPE>
       static Error DeserializeUInt(ReadBufferInterface& buffer, UINT_TYPE& value) 
       {
-        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to DeserializeUInt.");
+        static_assert(std::is_same_v<UINT_TYPE, uint32_t> || 
+                      std::is_same_v<UINT_TYPE, uint64_t>, "Wrong type passed to DeserializeUInt.");
         
         return DeserializeVarint(buffer, value);
       }
@@ -367,8 +367,8 @@ namespace EmbeddedProto
       template<class INT_TYPE>
       static Error DeserializeInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
-        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
-                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeInt.");
+        static_assert(std::is_same_v<INT_TYPE, int32_t> || 
+                      std::is_same_v<INT_TYPE, int64_t>, "Wrong type passed to DeserializeInt.");
         
         // Use a 64 value even for 32 bit as some implementations serialize 32 bit values with 10 bytes.
         uint64_t uint_value64;
@@ -384,8 +384,8 @@ namespace EmbeddedProto
       template<class INT_TYPE>
       static Error DeserializeSInt(ReadBufferInterface& buffer, INT_TYPE& value) 
       {
-        static_assert(std::is_same<INT_TYPE, int32_t>::value || 
-                      std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to DeserializeSInt.");
+        static_assert(std::is_same_v<INT_TYPE, int32_t> || 
+                      std::is_same_v<INT_TYPE, int64_t>, "Wrong type passed to DeserializeSInt.");
         
         // Use a 64 value even for 32 bit as some implementations serialize 32 bit values with 10 bytes.
         uint64_t uint_value64;
@@ -403,8 +403,8 @@ namespace EmbeddedProto
       template<class TYPE>
       static Error DeserializeFixed(ReadBufferInterface& buffer, TYPE& value) 
       {
-        static_assert(std::is_same<TYPE, uint32_t>::value || 
-                      std::is_same<TYPE, uint64_t>::value, "Wrong type passed to DeserializeFixed.");
+        static_assert(std::is_same_v<TYPE, uint32_t> || 
+                      std::is_same_v<TYPE, uint64_t>, "Wrong type passed to DeserializeFixed.");
 
         // Deserialize the data little endian to the buffer.
         // TODO Define a little endian flag to support memcpy the data from the buffer.
@@ -438,8 +438,8 @@ namespace EmbeddedProto
       template<class STYPE>
       static Error DeserializeSFixed(ReadBufferInterface& buffer, STYPE& value) 
       {
-        static_assert(std::is_same<STYPE, int32_t>::value || 
-                      std::is_same<STYPE, int64_t>::value, "Wrong type passed to DeserializeSFixed.");
+        static_assert(std::is_same_v<STYPE, int32_t> || 
+                      std::is_same_v<STYPE, int64_t>, "Wrong type passed to DeserializeSFixed.");
 
         using USTYPE = std::make_unsigned_t<STYPE>;
         USTYPE temp_unsigned_value = 0;
@@ -498,7 +498,7 @@ namespace EmbeddedProto
       template<class ENUM_TYPE>
       static Error DeserializeEnum(ReadBufferInterface& buffer, ENUM_TYPE& value) 
       {
-        static_assert(std::is_enum<ENUM_TYPE>::value, "No enum given to DeserializeEnum parameter value.");
+        static_assert(std::is_enum_v<ENUM_TYPE>, "No enum given to DeserializeEnum parameter value.");
         uint64_t temp_value;
         Error result = DeserializeVarint(buffer, temp_value);
         if(Error::NO_ERRORS == result)
@@ -521,8 +521,8 @@ namespace EmbeddedProto
       template<class UINT_TYPE>
       static Error SerializeVarint(UINT_TYPE value, WriteBufferInterface& buffer) 
       {
-        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, 
+        static_assert(std::is_same_v<UINT_TYPE, uint32_t> || 
+                      std::is_same_v<UINT_TYPE, uint64_t>, 
                       "Wrong type passed to SerializeVarint.");
 
         bool memory_free = true;
@@ -546,8 +546,8 @@ namespace EmbeddedProto
       template<class UINT_TYPE>
       static Error DeserializeVarint(ReadBufferInterface& buffer, UINT_TYPE& value) 
       {
-        static_assert(std::is_same<UINT_TYPE, uint32_t>::value || 
-                      std::is_same<UINT_TYPE, uint64_t>::value, 
+        static_assert(std::is_same_v<UINT_TYPE, uint32_t> || 
+                      std::is_same_v<UINT_TYPE, uint64_t>, 
                       "Wrong type passed to DeserializeVarint.");
         
         // Calculate how many bytes there are in a varint 128 base encoded number. This should 

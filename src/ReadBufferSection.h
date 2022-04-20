@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -75,24 +75,28 @@ namespace EmbeddedProto
       //! Expose the function of the parent buffer.
       /*!
         This will not do anything if size zero is reached.
+        \return True when the buffer was not empty.
       */
       bool peek(uint8_t& byte) const override;
 
       //! Decrement the size and call advance on the parent buffer.
       /*!
         This will not do anything if size zero is reached.
+        \return True when the buffer was not empty.
       */
-      void advance() override;
+      bool advance() override;
 
       //! Decrement the size by N bytes and call advance on the parent buffer.
       /*!
         This will not do anything if size zero is reached.
+        \return True when the buffer held the n_bytes or more.
       */
-      void advance(const uint32_t n_bytes) override;
+      bool advance(const uint32_t n_bytes) override;
 
       //! Decrement the size and pop the next byte from the parent buffer.
       /*!
         This will not do anything if size zero is reached.
+        \return True while the end of the buffer is not reached.
       */
       bool pop(uint8_t& byte) override;
 

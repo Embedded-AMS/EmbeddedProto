@@ -1,5 +1,5 @@
 {#
-Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 
 This file is part of Embedded Proto.
 
@@ -33,5 +33,5 @@ if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_va
 if(({{field.get_default_value()}} != {{field.get_variable_name()}}.get()) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {% endif %}
 {
-  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(id::{{field.get_variable_id_name()}}), buffer, {{ "true" if (field.optional or (field.oneof is not none)) else "false" }});
+  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, {{ "true" if (field.optional or (field.oneof is not none)) else "false" }});
 }

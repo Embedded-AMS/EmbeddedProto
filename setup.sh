@@ -1,7 +1,7 @@
 #! /bin/bash
 
 #
-# Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -36,4 +36,7 @@
 python3 -m venv venv
 source ./venv/bin/activate
 pip install -r requirements.txt
+
+# Build the protobuf extension file used to include Embedded Proto custom options.
+protoc -I./generator --python_out=./generator embedded_proto_options.proto 
 

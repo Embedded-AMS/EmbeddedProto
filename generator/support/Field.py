@@ -184,6 +184,21 @@ class FieldBasic(Field):
                         FieldDescriptorProto.TYPE_SINT32:   "EmbeddedProto::sint32",
                         FieldDescriptorProto.TYPE_SINT64:   "EmbeddedProto::sint64"}
 
+    # A dictionary to convert the protobuf wire type into a C++ type.
+    type_to_cstdint = {FieldDescriptorProto.TYPE_DOUBLE:   "double",
+                       FieldDescriptorProto.TYPE_FLOAT:    "float",
+                       FieldDescriptorProto.TYPE_INT64:    "int64_t",
+                       FieldDescriptorProto.TYPE_UINT64:   "uint64_t",
+                       FieldDescriptorProto.TYPE_INT32:    "int32_t",
+                       FieldDescriptorProto.TYPE_FIXED64:  "uint64_t",
+                       FieldDescriptorProto.TYPE_FIXED32:  "uint32_t",
+                       FieldDescriptorProto.TYPE_BOOL:     "bool",
+                       FieldDescriptorProto.TYPE_UINT32:   "uint32_t",
+                       FieldDescriptorProto.TYPE_SFIXED32: "int32_t",
+                       FieldDescriptorProto.TYPE_SFIXED64: "int64_t",
+                       FieldDescriptorProto.TYPE_SINT32:   "int32_t",
+                       FieldDescriptorProto.TYPE_SINT64:   "int64_t"}
+
     # A dictionary to convert the wire type number into a wire type string.
     type_to_wire_type = {FieldDescriptorProto.TYPE_INT32:    "VARINT",
                          FieldDescriptorProto.TYPE_INT64:    "VARINT",
@@ -211,6 +226,9 @@ class FieldBasic(Field):
     def get_short_type(self):
         return self.get_type().split("::")[-1]
 
+    def get_cstdint_type(self):
+        return self.type_to_cstdint[self.descriptor.type]
+
     def get_default_value(self):
         return self.type_to_default_value[self.descriptor.type]
 
@@ -235,14 +253,30 @@ class BaseStringBytes(Field):
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "LENGTH"
 
+        # Find options we know and use in this type of field.
+        self.MaxLength = None
+        try:
+            import embedded_proto_options_pb2
+        except Exception as e:
+            pass
+        else:
+            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
+
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
 
     def get_template_parameters(self):
-        return [{"name": self.template_param_str, "type": "uint32_t"}]
+        result = []
+        # When we do not have a maximum length specified add the length as a template param.
+        if not self.MaxLength:
+            result.append({"name": self.template_param_str, "type": "uint32_t"})
+        return result
 
     def register_template_parameters(self):
-        self.parent.register_child_with_template(self)
+        # If we do not have a max length defined register the template parameter.
+        if not self.MaxLength:
+            self.parent.register_child_with_template(self)
         return True
 
     def render_serialize(self, jinja_env):
@@ -261,7 +295,12 @@ class FieldString(BaseStringBytes):
         super().__init__(proto_descriptor, parent_msg, oneof)
 
     def get_type(self):
-        return "::EmbeddedProto::FieldString<" + self.template_param_str + ">"
+        str_type = "::EmbeddedProto::FieldString<"
+        if self.MaxLength:
+            str_type += str(self.MaxLength) + ">"
+        else:
+            str_type += self.template_param_str + ">"
+        return str_type
 
     def get_short_type(self):
         return "FieldString"
@@ -278,7 +317,12 @@ class FieldBytes(BaseStringBytes):
         super().__init__(proto_descriptor, parent_msg, oneof)
 
     def get_type(self):
-        return "::EmbeddedProto::FieldBytes<" + self.template_param_str + ">"
+        str_type = "::EmbeddedProto::FieldBytes<"
+        if self.MaxLength:
+            str_type += str(self.MaxLength) + ">"
+        else:
+            str_type += self.template_param_str + ">"
+        return str_type
 
     def get_short_type(self):
         return "FieldBytes"
@@ -453,23 +497,44 @@ class FieldRepeated(Field):
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
+        # Find options we know and use in this type of field.
+        self.MaxLength = None
+        try:
+            import embedded_proto_options_pb2
+        except Exception as e:
+            pass
+        else:
+            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
+
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", " + \
-               self.template_param_str + ">"
+        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+        if self.MaxLength:
+            type_str += str(self.MaxLength) + ">"
+        else:
+            type_str += self.template_param_str + ">"
+        return type_str
 
     def get_short_type(self):
-        return "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_short_type() + ", " + \
-               self.template_param_str + ">"
+        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+        if self.MaxLength:
+            type_str += str(self.MaxLength) + ">"
+        else:
+            type_str += self.template_param_str + ">"
+        return type_str
 
     # As this is a repeated field we need a function to get the type we are repeating.
     def get_base_type(self):
         return self.actual_type.get_type()
 
     def get_template_parameters(self):
-        result = [{"name": self.template_param_str, "type": "uint32_t"}]
+        result = []
+        # When we do not have a maximum length specified add the length as a template param.
+        if not self.MaxLength:
+            result.append({"name": self.template_param_str, "type": "uint32_t"})
         result.extend(self.actual_type.get_template_parameters())
         return result
 
@@ -477,7 +542,9 @@ class FieldRepeated(Field):
         self.actual_type.match_field_with_definitions(all_types_definitions)
 
     def register_template_parameters(self):
-        self.parent.register_child_with_template(self)
+        # If we do not have a max length defined register the template parameter.
+        if not self.MaxLength:
+            self.parent.register_child_with_template(self)
         return True
 
     def render_get_set(self, jinja_env):

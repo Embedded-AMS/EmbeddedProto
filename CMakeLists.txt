@@ -1,5 +1,5 @@
 #
-#  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+#  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
 #
 #  This file is part of Embedded Proto.
 #
@@ -32,7 +32,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(test_EmbeddedProto)
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -fprofile-arcs -ftest-coverage")
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
 
 add_subdirectory(external/googletest)

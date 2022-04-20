@@ -29,55 +29,60 @@
  */
 
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
-
-#include "empty_message.h"
 
 #include <WireFormatter.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 
+// EAMS message definitions
+#include <field_options.h>
+
 using ::testing::_;
 using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
-using ::testing::DoAll;
 
-namespace test_EmbeddedAMS_empty_messages
+namespace test_EmbeddedAMS_FieldOptions
 {
+TEST(FieldOptions, get_max_length) 
+{
+  ConfigUpdate<3> msg;
+  // The ten used here is defined in field_options.proto as a custom option of embedded proto.
+  EXPECT_EQ(10, msg.a().get_max_length());
 
-TEST(EmptyMessages, construction)
-{ 
-  // Test if using a message with no fields or enums cause build errors. 
-  empty_message empty;
+  NestedConfigUpdate<3> msgNested;
+  EXPECT_EQ(10, msgNested.update().a().get_max_length());
+
+
+  BytesMaxLength bMsg;
+  EXPECT_EQ(100, bMsg.get_b().get_max_length());
+
+
+  StringMaxLength sMsg;
+  EXPECT_EQ(256, sMsg.get_s().get_max_length());
+
 }
 
-TEST(EmptyMessage, clear)
+TEST(FieldOptions, oneof_clear) 
 {
-  empty_message empty;
-  empty.clear();
+  // When in a oneof the clear function is influenced by the get_short_type function which changed 
+  // for the options.
+  OneofWithMaxLength msg;
+  uint8_t data[] = {1, 2, 3, 4, 5};
+  msg.mutable_b().set(data, 5);
+  EXPECT_EQ(100, msg.get_b().get_max_length());
+  EXPECT_EQ(5, msg.get_b().get_length());
+
+  msg.clear();
+  EXPECT_EQ(0, msg.mutable_b().get_length());
+
+  msg.mutable_s() = "hello";
+  EXPECT_EQ(256, msg.get_s().get_max_length());
+  EXPECT_EQ(5, msg.get_s().get_length());
+
+  msg.clear();
+  EXPECT_EQ(0, msg.mutable_s().get_length());
+
 }
 
-TEST(EmptyMessage, serialize)
-{
-  Mocks::WriteBufferMock buffer;
-  empty_message empty;
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, empty.serialize(buffer));
-}
-
-TEST(EmptyMessage, deserialize)
-{
-  Mocks::ReadBufferMock buffer;
-  InSequence s;
-
-  // Some actual data we try to use to deserialize an empty message.
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x08), Return(true)));
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(0x01), Return(true)));
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
-  
-  empty_message empty;
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, empty.deserialize(buffer));
-}
-
-
-} // End of namespace test_EmbeddedAMS_empty_messages
+} // End of namespace test_EmbeddedAMS_FieldOptions

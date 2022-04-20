@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020-2021 Embedded AMS B.V. - All Rights Reserved
+ *  Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
  *
  *  This file is part of Embedded Proto.
  *
@@ -47,8 +47,8 @@ namespace Mocks
       
       MOCK_CONST_METHOD1(peek, bool(uint8_t&));
       
-      MOCK_METHOD0(advance, void());
-      MOCK_METHOD1(advance, void(uint32_t));
+      MOCK_METHOD0(advance, bool());
+      MOCK_METHOD1(advance, bool(uint32_t));
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
