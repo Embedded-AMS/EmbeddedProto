@@ -108,7 +108,7 @@ class ProtoFile:
 
             # If we are in a namespace this appears in the list and should be removed.
             my_scope = ""
-            if self.scope:
+            if self.scope and (0 < len(message_order)):
                 my_scope = "." + self.scope.get_scope_str().replace("::", ".")
                 message_order.remove(my_scope)
 
