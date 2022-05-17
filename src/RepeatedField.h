@@ -60,7 +60,7 @@ namespace EmbeddedProto
 
     //! Definition of a trait to check if DATA_TYPE is or is not a specialization of the FieldTemplate.
     template<typename T>
-    static constexpr auto is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
+    static constexpr bool is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
 
     //! This class only supports Field and FieldTemplate classes as template parameter.
     static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
