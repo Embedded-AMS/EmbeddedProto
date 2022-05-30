@@ -31,6 +31,7 @@
 #ifndef _REPEATED_FIELD_H_
 #define _REPEATED_FIELD_H_
 
+#include "Defines.h"
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
@@ -39,7 +40,6 @@
 #include "Errors.h"
 
 #include <cstdint>
-#include <type_traits>
 
 
 namespace EmbeddedProto
