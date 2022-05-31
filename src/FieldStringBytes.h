@@ -202,8 +202,8 @@ namespace EmbeddedProto
         { 
           Error return_value = Error::NO_ERRORS;
           const auto* void_pointer = static_cast<const void*>(&(data_[0]));
-          if(const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
-             !buffer.push(byte_pointer, current_length_))
+          const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          if(!buffer.push(byte_pointer, current_length_))
           {
             return_value = Error::BUFFER_FULL;
           }

@@ -92,12 +92,12 @@ namespace EmbeddedProto
         \return The zig zag transformed value ready for serialization into the array.
       */
       template<class INT_TYPE>
-      static constexpr auto ZigZagEncode(const INT_TYPE n) 
+      static constexpr EmbeddedProto::make_unsigned<INT_TYPE> ZigZagEncode(const INT_TYPE n) 
       {
         static_assert(is_same<INT_TYPE, int32_t> || 
                       is_same<INT_TYPE, int64_t>, "Wrong type passed to ZigZagEncode.");
 
-        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+        using UINT_TYPE = EmbeddedProto::make_unsigned<INT_TYPE>;
         constexpr uint8_t N_BITS_TO_ZIGZAG = std::numeric_limits<UINT_TYPE>::digits - 1;
 
         return (static_cast<UINT_TYPE>(n) << 1) ^ static_cast<UINT_TYPE>(n >> N_BITS_TO_ZIGZAG);
@@ -111,12 +111,12 @@ namespace EmbeddedProto
           This function is suitable for 32 and 64 bit.
       */
       template<class UINT_TYPE>
-      static constexpr auto ZigZagDecode(const UINT_TYPE n) 
+      static constexpr EmbeddedProto::make_signed<UINT_TYPE> ZigZagDecode(const UINT_TYPE n) 
       {
         static_assert(is_same<UINT_TYPE, uint32_t> || 
                       is_same<UINT_TYPE, uint64_t>, "Wrong type passed to ZigZagDecode.");
 
-        using INT_TYPE = std::make_signed_t<UINT_TYPE>;
+        using INT_TYPE = EmbeddedProto::make_signed<UINT_TYPE>;
 
         return static_cast<INT_TYPE>((n >> 1) ^ (~(n & 1) + 1));
       }
@@ -164,7 +164,7 @@ namespace EmbeddedProto
         static_assert(is_same<INT_TYPE, int32_t> || 
                       is_same<INT_TYPE, int64_t>, "Wrong type passed to SerialzieSFixedNoTag.");
 
-        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+        using UINT_TYPE = EmbeddedProto::make_unsigned<INT_TYPE>;
 
         return SerializeFixedNoTag(static_cast<UINT_TYPE>(value), buffer);
       }
@@ -197,7 +197,7 @@ namespace EmbeddedProto
       static Error SerializeInt(const uint32_t field_number, const INT_TYPE value, 
                                 WriteBufferInterface& buffer)
       {        
-        using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+        using UINT_TYPE = EmbeddedProto::make_unsigned<INT_TYPE>;
         Error return_value = SerializeVarint(MakeTag(field_number, WireType::VARINT), buffer);
         if(Error::NO_ERRORS == return_value)
         {
@@ -394,7 +394,7 @@ namespace EmbeddedProto
         Error result = DeserializeVarint(buffer, uint_value64);
         if(Error::NO_ERRORS == result) 
         {
-          using UINT_TYPE = std::make_unsigned_t<INT_TYPE>;
+          using UINT_TYPE = EmbeddedProto::make_unsigned<INT_TYPE>;
           const auto uint_value = static_cast<UINT_TYPE>(uint_value64);
           value = ZigZagDecode(uint_value);
         }
@@ -442,7 +442,7 @@ namespace EmbeddedProto
         static_assert(is_same<STYPE, int32_t> || 
                       is_same<STYPE, int64_t>, "Wrong type passed to DeserializeSFixed.");
 
-        using USTYPE = std::make_unsigned_t<STYPE>;
+        using USTYPE = EmbeddedProto::make_unsigned<STYPE>;
         USTYPE temp_unsigned_value = 0;
         Error result = DeserializeFixed(buffer, temp_unsigned_value);
         if(Error::NO_ERRORS == result)
@@ -499,7 +499,7 @@ namespace EmbeddedProto
       template<class ENUM_TYPE>
       static Error DeserializeEnum(ReadBufferInterface& buffer, ENUM_TYPE& value) 
       {
-        static_assert(std::is_enum_v<ENUM_TYPE>, "No enum given to DeserializeEnum parameter value.");
+        static_assert(EmbeddedProto::is_enum<ENUM_TYPE>, "No enum given to DeserializeEnum parameter value.");
         uint64_t temp_value;
         Error result = DeserializeVarint(buffer, temp_value);
         if(Error::NO_ERRORS == result)
