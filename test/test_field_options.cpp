@@ -49,6 +49,7 @@ TEST(FieldOptions, get_max_length)
   ConfigUpdate<3> msg;
   // The ten used here is defined in field_options.proto as a custom option of embedded proto.
   EXPECT_EQ(10, msg.a().get_max_length());
+  EXPECT_EQ(3, msg.enum_values().get_max_length());
 
   NestedConfigUpdate<3> msgNested;
   EXPECT_EQ(10, msgNested.update().a().get_max_length());

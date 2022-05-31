@@ -2,9 +2,16 @@ syntax = "proto3";
 
 import "embedded_proto_options.proto";
 
+enum SomeEnum {
+  SE_A = 0;
+  SE_B = 1;
+  SE_C = 2;
+}
+
 message ConfigUpdate {
   repeated uint32 a = 1 [(EmbeddedProto.options).maxLength = 10];
   repeated uint32 b = 2;
+  repeated SomeEnum enum_values = 3 [(EmbeddedProto.options).maxLength = 3];
 }
 
 message NestedConfigUpdate {
