@@ -63,13 +63,13 @@ namespace EmbeddedProto
     static constexpr bool is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
 
     //! This class only supports Field and FieldTemplate classes as template parameter.
-    static_assert(EmbeddedProto::is_base_of<::EmbeddedProto::Field, DATA_TYPE> || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(EmbeddedProto::is_base_of<MessageInterface, DATA_TYPE> 
-            || EmbeddedProto::is_base_of<internal::BaseStringBytes, DATA_TYPE>);
+          !(std::is_base_of<MessageInterface, DATA_TYPE>::value
+            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
 
     public:
 

@@ -52,7 +52,7 @@ namespace EmbeddedProto
     template<uint32_t MAX_LENGTH, class DATA_TYPE>
     class FieldStringBytes : public BaseStringBytes
     {
-      static_assert(is_same<uint8_t, DATA_TYPE> || is_same<char, DATA_TYPE>, 
+      static_assert(std::is_same<uint8_t, DATA_TYPE>::value || std::is_same<char, DATA_TYPE>::value, 
                     "This class only supports unit8_t or chars.");
 
       public:

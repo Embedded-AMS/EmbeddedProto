@@ -42,14 +42,7 @@ namespace EmbeddedProto
 
 
 #if __cplusplus >= 201703L // C++17 and up
-
-  template<class T, class U> inline constexpr auto is_same = std::is_same_v<T, U>;
-  template<class T> inline constexpr auto is_enum = std::is_enum_v<T>;
-  template<class Base, class Derived> inline constexpr auto is_base_of = std::is_base_of_v<Base, Derived>;
   
-  template<class T> using make_unsigned = typename std::make_unsigned_t<T>;
-  template<class T> using make_signed = typename std::make_signed_t<T>;
-
   template<class T>
   inline constexpr void destroy_at(T* p) 
   {
@@ -58,13 +51,6 @@ namespace EmbeddedProto
 
 #elif __cplusplus >= 201402L // C++14
 
-  template<class T, class U> constexpr auto is_same = std::is_same<T, U>::value;
-  template<class T> constexpr auto is_enum = std::is_enum<T>::value;
-  template<class Base, class Derived> constexpr auto is_base_of = std::is_base_of<Base, Derived>::value;
-  
-  template<class T> using make_unsigned = typename std::make_unsigned_t<T>;
-  template<class T> using make_signed = typename std::make_signed_t<T>;
-
   template<class T>
   constexpr void destroy_at(T* p) 
   {
@@ -72,13 +58,6 @@ namespace EmbeddedProto
   }
 
 #elif __cplusplus >= 201103L // C++11
-
-  template<class T, class U> constexpr bool is_same = std::is_same<T, U>::value;
-  template<class T> constexpr bool is_enum = std::is_enum<T>::value;
-  template<class Base, class Derived> constexpr bool is_base_of = std::is_base_of<Base, Derived>::value;
-  
-  template<class T> using make_unsigned = typename std::make_unsigned<T>::type;
-  template<class T> using make_signed = typename std::make_signed<T>::type;
 
   template<class T>
   constexpr void destroy_at(T* p) 
