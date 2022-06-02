@@ -94,12 +94,13 @@ namespace EmbeddedProto
       template<class INT_TYPE>
       static constexpr typename std::make_unsigned<INT_TYPE>::type ZigZagEncode(const INT_TYPE n) 
       {
-        constexpr uint8_t N_BITS_TO_ZIGZAG = std::numeric_limits<UINT_TYPE>::digits - 1;
         static_assert(std::is_same<INT_TYPE, int32_t>::value || 
                       std::is_same<INT_TYPE, int64_t>::value, "Wrong type passed to ZigZagEncode.");
 
-        return (static_cast<UINT_TYPE>(n) << 1) ^ static_cast<UINT_TYPE>(n >> N_BITS_TO_ZIGZAG);
         using UINT_TYPE = typename std::make_unsigned<INT_TYPE>::type;
+        // Prior to reverting back to C++11 we had defined:
+        // constexpr uint8_t N_BITS_TO_ZIGZAG = std::numeric_limits<UINT_TYPE>::digits - 1;
+        return (static_cast<UINT_TYPE>(n) << 1) ^ static_cast<UINT_TYPE>(n >> (std::numeric_limits<UINT_TYPE>::digits - 1));
       }
 
       //! Decode a signed integer using the zig zag method
