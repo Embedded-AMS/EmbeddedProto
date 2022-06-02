@@ -58,12 +58,8 @@ namespace EmbeddedProto
     template<Field::FieldTypes F, typename V, WireFormatter::WireType W>
     struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W>> : std::true_type {};
 
-    //! Definition of a trait to check if DATA_TYPE is or is not a specialization of the FieldTemplate.
-    template<typename T>
-    static constexpr bool is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
-
     //! This class only supports Field and FieldTemplate classes as template parameter.
-    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
