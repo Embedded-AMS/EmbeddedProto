@@ -67,7 +67,7 @@ namespace EmbeddedProto
 
 #else // Other
 
-  // TODO 
+  #error "Unsupported version of C++. Embedded Proto supports C++11 and up."
 
 #endif
 
