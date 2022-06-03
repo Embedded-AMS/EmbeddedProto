@@ -90,7 +90,7 @@ void clear_{{_oneof.get_name()}}()
     {% for field in _oneof.get_fields() %}
     case FieldNumber::{{field.get_variable_id_name()}}:
       {% if field.oneof_allocation_required() %}
-      std::destroy_at(&{{field.get_variable_name()}});
+      ::EmbeddedProto::destroy_at(&{{field.get_variable_name()}});
 	    {% elif field.of_type_enum %}
 	    {{field.get_variable_name()}} = {{field.get_default_value()}};
       {% else %}

@@ -37,7 +37,7 @@ inline void clear_{{field.get_name()}}()
   if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
   {
     {{field.get_which_oneof()}} = FieldNumber::NOT_SET;
-    std::destroy_at(&{{field.get_variable_name()}});
+    ::EmbeddedProto::destroy_at(&{{field.get_variable_name()}});
   }
 }
 inline void set_{{field.get_name()}}(const {{field.get_cstdint_type()}}& value)

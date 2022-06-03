@@ -31,6 +31,7 @@
 #ifndef _FIELD_STRING_BYTES_H_
 #define _FIELD_STRING_BYTES_H_
 
+#include "Defines.h"
 #include "Fields.h"
 #include "Errors.h"
 
@@ -51,7 +52,7 @@ namespace EmbeddedProto
     template<uint32_t MAX_LENGTH, class DATA_TYPE>
     class FieldStringBytes : public BaseStringBytes
     {
-      static_assert(std::is_same_v<uint8_t, DATA_TYPE> || std::is_same_v<char, DATA_TYPE>, 
+      static_assert(std::is_same<uint8_t, DATA_TYPE>::value || std::is_same<char, DATA_TYPE>::value, 
                     "This class only supports unit8_t or chars.");
 
       public:
@@ -201,8 +202,8 @@ namespace EmbeddedProto
         { 
           Error return_value = Error::NO_ERRORS;
           const auto* void_pointer = static_cast<const void*>(&(data_[0]));
-          if(const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
-             !buffer.push(byte_pointer, current_length_))
+          const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+          if(!buffer.push(byte_pointer, current_length_))
           {
             return_value = Error::BUFFER_FULL;
           }

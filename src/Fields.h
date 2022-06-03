@@ -38,8 +38,6 @@
 #include "MessageSizeCalculator.h"
 
 #include <cstdint>
-#include <memory>
-
 
 namespace EmbeddedProto 
 {
@@ -125,142 +123,16 @@ namespace EmbeddedProto
           return_value = serialize(buffer);
         }
         return return_value;
+      }   
+
+      Error serialize(WriteBufferInterface& buffer) const
+      {
+        return serialize_<FIELDTYPE>(buffer);
       }
 
-      Error serialize(WriteBufferInterface& buffer) const 
-      {
-        Error return_value = Error::NO_ERRORS;
-        if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
-        }
-        else if constexpr(Field::FieldTypes::int64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer);
-        }
-        else if constexpr(Field::FieldTypes::uint32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::uint64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::sint32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
-        }
-        else if constexpr(Field::FieldTypes::sint64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer);
-        }
-        else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
-        {
-          const uint8_t byte = get() ? 0x01 : 0x00;
-          return_value = buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL;
-        }
-        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer);
-        }
-        else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeFixedNoTag(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::fixed64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerializeFixedNoTag(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::sfixed32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerialzieSFixedNoTag(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::sfixed64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerialzieSFixedNoTag(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerialzieFloatNoTag(get(), buffer);
-        }
-        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
-        {
-          return_value = WireFormatter::SerialzieDoubleNoTag(get(), buffer);
-        }
-        else {
-          // No else
-        }
-        return return_value;
-      }
-    
       Error deserialize(ReadBufferInterface& buffer)
       {
-        Error return_value = Error::NO_ERRORS;
-        if constexpr(Field::FieldTypes::int32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::int64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::uint32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeUInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::uint64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeUInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::sint32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeSInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::sint64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeSInt(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeBool(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
-        {
-          uint32_t value = 0;
-          return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, value);
-          if(::EmbeddedProto::Error::NO_ERRORS == return_value)
-          {
-            value_ = static_cast<VARIABLE_TYPE>(value);
-          }
-        }
-        else if constexpr(Field::FieldTypes::fixed32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeFixed(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::fixed64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeFixed(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::sfixed32 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeSFixed(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::sfixed64 == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeSFixed(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeFloat(buffer, get());
-        }
-        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
-        {
-          return_value = WireFormatter::DeserializeDouble(buffer, get());
-        }
-        else {
-          // No else
-        }
-        return return_value;
+        return deserialize_<FIELDTYPE>(buffer);
       }
 
       //! \see Field::deserialize()
@@ -344,6 +216,107 @@ namespace EmbeddedProto
     private:
 
       VARIABLE_TYPE value_;
+
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int32 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int64 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint32 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint64 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint32 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint64 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const 
+      { 
+        const uint8_t byte = get() ? 0x01 : 0x00;
+        return buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL; 
+      }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed32 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed64 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed32 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed64 == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieFloatNoTag(get(), buffer); }
+
+      template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == SER_FIELDTYPE, bool>::type = true>
+      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieDoubleNoTag(get(), buffer); }
+
+
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int32 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int64 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint32 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint64 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint32 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint64 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeBool(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer)
+      { 
+        uint32_t value = 0;
+        const Error return_value = WireFormatter::DeserializeVarint(buffer, value);
+        if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+        {
+          value_ = static_cast<VARIABLE_TYPE>(value);
+        }
+        return return_value;
+      }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed32 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed64 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed32 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed64 == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFloat(buffer, get()); }
+
+      template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == DES_FIELDTYPE, bool>::type = true>
+      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeDouble(buffer, get()); }
+
   };
 
 
