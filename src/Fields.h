@@ -325,7 +325,7 @@ namespace EmbeddedProto
   using uint32 = FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>; 
   using uint64 = FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>; 
   using sint32 = FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>; 
-  using sint64 = FieldTemplate<Field::FieldTypes::sint32, int64_t, WireFormatter::WireType::VARINT>; 
+  using sint64 = FieldTemplate<Field::FieldTypes::sint64, int64_t, WireFormatter::WireType::VARINT>; 
   using boolean = FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>; 
   using fixed32 = FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>; 
   using fixed64 = FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>; 
