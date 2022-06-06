@@ -32,12 +32,11 @@
 
 ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 
+rm -rf ./code_coverage_report/*
+mkdir -p code_coverage_report
 
 if [ $# -eq 0 ]; then
   # No arguments provided, execte the analyisis for sonar qube.
-  rm -rf ./code_coverage_report/*
-  mkdir -p code_coverage_report
-
   gcovr --exclude external/ --exclude test/ --sonarqube -o code_coverage_report/coverage.xml
 
 else
@@ -45,10 +44,7 @@ else
 case "$1" in
   -l|--local)
     # Run the code coverage for local machine analysis
-    rm -rf ./code_coverage_report/*
-    lcov --directory ./build/test --capture --output-file ./code_coverage_report/total_code_coverage.info -rc lcov_branch_coverage=1
-    lcov --remove ./code_coverage_report/total_code_coverage.info $PWD'/external/googletest/*' '/usr/include/*' -o ./code_coverage_report/filtered_code_coverage.info
-    genhtml ./code_coverage_report/filtered_code_coverage.info --branch-coverage --output-directory ./code_coverage_report
+    gcovr --exclude external/ --exclude test/ --html --html-details -o code_coverage_report/index.html
     ;;
   *)
     ;;
