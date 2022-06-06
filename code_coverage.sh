@@ -37,13 +37,8 @@ if [ $# -eq 0 ]; then
   # No arguments provided, execte the analyisis for sonar qube.
   rm -rf ./code_coverage_report/*
   mkdir -p code_coverage_report
-  cd code_coverage_report
 
-  # Run gcov on the static source files.
-  gcov ../test/*.cpp --object-directory ../build/test/CMakeFiles/test_EmbeddedProto.dir/test/ 
-  gcov ../src/*.cpp --object-directory ../build/test/CMakeFiles/test_EmbeddedProto.dir/src/
-
-  cd -
+  gcovr --exclude external/ --exclude test/ --sonarqube -o code_coverage_report/coverage.xml
 
 else
 # Pass commands
