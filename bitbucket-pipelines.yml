@@ -23,7 +23,7 @@ pipelines:
           - build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
           
           - cd -
-          - export SONAR_SCANNER_OPTS="-Xmx1024m"
+          - export SONAR_SCANNER_OPTS="-Xmx2048m"
           - sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=$SONAR_LOGIN
                  
 definitions:
