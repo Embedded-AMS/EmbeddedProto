@@ -8,11 +8,11 @@ pipelines:
     - step:    
         caches:
           - git-modules
+          - sonar
         script: 
           - add-apt-repository ppa:ubuntu-toolchain-r/test -y
           - apt-get update
-          - apt-get install -y jq gcc-9 g++-9 unzip cmake lib32ncurses6 lib32z1 lib32stdc++6 python3-venv
-          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
+          - apt-get install -y jq gcc-9 g++-9 unzip cmake lib32ncurses6 lib32z1 lib32stdc++6 python3-venv gcovr
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
 
@@ -24,10 +24,11 @@ pipelines:
           - build-wrapper-linux-x86-64 --out-dir SonarQube-output make clean all
           
           - cd -
-          - export SONAR_SCANNER_OPTS="-Xmx1024m"
+          - export SONAR_SCANNER_OPTS="-Xmx2048m"
           - sonar-scanner -Dproject.settings=sonar-project.properties -Dsonar.login=$SONAR_LOGIN
                  
 definitions:
   caches:
     git-modules: .git/modules
+    sonar: .sonar/cache
 

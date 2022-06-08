@@ -28,39 +28,52 @@
  *    the Netherlands
  */
 
-syntax = "proto3";
+#ifndef _EMBEDDED_PROTO_DEFINES_H_
+#define _EMBEDDED_PROTO_DEFINES_H_
 
-import "embedded_proto_options.proto";
+#include <type_traits>
 
-package Options;
+#if __cplusplus >= 201703L // C++17 and up
+#include <memory>
+#endif
 
-enum SomeEnum {
-  SE_A = 0;
-  SE_B = 1;
-  SE_C = 2;
-}
+namespace EmbeddedProto
+{
 
-message ConfigUpdate {
-  repeated uint32 a = 1 [(EmbeddedProto.options).maxLength = 10];
-  repeated uint32 b = 2;
-  repeated SomeEnum enum_values = 3 [(EmbeddedProto.options).maxLength = 3];
-}
 
-message NestedConfigUpdate {
-  ConfigUpdate update = 1;
-}
-
-message BytesMaxLength {
-  bytes b = 1 [(EmbeddedProto.options).maxLength = 100];
-}
-
-message StringMaxLength {
-  string s = 1 [(EmbeddedProto.options).maxLength = 256];
-}
-
-message OneofWithMaxLength {
-  oneof content {
-    bytes b = 1 [(EmbeddedProto.options).maxLength = 100];
-    string s = 2 [(EmbeddedProto.options).maxLength = 256];
+#if __cplusplus >= 201703L // C++17 and up
+  
+  template<class T>
+  inline constexpr void destroy_at(T* p) 
+  {
+    std::destroy_at(p);
   }
+
+#elif __cplusplus >= 201402L // C++14
+
+  template<class T>
+  constexpr void destroy_at(T* p) 
+  {
+    p->~T(); 
+  }
+
+#elif __cplusplus >= 201103L // C++11
+
+  template<class T>
+  constexpr void destroy_at(T* p) 
+  {
+    p->~T(); 
+  }
+
+#else // Other
+
+  #error "Unsupported version of C++. Embedded Proto supports C++11 and up."
+
+#endif
+
+
+
+
 }
+
+#endif //_EMBEDDED_PROTO_DEFINES_H_

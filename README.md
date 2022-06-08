@@ -31,6 +31,11 @@ This document details the following:
 
 # What is new
 
+## 3.1.0
+The most notable improvements in this version are:
+* Reworked code to extend the support back to C++11.
+* Worked on optimzing running the code coverage in Sonarqube.
+
 ## 3.0.0
 The most notable improvements in this version are:
 * The length of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
@@ -156,6 +161,9 @@ If you are developing a commercial product you need to buy a commercial license 
 
 You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
 
+# Give your feedback
+
+[![alt text](https://embeddedproto.com/wp-content/uploads/2022/06/feedback.png)](https://embeddedproto.com/feedback/)
 
 # Gratitude
 
