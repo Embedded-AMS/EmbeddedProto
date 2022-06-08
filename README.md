@@ -156,6 +156,9 @@ If you are developing a commercial product you need to buy a commercial license 
 
 You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
 
+# Give your feedback
+
+[![alt text](https://embeddedproto.com/wp-content/uploads/2022/06/feedback.png)](https://embeddedproto.com/feedback/)
 
 # Gratitude
 
