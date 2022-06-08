@@ -31,6 +31,7 @@
 #ifndef _REPEATED_FIELD_H_
 #define _REPEATED_FIELD_H_
 
+#include "Defines.h"
 #include "Fields.h"
 #include "MessageInterface.h"
 #include "MessageSizeCalculator.h"
@@ -39,7 +40,6 @@
 #include "Errors.h"
 
 #include <cstdint>
-#include <type_traits>
 
 
 namespace EmbeddedProto
@@ -58,18 +58,14 @@ namespace EmbeddedProto
     template<Field::FieldTypes F, typename V, WireFormatter::WireType W>
     struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W>> : std::true_type {};
 
-    //! Definition of a trait to check if DATA_TYPE is or is not a specialization of the FieldTemplate.
-    template<typename T>
-    static constexpr bool is_specialization_of_FieldTemplate_v = is_specialization_of_FieldTemplate<T>::value;
-
     //! This class only supports Field and FieldTemplate classes as template parameter.
-    static_assert(std::is_base_of_v<::EmbeddedProto::Field, DATA_TYPE> || is_specialization_of_FieldTemplate_v<DATA_TYPE>, 
+    static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
                   "A Field can only be used as template paramter.");
 
     //! Check how this field shoeld be serialized, packed or not.
     static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of_v<MessageInterface, DATA_TYPE> 
-            || std::is_base_of_v<internal::BaseStringBytes, DATA_TYPE>);
+          !(std::is_base_of<MessageInterface, DATA_TYPE>::value
+            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
 
     public:
 
@@ -317,7 +313,8 @@ namespace EmbeddedProto
 
         // For repeated messages, strings or bytes
         // First allocate an element in the array.
-        if(const uint32_t index = this->get_length(); this->get_max_length() > index)
+        const uint32_t index = this->get_length();
+        if(this->get_max_length() > index)
         {
           // For messages read the size here, with strings and byte arrays this is include in 
           // deserialize.
