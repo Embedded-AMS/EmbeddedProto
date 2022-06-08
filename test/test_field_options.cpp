@@ -46,19 +46,20 @@ namespace test_EmbeddedAMS_FieldOptions
 {
 TEST(FieldOptions, get_max_length) 
 {
-  ConfigUpdate<3> msg;
+  Options::ConfigUpdate<3> msg;
   // The ten used here is defined in field_options.proto as a custom option of embedded proto.
   EXPECT_EQ(10, msg.a().get_max_length());
+  EXPECT_EQ(3, msg.enum_values().get_max_length());
 
-  NestedConfigUpdate<3> msgNested;
+  Options::NestedConfigUpdate<3> msgNested;
   EXPECT_EQ(10, msgNested.update().a().get_max_length());
 
 
-  BytesMaxLength bMsg;
+  Options::BytesMaxLength bMsg;
   EXPECT_EQ(100, bMsg.get_b().get_max_length());
 
 
-  StringMaxLength sMsg;
+  Options::StringMaxLength sMsg;
   EXPECT_EQ(256, sMsg.get_s().get_max_length());
 
 }
@@ -67,7 +68,7 @@ TEST(FieldOptions, oneof_clear)
 {
   // When in a oneof the clear function is influenced by the get_short_type function which changed 
   // for the options.
-  OneofWithMaxLength msg;
+  Options::OneofWithMaxLength msg;
   uint8_t data[] = {1, 2, 3, 4, 5};
   msg.mutable_b().set(data, 5);
   EXPECT_EQ(100, msg.get_b().get_max_length());
