@@ -1,6 +1,5 @@
 Jinja2==3.0.3
 MarkupSafe==2.0.1
-pkg_resources==0.0.0
 protobuf==3.19.4
 six==1.16.0
 toposort==1.7
