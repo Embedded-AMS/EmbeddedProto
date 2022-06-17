@@ -33,7 +33,7 @@
 
 :: Setup the virtual envirounment for Python packages
 python -m venv venv
-call (.\venv\Scripts\activate.bat & pip install -r requirements.txt & .\venv\Scripts\deactivate.bat)
+.\venv\Scripts\pip.exe install -r requirements.txt
 
 :: Build the protobuf extension file used to include Embedded Proto custom options: 
 :: embedded_proto_options_pb2.py. Read from the parameters the location of the 
