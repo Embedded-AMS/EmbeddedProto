@@ -94,7 +94,7 @@ For this reason it is unlikely that Embedded Proto will support proto2 in the fu
 What is required to be able to generate source files based on .proto files:
 1. Python 3.8 and up
 2. Pip
-3. Protobuf 3.17.3 and up
+3. Protobuf 3.19.4 (Higher is not yet supported due to breaking changes in version 4.20 and up)
 4. Git
 
 After installing the requirements continue by cloning the Embedded Proto repo:
