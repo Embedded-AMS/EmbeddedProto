@@ -45,9 +45,9 @@ def check_version(request, response):
     
     module_version_str = version('protobuf')    
     module_version = re.search(r"(\w+).(\w+).(\w+)", module_version_str)
-    module_major = module_version.group(1)
-    module_minor = module_version.group(2)
-    module_patch = module_version.group(3)
+    module_major = int(module_version.group(1))
+    module_minor = int(module_version.group(2))
+    module_patch = int(module_version.group(3))
     
     if (request.compiler_version.major == module_major) and \
        (request.compiler_version.minor == module_minor):
@@ -164,7 +164,7 @@ def main_plugin():
 
     # If the options if is not generated only give an error when the --no-options-file parameters 
     # is not set.
-    elif import_error and not '--no-options-file' in sys.argv:
+    elif import_exception and not '--no-options-file' in sys.argv:
         response.error = "Embedded Proto ERROR - The Embedded Proto Options file 'generator/" \
                          "embedded_proto_options_pb2.py' is missing.\n" \
                          "When installing or updating Embedded Proto did the setup script run " \
@@ -243,7 +243,7 @@ def main_cli():
 
         # If the options if is not generated only give an error when the --no-options-file parameters 
         # is not set.
-        elif import_error and not '--no-options-file' in sys.argv:
+        elif import_exception and not '--no-options-file' in sys.argv:
             response.error = "Embedded Proto ERROR - The Embedded Proto Options file 'generator/" \
                              "embedded_proto_options_pb2.py' is missing.\n" \
                              "When installing or updating Embedded Proto did the setup script run " \
