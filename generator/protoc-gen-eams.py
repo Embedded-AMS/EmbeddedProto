@@ -117,7 +117,7 @@ def main_plugin():
         response.error = "Embedded Proto error - The Embedded Proto Options file 'generator/" \
                          "embedded_proto_options_pb2.py' is missing.\n" \
                          "When installing or updating Embedded Proto did the setup script run " \
-                         "without errors? The script should have generated the file. You could "
+                         "without errors? The script should have generated the file. You could " \
                          "rerun the script now.\n\n" \
                          "To ignore this error add the parameter --no-options-file in the file protoc-gen-eams.sh on Linux or " \
                          "proto-gen-eams.bat on Windows. For example: \n\n" \

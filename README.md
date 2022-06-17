@@ -110,9 +110,9 @@ On Linux:
 
 On Windows:
 ```bash
-.\setup.bat C:\protobuf\src
+.\setup.bat C:\protoc-XX.Y-win64
 ```
-In which `C:\protobuf\src` referse to the folder in which you installed Google Protobuf.
+In which `C:\protoc-XX.Y-win64` refers to the folder in which you installed the Google Protobuf compiler protoc.
 
 After running the setup script you are ready to use Embedded Proto.
 

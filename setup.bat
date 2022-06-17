@@ -37,12 +37,14 @@ python -m venv venv
 
 :: Build the protobuf extension file used to include Embedded Proto custom options: 
 :: embedded_proto_options_pb2.py. Read from the parameters the location of the 
-:: google/protobuf/descriptor.proto file. This should be in your protobuf\src folder.
+:: google/protobuf/descriptor.proto file. This should be in your protoc-XX.Y-win64\include folder.
 IF [%1] == [] ( 
+  echo.
   echo Warning:
-  echo   Unable to generate embedded_proto_options_pb2.py because no commandline parameter for 
-  echo   google/protobuf/descriptor.proto location was given.
-  echo   This means you will be unable to use Embedded Proto custom options in your proto files.
+  echo   Unable to generate embedded_proto_options_pb2.py because the protoc folder was not 
+  echo   provided as a parameter. Please refere to the README.md or the windows installation 
+  echo   documentation.
+  echo.
 ) ELSE (
   protoc -I%1 -I.\generator --python_out=.\generator .\generator\embedded_proto_options.proto 
 )
