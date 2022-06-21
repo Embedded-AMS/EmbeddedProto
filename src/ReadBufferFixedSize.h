@@ -45,14 +45,10 @@ namespace EmbeddedProto
   class ReadBufferFixedSize : public ::EmbeddedProto::ReadBufferInterface
   {
     public:
-      ReadBufferFixedSize()
-        : data_{0},
-          write_index_(0),
-          read_index_(0)
-      {
+      //! The default constructor which initializes everything at zero.
+      ReadBufferFixedSize() = default;
 
-      }
-
+      //! The default destructor.
       ~ReadBufferFixedSize() override = default;
 
       //! \see ::EmbeddedProto::ReadBufferInterface::get_size()
@@ -93,7 +89,7 @@ namespace EmbeddedProto
       bool advance(const uint32_t N) override
       {
         const uint32_t new_read_index = read_index_ + N;
-        const bool return_value = write_index_ > new_read_index;
+        const bool return_value = write_index_ >= new_read_index;
         if(return_value)
         {
           read_index_ = new_read_index;
@@ -105,7 +101,8 @@ namespace EmbeddedProto
       bool pop(uint8_t& byte) override
       {
         const bool return_value = write_index_ > read_index_;
-        if(return_value) {
+        if(return_value)
+        {
           byte = data_[read_index_];
           ++read_index_;
         }
@@ -150,13 +147,13 @@ namespace EmbeddedProto
     private:
 
       //! The array in which the data received over uart is stored.
-      std::array<uint8_t, BUFFER_SIZE> data_;
+      std::array<uint8_t, BUFFER_SIZE> data_ = {0};
 
       //! The number of bytes currently received and stored in the data array.
-      uint32_t write_index_;
+      uint32_t write_index_ = 0;
 
       //! The number of bytes read from the data array.
-      uint32_t read_index_;
+      uint32_t read_index_ = 0;
   };
 
 } // namespace EmbeddedProto

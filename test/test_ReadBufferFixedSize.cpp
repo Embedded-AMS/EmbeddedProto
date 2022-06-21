@@ -46,7 +46,7 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
     EXPECT_FALSE(buffer.peek(byte));
     EXPECT_EQ(255, byte);
     EXPECT_FALSE(buffer.advance());
-    EXPECT_FALSE(buffer.advance(0));
+    EXPECT_FALSE(buffer.advance(1));
     EXPECT_FALSE(buffer.pop(byte));
   }
 
@@ -133,4 +133,28 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
     EXPECT_FALSE(buffer.peek(byte));
   }
 
+  TEST(ReadBufferFixedSize, advance)
+  {
+    constexpr uint32_t BUFFER_SIZE = 3;
+    EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> buffer;
+
+    EXPECT_TRUE(buffer.push(0));
+    EXPECT_TRUE(buffer.advance());
+    EXPECT_FALSE(buffer.advance());
+
+    EXPECT_TRUE(buffer.push(1));
+    EXPECT_TRUE(buffer.push(2));
+    EXPECT_TRUE(buffer.advance());
+    EXPECT_TRUE(buffer.advance());
+
+    buffer.clear();
+    EXPECT_FALSE(buffer.advance());
+
+    EXPECT_TRUE(buffer.push(0));
+    EXPECT_TRUE(buffer.push(1));
+
+    EXPECT_TRUE(buffer.advance(2));
+    EXPECT_FALSE(buffer.advance(2));
+
+  }
 } // End of namespace test_EmbeddedAMS_ReadBufferFixedSize
