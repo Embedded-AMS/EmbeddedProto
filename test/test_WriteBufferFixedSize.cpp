@@ -85,4 +85,15 @@ namespace test_EmbeddedAMS_WriteBufferFixedSize
     EXPECT_EQ(1, buffer.get_available_size());
   }
 
+  TEST(WriteBufferFixedSize, clear) 
+  {
+    constexpr uint32_t BUFFER_SIZE = 3;
+    EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> buffer;
+
+    EXPECT_TRUE(buffer.push(0));
+    EXPECT_EQ(2, buffer.get_available_size());
+    buffer.clear();
+    EXPECT_EQ(3, buffer.get_available_size());
+  }
+
 } // End of namespace test_EmbeddedAMS_WriteBufferFixedSize
