@@ -110,7 +110,7 @@ namespace EmbeddedProto
       }
 
       //! Return a pointer to the data array. Use set_bytes_written() when adding data to the array.
-      uint8_t* get_data_array()
+      uint8_t* get_data()
       {
         return data_.data();
       }
