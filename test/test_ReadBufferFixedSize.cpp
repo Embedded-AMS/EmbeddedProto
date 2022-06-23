@@ -68,14 +68,14 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
     EXPECT_EQ(3, buffer.get_size());
   }
 
-  TEST(ReadBufferFixedSize, get_data_array)
+  TEST(ReadBufferFixedSize, get_data)
   {
     constexpr uint32_t BUFFER_SIZE = 3;
     EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> buffer;
 
     constexpr std::array<uint8_t, BUFFER_SIZE> data = { 0, 1, 2 };
 
-    memcpy(buffer.get_data_array(), data.data(), BUFFER_SIZE);
+    memcpy(buffer.get_data(), data.data(), BUFFER_SIZE);
     buffer.set_bytes_written(BUFFER_SIZE);
     EXPECT_EQ(BUFFER_SIZE, buffer.get_size());
   }
@@ -87,7 +87,7 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
 
     constexpr std::array<uint8_t, BUFFER_SIZE> data = { 0, 1, 2 };
 
-    memcpy(buffer.get_data_array(), data.data(), BUFFER_SIZE);
+    memcpy(buffer.get_data(), data.data(), BUFFER_SIZE);
     buffer.set_bytes_written(BUFFER_SIZE);
   
     uint8_t byte = 255;
@@ -107,7 +107,7 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
     EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> buffer;
     constexpr std::array<uint8_t, BUFFER_SIZE> data = { 0, 1, 2 };
 
-    memcpy(buffer.get_data_array(), data.data(), BUFFER_SIZE);
+    memcpy(buffer.get_data(), data.data(), BUFFER_SIZE);
     buffer.set_bytes_written(BUFFER_SIZE);
 
 
