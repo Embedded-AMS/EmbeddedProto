@@ -246,6 +246,30 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
     }
 
+    static char const* field_number_to_name(const FieldNumber fieldNumber)
+    {
+      char const* name = nullptr;
+      switch(fieldNumber)
+      {
+        {% for field in typedef.fields %}
+        case FieldNumber::{{field.get_variable_id_name()}}:
+          name = {{field.get_name()|upper}}_NAME;
+          break;
+        {% endfor %}
+        {% for oneof in typedef.oneofs %}
+        {% for field in oneof.fields %}
+        case FieldNumber::{{field.get_variable_id_name()}}:
+          name = {{field.get_name()|upper}}_NAME;
+          break;
+        {% endfor %}
+        {% endfor %}
+        default:
+          name = "Invalid FieldNumber";
+          break;
+      }
+      return name;
+    }
+
     private:
 
       {% if typedef.optional_fields is defined and typedef.optional_fields|length > 0 %}
