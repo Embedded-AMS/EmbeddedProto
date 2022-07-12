@@ -37,6 +37,7 @@
 #include <cstdint>    
 #include <limits> 
 #include <array>
+#include <string.h>
 
 // EAMS message definitions
 #include <oneof_fields.h>
@@ -440,3 +441,14 @@ TEST(OneofField, sb_oneof_serialize_empty)
 
 }
 
+TEST(OneofField, field_number_to_name)
+{
+  EXPECT_TRUE(0 == strcmp(::message_oneof::field_number_to_name(::message_oneof::FieldNumber::X),
+                          "x"));
+
+  EXPECT_TRUE(0 == strcmp(::message_oneof::field_number_to_name(::message_oneof::FieldNumber::STATE),
+                          "state"));
+
+  EXPECT_TRUE(0 == strcmp(::message_oneof::field_number_to_name(::message_oneof::FieldNumber::MSG_ABC),
+                          "msg_ABC"));
+}

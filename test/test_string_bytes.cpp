@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <limits>
 #include <array>
+#include <string.h>
 
 // EAMS message definitions
 #include <string_bytes.h>
@@ -642,6 +643,17 @@ TEST(RepeatedStringBytes, deserialize)
   EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3"); 
 }
 
+TEST(RepeatedStringBytes, field_number_to_name)
+{
+  using RSB = repeated_string_bytes<3, 15, 3, 15, 3, 3>;
+  RSB msg;
+
+  EXPECT_TRUE(0 == strcmp(RSB::field_number_to_name(RSB::FieldNumber::ARRAY_OF_TXT),
+                          "array_of_txt"));
+
+  EXPECT_TRUE(0 == strcmp(RSB::field_number_to_name(RSB::FieldNumber::NESTED_BYTES),
+                          "nested_bytes"));
+}
 
 
 } // End of namespace test_EmbeddedAMS_string_bytes
