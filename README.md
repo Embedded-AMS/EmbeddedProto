@@ -105,12 +105,12 @@ Enter the new folder and a terminal to run the setup script. Depending on your s
 
 On Linux:
 ```bash
-./setup.sh
+python setup.py
 ```
 
 On Windows:
 ```bash
-.\setup.bat C:\protoc-XX.Y-win64
+python setup.py --include C:\protoc-XX.Y-win64
 ```
 In which `C:\protoc-XX.Y-win64` refers to the folder in which you installed the Google Protobuf compiler protoc.
 

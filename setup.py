@@ -56,8 +56,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This script will setup the environment to generate source code in "
                                                  "your project.")
     parser.add_argument('-I', '--include', required=on_windows, action=ReadableDir,
-                        help="On Windows provide the folder in which you installed the Google Protobuf compiler "
-                             "protoc.")
+                        help="Required on Windows. Provide the folder in which you installed the Google Protobuf "
+                             "compiler protoc. For Linux this is optional if you installed protoc in a custom folder.")
 
     args = parser.parse_args()
 
