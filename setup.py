@@ -49,18 +49,84 @@ def read_required_version():
         raise Exception("Unable to find protobuf version in requirements.txt.")
 
 
+def check_protoc_version():
+    # Protobuf has a version numbering change with version 3.21.0. The python packages got a major rewrite at this
+    # point. Therefore the python package got a major version update (4.21.0). After this point, the protoc version
+    # is indicated as v21.0 without the major version. The minor version between protoc and the python protobuf
+    # package should match.
+
+    print("\nChecking your protoc version.")
+    output = subprocess.run(["protoc", "--version"], check=True, capture_output=True)
+    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
+    installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
+    required_version = read_required_version()
+
+    if installed_version.group('minor') != required_version.group('minor'):
+        text = "\n"
+        text += "The version of protoc (v{0}.{1})".format(installed_version.group('minor'),
+                                                         installed_version.group('patch'))
+        text += " you have installed is not compatible with the version of\nthe protobuf python package " \
+                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
+        text += "Embedded Proto requires. These are your options:\n" \
+                "\t1. Install a matching version of protoc.\n" \
+                "\t2. Change the version of Embedded Proto.\n"
+
+        # Check if all versions are above v21.0
+        if (21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor'))):
+            while True:
+                text += "\t3. Ignore the difference at your own risk!\n" \
+                        "Ignore the difference [Y/n]: "
+
+                user_input = input(text)
+                if ('Y' == user_input) or ('y' == user_input):
+                    # Continue the setup
+                    print("Ignoring the difference.")
+                    break
+                elif ('N' == user_input) or ('n' == user_input):
+                    # Stop the setup.
+                    display_feedback()
+                    print("Stopping the setup.")
+                    exit(1)
+        else:
+            # We can only stop if we have a version prior to v21.0.
+            print(text)
+            display_feedback()
+            print("Stopping the setup.")
+            exit(1)
+
+
 ####################################################################################
 
-# This class is used to check if the --include path provided as a parameter is a valid directory.
+def display_feedback():
+    text = "\n"
+    text += "================================================================================\n"
+    text += "|                                                                              |\n"
+    text += "| Three simple things you can do to improve Embedded Proto:                    |\n"
+    text += "|  * Give private feedback:                                                    |\n"
+    text += "|        https://EmbeddedProto.com/feedback                                    |\n"
+    text += "|  * Report an issue in public on Github:                                      |\n"
+    text += "|        https://github.com/Embedded-AMS/EmbeddedProto/issues                  |\n"
+    text += "|  * Stay up to date on Embedded Proto via our User mailing list:              |\n"
+    text += "|        https://EmbeddedProto.com/signup                                      |\n"
+    text += "|                                                                              |\n"
+    text += "================================================================================\n"
+
+    print(text)
+
+
+####################################################################################
+
 class ReadableDir(argparse.Action):
+    # This class is used to check if the --include path provided as a parameter is a valid directory.
+
     def __call__(self, parser, namespace, values, option_string=None):
         prospective_dir = values
         if not os.path.isdir(prospective_dir):
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a valid path".format(prospective_dir))
+            raise argparse.ArgumentTypeError("readable_dir: \"{0}\" is not a valid path".format(prospective_dir))
         if os.access(prospective_dir, os.R_OK):
             setattr(namespace, self.dest, prospective_dir)
         else:
-            raise argparse.ArgumentTypeError("readable_dir:{0} is not a readable dir".format(prospective_dir))
+            raise argparse.ArgumentTypeError("readable_dir: \"{0}\" is not a readable dir".format(prospective_dir))
 
 
 ####################################################################################
@@ -80,65 +146,30 @@ if __name__ == "__main__":
 
     try:
         # ---------------------------------------
-        print("Checking your protoc version.")
-        output = subprocess.run(["protoc", "--version"], check=True, capture_output=True)
-        version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
-        installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
-        required_version = read_required_version()
-        # Protobuf has a version numbering change with version 3.21.0. The python packages got a major rewrite at this
-        # point. Therefore the python package got a major version update (4.21.0). After this point, the protoc version
-        # is indicated as v21.0 without the major version. The minor version between protoc and the python protobuf
-        # package should match.
-        if installed_version.group('minor') != required_version.group('minor'):
-            text = "The version of protoc (v{0}.{1})".format(installed_version.group('minor'),
-                                                             installed_version.group('patch'))
-            text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                    "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
-            text += "Embedded Proto requires. These are your options:\n" \
-                    "\t1. Install a matching version of protoc.\n" \
-                    "\t2. Change the version of Embedded Proto.\n"
-
-            # Check if all versions are above v21.0
-            if (21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor'))):
-                while True:
-                    text += "\t3. Ignore the difference at your own risk!\n" \
-                            "Ignore the difference [Y/n]: "
-
-                    user_input = input(text)
-                    if ('Y' == user_input) or ('y' == user_input):
-                        # Continue the setup
-                        print("Ignoring the difference.")
-                        break
-                    elif ('N' == user_input) or ('n' == user_input):
-                        # Stop the setup.
-                        print("Stopping the setup.")
-                        exit(1)
-            else:
-                # We can only stop if we have a version prior to v21.0.
-                print(text)
-                print("Stopping the setup.")
-                exit(1)
+        check_protoc_version()
 
         # ---------------------------------------
-        print("Creating a virtual environment for Embedded Proto.")
+        print("\nCreating a virtual environment for Embedded Proto.")
         subprocess.run(["python", "-m", "venv", "venv"], check=True)
 
         # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.")
+        print("\nInstalling requirement Python packages in the virtual environment.")
         if on_windows:
             subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True)
         else:
             subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True)
 
         # ---------------------------------------
-        print("Build the protobuf extension file used to include Embedded Proto custom options.")
+        print("\nBuild the protobuf extension file used to include Embedded Proto custom options.")
         command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
         if args.include is not None:
             command.extend(["-I", str(args.include)])
         subprocess.run(command, check=True)
 
         # ---------------------------------------
-        print("Setup completed without errors.")
+
+        display_feedback()
+        print("Setup completed with success!")
 
     except Exception as e:
         print("Error: " + str(e))
