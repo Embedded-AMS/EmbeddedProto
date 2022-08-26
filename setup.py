@@ -72,7 +72,8 @@ def check_protoc_version():
                 "\t2. Change the version of Embedded Proto.\n"
 
         # Check if all versions are above v21.0
-        if (21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor'))):
+        if ((21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor')))) or \
+                ((21 > int(installed_version.group('minor'))) and (21 > int(required_version.group('minor')))):
             while True:
                 text += "\t3. Ignore the difference at your own risk!\n" \
                         "Ignore the difference [Y/n]: "
