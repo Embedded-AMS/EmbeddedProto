@@ -64,7 +64,7 @@ def check_protoc_version():
     if installed_version.group('minor') != required_version.group('minor'):
         text = "\n"
         text += "The version of protoc (v{0}.{1})".format(installed_version.group('minor'),
-                                                         installed_version.group('patch'))
+                                                          installed_version.group('patch'))
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
                 "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
         text += "Embedded Proto requires. These are your options:\n" \
@@ -137,11 +137,12 @@ if __name__ == "__main__":
     # See on which platform we are running.
     on_windows = "Windows" == platform.system()
 
-    parser = argparse.ArgumentParser(description="This script will setup the environment to generate source code in "
-                                                 "your project.")
+    parser = argparse.ArgumentParser(description="This script will setup the environment to generate Embedded Proto "
+                                                 "code in your project.")
     parser.add_argument('-I', '--include', required=on_windows, action=ReadableDir,
                         help="Required on Windows. Provide the folder in which you installed the Google Protobuf "
-                             "compiler protoc. For Linux this is optional if you installed protoc in a custom folder.")
+                             "compiler protoc. For Linux this is optional. Provide it when you installed protoc in a "
+                             "custom folder.")
 
     args = parser.parse_args()
 
