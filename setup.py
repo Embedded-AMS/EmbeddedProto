@@ -33,6 +33,11 @@ import argparse
 import platform
 import os
 import re
+from sys import version
+import venv
+
+# The required version of Python.
+REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
 
 
 ####################################################################################
@@ -51,11 +56,11 @@ def read_required_version():
 
 def check_protoc_version():
     # Protobuf has a version numbering change with version 3.21.0. The python packages got a major rewrite at this
-    # point. Therefore the python package got a major version update (4.21.0). After this point, the protoc version
-    # is indicated as v21.0 without the major version. The minor version between protoc and the python protobuf
+    # point. Therefore the python package got a major version update (4.21.0). After this point, the Protoc version
+    # is indicated as v21.0 without the major version. The minor version between Protoc and the python protobuf
     # package should match.
 
-    print("\nChecking your protoc version.")
+    print("Checking your Protoc version.")
     output = subprocess.run(["protoc", "--version"], check=True, capture_output=True)
     version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
@@ -63,12 +68,12 @@ def check_protoc_version():
 
     if installed_version.group('minor') != required_version.group('minor'):
         text = "\n"
-        text += "The version of protoc (v{0}.{1})".format(installed_version.group('minor'),
-                                                         installed_version.group('patch'))
+        text += "The version of Protoc (v{0}.{1})".format(installed_version.group('minor'),
+                                                          installed_version.group('patch'))
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
                 "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
         text += "Embedded Proto requires. These are your options:\n" \
-                "\t1. Install a matching version of protoc.\n" \
+                "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
 
         # Check if all versions are above v21.0
@@ -85,13 +90,11 @@ def check_protoc_version():
                     break
                 elif ('N' == user_input) or ('n' == user_input):
                     # Stop the setup.
-                    display_feedback()
                     print("Stopping the setup.")
                     exit(1)
         else:
             # We can only stop if we have a version prior to v21.0.
             print(text)
-            display_feedback()
             print("Stopping the setup.")
             exit(1)
 
@@ -137,39 +140,52 @@ if __name__ == "__main__":
     # See on which platform we are running.
     on_windows = "Windows" == platform.system()
 
-    parser = argparse.ArgumentParser(description="This script will setup the environment to generate source code in "
-                                                 "your project.")
+    parser = argparse.ArgumentParser(description="This script will setup the environment to generate Embedded Proto "
+                                                 "code in your project.")
     parser.add_argument('-I', '--include', required=on_windows, action=ReadableDir,
                         help="Required on Windows. Provide the folder in which you installed the Google Protobuf "
-                             "compiler protoc. For Linux this is optional if you installed protoc in a custom folder.")
+                             "compiler Protoc. For Linux this is optional. Provide it when you installed Protoc in a "
+                             "custom folder.")
+
+    display_feedback()
 
     args = parser.parse_args()
 
     try:
+
+        # ---------------------------------------
+        # Check the version of Python
+        print("Checking the version of Python")
+        version_str = version.split(' ')[0]
+        major, minor, patch = list(map(int, version_str.split('.')))
+        if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
+                                                    (minor < REQ_PYTHO_VERSION["minor"])):
+            print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
+                  "for Embedded Proto".format(REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]))
+            exit(1)
+
         # ---------------------------------------
         check_protoc_version()
 
         # ---------------------------------------
-        print("\nCreating a virtual environment for Embedded Proto.")
-        subprocess.run(["python", "-m", "venv", "venv"], check=True)
+        print("Creating a virtual environment for Embedded Proto.")
+        venv.create("venv", with_pip=True)
 
         # ---------------------------------------
-        print("\nInstalling requirement Python packages in the virtual environment.")
+        print("Installing requirement Python packages in the virtual environment.")
         if on_windows:
-            subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True)
+            subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
         else:
-            subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True)
+            subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
 
         # ---------------------------------------
-        print("\nBuild the protobuf extension file used to include Embedded Proto custom options.")
+        print("Build the protobuf extension file used to include Embedded Proto custom options.")
         command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
         if args.include is not None:
             command.extend(["-I", str(args.include)])
-        subprocess.run(command, check=True)
+        subprocess.run(command, check=True, capture_output=True)
 
         # ---------------------------------------
-
-        display_feedback()
         print("Setup completed with success!")
 
     except Exception as e:
