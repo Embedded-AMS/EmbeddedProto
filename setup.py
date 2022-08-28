@@ -151,21 +151,21 @@ if __name__ == "__main__":
 
         # ---------------------------------------
         print("\nCreating a virtual environment for Embedded Proto.")
-        subprocess.run(["python", "-m", "venv", "venv"], check=True)
+        subprocess.run(["python", "-m", "venv", "venv"], check=True, capture_output=True)
 
         # ---------------------------------------
         print("\nInstalling requirement Python packages in the virtual environment.")
         if on_windows:
-            subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True)
+            subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
         else:
-            subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True)
+            subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
 
         # ---------------------------------------
         print("\nBuild the protobuf extension file used to include Embedded Proto custom options.")
         command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
         if args.include is not None:
             command.extend(["-I", str(args.include)])
-        subprocess.run(command, check=True)
+        subprocess.run(command, check=True, capture_output=True)
 
         # ---------------------------------------
 
