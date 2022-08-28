@@ -34,6 +34,7 @@ import platform
 import os
 import re
 from sys import version
+import venv
 
 # The required version of Python.
 REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
@@ -167,8 +168,8 @@ if __name__ == "__main__":
         check_protoc_version()
 
         # ---------------------------------------
-        subprocess.run(["python", "-m", "venv", "venv"], check=True, capture_output=True)
         print("Creating a virtual environment for Embedded Proto.")
+        venv.create("venv", with_pip=True)
 
         # ---------------------------------------
         print("Installing requirement Python packages in the virtual environment.")
