@@ -49,8 +49,7 @@ def check_version(request, response):
     module_minor = int(module_version.group(2))
     module_patch = int(module_version.group(3))
     
-    if (request.compiler_version.major == module_major) and \
-       (request.compiler_version.minor == module_minor):
+    if request.compiler_version.minor == module_minor:
         return True
     else:
         protoc_version_str = "{major}.{minor}.{patch}".format(major=request.compiler_version.major, 
