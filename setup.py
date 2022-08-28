@@ -105,7 +105,7 @@ def display_feedback():
     text = "\n"
     text += "================================================================================\n"
     text += "|                                                                              |\n"
-    text += "| Three simple things you can do to improve Embedded Proto:                    |\n"
+    text += "| Three simple things you can do to help improve Embedded Proto:               |\n"
     text += "|  * Give private feedback:                                                    |\n"
     text += "|        https://EmbeddedProto.com/feedback                                    |\n"
     text += "|  * Report an issue in public on Github:                                      |\n"
