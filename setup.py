@@ -33,6 +33,10 @@ import argparse
 import platform
 import os
 import re
+from sys import version
+
+# The required version of Python.
+REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
 
 
 ####################################################################################
@@ -147,6 +151,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
+
+        # ---------------------------------------
+        # Check the version of Python
+        print("Checking the version of Python")
+        version_str = version.split(' ')[0]
+        major, minor, patch = list(map(int, version_str.split('.')))
+        if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
+                                                    (minor < REQ_PYTHO_VERSION["minor"])):
+            print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
+                  "for Embedded Proto".format(REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]))
+            exit(1)
+
         # ---------------------------------------
         check_protoc_version()
 
