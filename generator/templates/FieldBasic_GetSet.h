@@ -27,6 +27,7 @@ Postal address:
   1066 VH, Amsterdam
   the Netherlands
 #}
+static constexpr char const* {{field.get_name()|upper}}_NAME = "{{field.get_name()}}";
 {% if field.oneof is not none %}
 inline bool has_{{field.get_name()}}() const
 {

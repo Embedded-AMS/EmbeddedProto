@@ -33,8 +33,8 @@
 if [ -d "$PWD/protoc" ]; then
   echo "found protoc cache"
 else
-  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protoc-3.17.3-linux-x86_64.zip
-  unzip -o protoc-3*.zip -d protoc/
+  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protoc-21.5-linux-x86_64.zip
+  unzip -o protoc*.zip -d protoc/
 fi
 export PATH="$PATH:$PWD/protoc/bin"
 
@@ -61,6 +61,6 @@ export PATH="$PATH:$PWD/sonar-scanner/bin"
 if [ -d "$PWD/venv" ]; then
   echo "found python virtualenv in cache"
 else
-  ./setup.sh
+  python setup.py
 fi
 

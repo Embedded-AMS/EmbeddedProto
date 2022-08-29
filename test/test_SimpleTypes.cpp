@@ -35,7 +35,8 @@
 #include <WriteBufferMock.h>
 
 #include <cstdint>    
-#include <limits> 
+#include <limits>
+#include <string.h>
 
 // EAMS message definitions
 #include <simple_types.h>
@@ -539,6 +540,21 @@ TEST(SimpleTypes, deserialize_fault_overlong_varint)
   }
 
   EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+}
+
+TEST(SimpleTypes, field_number_to_name)
+{
+  EXPECT_TRUE(0 == strcmp(::Test_Simple_Types::field_number_to_name(::Test_Simple_Types::FieldNumber::A_INT32),
+                          "a_int32"));
+
+  EXPECT_TRUE(0 == strcmp(::Test_Simple_Types::field_number_to_name(::Test_Simple_Types::FieldNumber::A_NESTED_ENUM),
+                          "a_nested_enum"));
+
+  EXPECT_TRUE(0 == strcmp(::Test_Simple_Types::field_number_to_name(static_cast<::Test_Simple_Types::FieldNumber>(0)),
+                          "Invalid FieldNumber"));
+
+  EXPECT_TRUE(0 == strcmp(::Test_Simple_Types::field_number_to_name(static_cast<::Test_Simple_Types::FieldNumber>(99)),
+                          "Invalid FieldNumber"));
 }
 
 } // End of namespace test_EmbeddedAMS_SimpleTypes

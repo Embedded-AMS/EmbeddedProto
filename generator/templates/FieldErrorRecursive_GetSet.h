@@ -28,6 +28,7 @@ Postal address:
   the Netherlands
 #}
 #warning "You have a recursive inclusion with the field: '{{field.get_name()}}'. Embedded Proto is unable to determine the template parameters in this case. We could only generate this message by leaving it out."
+static constexpr char const* {{field.get_name()|upper}}_NAME = "{{field.get_name()}}";
 inline void clear_{{field.get_name()}}() { }
 inline void set_{{field.get_name()}}(const uint8_t& value) { }
 inline void set_{{field.get_name()}}(const uint8_t&& value) { }
