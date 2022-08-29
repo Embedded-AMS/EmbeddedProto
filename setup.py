@@ -42,6 +42,19 @@ REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
 
 ####################################################################################
 
+def check_python_version():
+    print("Checking the version of Python")
+    version_str = version.split(' ')[0]
+    major, minor, patch = list(map(int, version_str.split('.')))
+    if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
+                                                (minor < REQ_PYTHO_VERSION["minor"])):
+        print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
+                "for Embedded Proto".format(REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]))
+        exit(1)
+
+
+####################################################################################
+
 def read_required_version():
     with open("requirements.txt", 'r') as f:
         lines = f.readlines()
@@ -120,6 +133,48 @@ def display_feedback():
 
 ####################################################################################
 
+def run(arguments):
+    # Execute the setup process for Embedded Proto.
+
+    try:
+
+        # ---------------------------------------
+        check_python_version()
+
+        # ---------------------------------------
+        check_protoc_version()
+
+        # ---------------------------------------
+        print("Creating a virtual environment for Embedded Proto.")
+        venv.create("venv", with_pip=True)
+
+        # ---------------------------------------
+        print("Installing requirement Python packages in the virtual environment.")
+        on_windows = "Windows" == platform.system()
+        command = []
+        if on_windows:
+            command.append("./venv/Scripts/pip")
+        else:
+            command.append("./venv/bin/pip")
+        command.extend(["install", "-r", "requirements.txt"])
+        subprocess.run(command, check=True, capture_output=True)
+
+        # ---------------------------------------
+        print("Build the protobuf extension file used to include Embedded Proto custom options.")
+        command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
+        if arguments.include is not None:
+            command.extend(["-I", str(arguments.include)])
+        result = subprocess.run(command, check=True, capture_output=True)
+        if result.returncode:
+            print("Unable to generate the options file. This might be solved by providing the --include option. See "
+                  "--help for more info.")
+
+    except Exception as e:
+        print("Error: " + str(e))
+
+
+####################################################################################
+
 class ReadableDir(argparse.Action):
     # This class is used to check if the --include path provided as a parameter is a valid directory.
 
@@ -135,58 +190,26 @@ class ReadableDir(argparse.Action):
 
 ####################################################################################
 
-if __name__ == "__main__":
+def add_parser_arguments(parser):
+    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples 
+    # now can extend it with their own parameters.
 
-    # See on which platform we are running.
-    on_windows = "Windows" == platform.system()
+    parser.add_argument('-I', '--include', action=ReadableDir,
+                        help="Provide the protoc include folder. Required when you installed protoc in a non standard "
+                             "folder, forexample: \"~/protobuf/protoc-21.5/include\".")
+
+
+####################################################################################
+
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="This script will setup the environment to generate Embedded Proto "
                                                  "code in your project.")
-    parser.add_argument('-I', '--include', required=on_windows, action=ReadableDir,
-                        help="Required on Windows. Provide the folder in which you installed the Google Protobuf "
-                             "compiler Protoc. For Linux this is optional. Provide it when you installed Protoc in a "
-                             "custom folder.")
-
+    add_parser_arguments(parser)
     display_feedback()
-
     args = parser.parse_args()
 
-    try:
-
-        # ---------------------------------------
-        # Check the version of Python
-        print("Checking the version of Python")
-        version_str = version.split(' ')[0]
-        major, minor, patch = list(map(int, version_str.split('.')))
-        if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
-                                                    (minor < REQ_PYTHO_VERSION["minor"])):
-            print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
-                  "for Embedded Proto".format(REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]))
-            exit(1)
-
-        # ---------------------------------------
-        check_protoc_version()
-
-        # ---------------------------------------
-        print("Creating a virtual environment for Embedded Proto.")
-        venv.create("venv", with_pip=True)
-
-        # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.")
-        if on_windows:
-            subprocess.run(["./venv/Scripts/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
-        else:
-            subprocess.run(["./venv/bin/pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
-
-        # ---------------------------------------
-        print("Build the protobuf extension file used to include Embedded Proto custom options.")
-        command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
-        if args.include is not None:
-            command.extend(["-I", str(args.include)])
-        subprocess.run(command, check=True, capture_output=True)
-
-        # ---------------------------------------
-        print("Setup completed with success!")
-
-    except Exception as e:
-        print("Error: " + str(e))
+    run(args)
+    
+    # ---------------------------------------
+    print("Setup completed with success!")
