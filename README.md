@@ -20,16 +20,22 @@ Natively however protocol buffers are not suitable for micro controllers. The C+
 
 This document details the following:
 * What is new
-* Examples
-* Supported Features
+* License
 * Installation
 * Usage
+* Supported Features
+* Examples
 * Development
-* License
 * Gratitude
 
 
 # What is new
+
+## 3.2.0
+The most notable improvements in this version are:
+* Updated to protobuf v21.5. The python module made by Google for this version is not backbards compatible. Please update your protoc installation!
+* Wrote a python setup script instead of seperate scripts for Linux and Windows.
+* Added simple implementations of the ReadBufferInterface and WriteBufferInterface: ReadBufferFixedSize and WriteBufferFixedSize. 
 
 ## 3.1.0
 The most notable improvements in this version are:
@@ -42,6 +48,65 @@ The most notable improvements in this version are:
 * The ram size of messages has been reduced. This was done by using less polymorphism in the low level field classes. This required upgrading to C++17 and up.
 * In a .proto file it is now possible to use a message or enum before it is defined. The plugin will make a dependency tree of the messages and enums defined and sort them before generating the source code. Recursive inclusion are not supported.
 * Some of the message functions changed. The functions where already marked as deprecated in the latest 2.X.X release.
+
+
+# License
+
+Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
+
+## Open Source
+You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available, only if you have a commercial license. For open source projects you can download the source code from Github. The code is licensed under the GNU General Public License V3.0 and you can use is for all your non commercial projects. 
+
+## Commercial License
+If you are developing a commercial product you need to buy a commercial license from Embedded Proto. There is a suitable license for each magnitude of business, from startup to enterprise. Depending on the license, it may give you access to:
+* An unlimited number of mcu’s
+* Professional support
+* Code quality report
+
+You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
+
+
+# Installation
+
+What is required to be able to generate source files based on .proto files:
+1. Python 3.8 and up
+2. Pip
+3. Protobuf v21.5
+4. Git
+
+After installing the requirements continue by cloning the Embedded Proto repo:
+```bash
+git clone https://github.com/Embedded-AMS/EmbeddedProto.git
+cd embeddedproto
+python setup.py
+```
+If the include folder of protobuf is not in your path you may get an error from the setup script. In this case you have to provide the location with the --include parameter
+```bash
+python setup.py --include ~/protobuf/protoc-21.5/include
+```
+More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).
+
+
+# Usage
+
+When working on your project you write your proto files defining the message structure. Next you would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler protoc-gen-eams.py. To generate the code use the following command:
+
+On Linux:
+```bash
+protoc --plugin=protoc-gen-eams -I./LOCATION/PROTO/FILES --eams_out=./generated_src PROTO_MESSAGE_FILE.proto
+``` 
+On Windows:
+```bash
+protoc --plugin=protoc-gen-eams=protoc-gen-eams.bat -I.\LOCATION\PROTO\FILES --eams_out=.\generated_src PROTO_MESSAGE_FILE.proto
+```
+
+What happens is that protoc is instucted to use our plugin with the option --plugin. Next the the standard option -I includes the folder where your \*.proto files are located. The option --eams_out specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
+
+As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called protoc-gen-eams and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
+
+After running protoc without any errors the generated source code is located in the folder specified by --eams_out. This folder is to be included into your project. This is not the only folder to be included. The generated source files depend on other header and source files. These files can be found in EmbeddedProto/src. You are thus required to include this folder as well in you toolchain.
+
+Various examples how to use and integrate Embedded Proto in your project are given in the [Examples](https://embeddedproto.com/examples/) section.
 
 
 # Examples 
@@ -89,77 +154,10 @@ All features mentioned above are of version proto3. At this moment proto2 is not
 For this reason it is unlikely that Embedded Proto will support proto2 in the future.
 
 
-# Installation
-
-What is required to be able to generate source files based on .proto files:
-1. Python 3.8 and up
-2. Pip
-3. Protobuf 3.19.4 (Higher is not yet supported due to breaking changes in version 4.20 and up)
-4. Git
-
-After installing the requirements continue by cloning the Embedded Proto repo:
-```bash
-git clone https://github.com/Embedded-AMS/EmbeddedProto.git
-```
-Enter the new folder and a terminal to run the setup script. Depending on your system Linux or Windows you need to run a different script.
-
-On Linux:
-```bash
-python setup.py
-```
-
-On Windows:
-```bash
-python setup.py --include C:\protoc-XX.Y-win64
-```
-In which `C:\protoc-XX.Y-win64` refers to the folder in which you installed the Google Protobuf compiler protoc.
-
-After running the setup script you are ready to use Embedded Proto.
-
-More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).
-
-
-# Usage
-
-When working on your project you write your proto files defining the message structure. Next you would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler protoc-gen-eams.py. To generate the code use the following command:
-
-On Linux:
-```bash
-protoc --plugin=protoc-gen-eams -I./LOCATION/PROTO/FILES --eams_out=./generated_src PROTO_MESSAGE_FILE.proto
-``` 
-On Windows:
-```bash
-protoc --plugin=protoc-gen-eams=protoc-gen-eams.bat -I.\LOCATION\PROTO\FILES --eams_out=.\generated_src PROTO_MESSAGE_FILE.proto
-```
-
-What happens is that protoc is instucted to use our plugin with the option --plugin. Next the the standard option -I includes the folder where your \*.proto files are located. The option --eams_out specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
-
-As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called protoc-gen-eams and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
-
-After running protoc without any errors the generated source code is located in the folder specified by --eams_out. This folder is to be included into your project. This is not the only folder to be included. The generated source files depend on other header and source files. These files can be found in EmbeddedProto/src. You are thus required to include this folder as well in you toolchain.
-
-Various examples how to use and integrate Embedded Proto in your project are given in the [Examples](https://embeddedproto.com/examples/) section.
-
-
 # Development
 
 If you consider helping with the development of Embedded Proto please consider reading [this](https://embeddedproto.com/documentation/intallation/#for-embedded-proto-developers). It details how you can build the unit tests included in this repo.
 
-
-# License
-
-Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
-
-## Open Source
-You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available, only if you have a commercial license. For open source projects you can download the source code from Github. The code is licensed under the GNU General Public License V3.0 and you can use is for all your non commercial projects. 
-
-## Commercial License
-If you are developing a commercial product you need to buy a commercial license from Embedded Proto. There is a suitable license for each magnitude of business, from startup to enterprise. Depending on the license, it may give you access to:
-* An unlimited number of mcu’s
-* Professional support
-* MISRA code quality report
-
-You can request more information about a commercial license on our [website](https://embeddedproto.com/pricing).
 
 # Give your feedback
 
@@ -169,4 +167,4 @@ You can request more information about a commercial license on our [website](htt
 
 The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you use our library. If you like working with it consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
 
-To stay up to date you can also follow our company on [LinkedIn](https://www.linkedin.com/company/embeddedams/) or signup for our [newsletter](https://EmbeddedProto.com/#newsletter).
+To stay up to date you can signup for our [User Update](https://EmbeddedProto.com/signup).
