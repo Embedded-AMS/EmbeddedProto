@@ -9,14 +9,9 @@ Copyrights 2020-2022 Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://w
 
 # Introduction
 
-Embedded Proto is a C++ implementation of [Google Protocol Buffers](https://developers.google.com/protocol-buffers/) dedicated for micro controllers. This means the implementation focuses on a small footprint and low memory usage. No dynamic memory allocation is used to make the code predictable. To further improve the reliability of the code it is automatically checked to be in line with the [MISRA C++](https://www.misra.org.uk/Activities/MISRAC/tabid/171/Default.aspx) guideline. 
+Embedded Proto is a C++ implementation of [Google Protocol Buffers](https://developers.google.com/protocol-buffers/) dedicated to microcontrollers. The implementation focuses on a small footprint and low memory usage. No dynamic memory allocation is used to make the code predictable. Unit tests and static code analysis are used to improve the reliability of the code.
 
-What are protocol buffers? Quoting from the [website](https://developers.google.com/protocol-buffers):
-> Protocol buffers are Google's language-neutral, platform-neutral, extensible mechanism for serializing structured data – think XML, but smaller, faster, and simpler. You define how you want your data to be structured once, then you can use special generated source code to easily write and read your structured data to and from a variety of data streams and using a variety of languages
-
-In a .proto file you define the structure of your message. Next you use the protocol buffers compiler *protoc* to generate source code. This code you can use in your project. Protoc natively supports many different programming languages. Your colleague working in a different language can thus use the same message structure. When one of you updates the structure just rerun *protoc* to get the latest source code.
-
-Natively however protocol buffers are not suitable for micro controllers. The C++ generated is written for server and desktop processors. This is where Embedded offers a alternative. Embedded Proto is a plugin for *protoc* generating C++ code suitable for micro controllers. In this way Embedded provides an easy to use interface to exchange data between embedded devices and the out side world. Specifying the data format between your IOT device and other devices, servers, apps or desktop applications in a standardized way.
+Natively, protocol buffers are not suitable for microcontrollers. The C++ generated is written for server and desktop processors. This is where Embedded offers a solution. Embedded Proto is a plugin for *protoc* generating C++ code suitable for microcontrollers. In this way, Embedded Proto provides an easy-to-use interface to exchange data between embedded devices and the outside world. Specify the data format between your IoT device and other devices, servers, apps, or desktop applications in a standardized way!
 
 This document details the following:
 * What is new
@@ -33,21 +28,21 @@ This document details the following:
 
 ## 3.2.0
 The most notable improvements in this version are:
-* Updated to protobuf v21.5. The python module made by Google for this version is not backbards compatible. Please update your protoc installation!
-* Wrote a python setup script instead of seperate scripts for Linux and Windows.
+* Updated to protobuf v21.5. The python module made by Google for this version is not backwards compatible. Please update your protoc installation!
+* Wrote a python setup script instead of separate scripts for Linux and Windows.
 * Added simple implementations of the ReadBufferInterface and WriteBufferInterface: ReadBufferFixedSize and WriteBufferFixedSize. 
 
 ## 3.1.0
 The most notable improvements in this version are:
 * Reworked code to extend the support back to C++11.
-* Worked on optimzing running the code coverage in Sonarqube.
+* Worked on optimizing running the code coverage in Sonarqube.
 
 ## 3.0.0
 The most notable improvements in this version are:
-* The length of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
-* The ram size of messages has been reduced. This was done by using less polymorphism in the low level field classes. This required upgrading to C++17 and up.
-* In a .proto file it is now possible to use a message or enum before it is defined. The plugin will make a dependency tree of the messages and enums defined and sort them before generating the source code. Recursive inclusion are not supported.
-* Some of the message functions changed. The functions where already marked as deprecated in the latest 2.X.X release.
+* The length of repeated, string and bytes fields can now be set from the .proto file. You can find information on how to do this in the online [documentation](https://embeddedproto.com/documentation/using-a-message/repeated-fields/).
+* The ram size of messages has been reduced. This was done by using less polymorphism in the low-level field classes. This required upgrading to C++17 and up.
+* In a .proto file, it is now possible to use a message or enum before it is defined. The plugin will make a dependency tree of the messages and enums defined and sort them before generating the source code. Recursive inclusion is not supported.
+* Some of the message functions changed. The functions were already marked as deprecated in the latest 2.X.X release.
 
 
 # License
@@ -55,10 +50,10 @@ The most notable improvements in this version are:
 Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
 
 ## Open Source
-You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available, only if you have a commercial license. For open source projects you can download the source code from Github. The code is licensed under the GNU General Public License V3.0 and you can use is for all your non commercial projects. 
+You can use Embedded Proto for free in open source projects or for testing. However, on demand support is not available only if you have a commercial license. For open source projects, you can download the source code from Github. The code is licensed under the GNU General Public License V3.0, which you can use for all your non-commercial projects. 
 
 ## Commercial License
-If you are developing a commercial product you need to buy a commercial license from Embedded Proto. There is a suitable license for each magnitude of business, from startup to enterprise. Depending on the license, it may give you access to:
+Are you developing a commercial product? If so, you need to buy a commercial license from Embedded Proto. There is a suitable license for each type of business, from startup to enterprise. Depending on the license, it may give you access to the following:
 * An unlimited number of mcu’s
 * Professional support
 * Code quality report
@@ -74,13 +69,13 @@ What is required to be able to generate source files based on .proto files:
 3. Protobuf v21.5
 4. Git
 
-After installing the requirements continue by cloning the Embedded Proto repo:
+After installing the requirements, continue by cloning the Embedded Proto repo:
 ```bash
 git clone https://github.com/Embedded-AMS/EmbeddedProto.git
 cd embeddedproto
 python setup.py
 ```
-If the include folder of protobuf is not in your path you may get an error from the setup script. In this case you have to provide the location with the --include parameter
+If the include folder of protobuf is not in your path, you may get an error from the setup script. In this case, you have to provide the location with the --include parameter
 ```bash
 python setup.py --include ~/protobuf/protoc-21.5/include
 ```
@@ -89,7 +84,7 @@ More installation documentation can be found on the [documentation website](http
 
 # Usage
 
-When working on your project you write your proto files defining the message structure. Next you would like to use them in your source code. This requires you to generate the code based upon the definitions you have written. This is done using our plugin for the protoc compiler protoc-gen-eams.py. To generate the code use the following command:
+You write your proto files defining the message structure when working on your project. Next, you would like to use them in your source code. Generating the code based on your message definitions is required. Please do this by using our plugin for the protoc compiler protoc-gen-eams.py. Generate the code using the following command:
 
 On Linux:
 ```bash
@@ -100,13 +95,13 @@ On Windows:
 protoc --plugin=protoc-gen-eams=protoc-gen-eams.bat -I.\LOCATION\PROTO\FILES --eams_out=.\generated_src PROTO_MESSAGE_FILE.proto
 ```
 
-What happens is that protoc is instucted to use our plugin with the option --plugin. Next the the standard option -I includes the folder where your \*.proto files are located. The option --eams_out specifies the location where to store the generated source code. Finally a specific protofile is set to be parsed.
+Protoc is instructed to use our plugin with the option --plugin. The standard option -I includes the folder where your \*.proto files are located. The option --eams_out specifies where to store the generated source code. Finally, the protofile to be parsed is specified.
 
-As our plugin is a Python script and the protoc plugin should be an executable a small terminal script is included. This terminal script is called protoc-gen-eams and is used to execute python with the Embedded Proto python script as a parameter. The main take away is that this script should be accessible when running your protoc command.
+As our plugin is a Python script and the protoc plugin should be an executable, a small terminal script is included. This terminal script is called protoc-gen-eams and is used to execute python with the Embedded Proto python script as a parameter. The main takeaway is that this script should be accessible when running your protoc command.
 
-After running protoc without any errors the generated source code is located in the folder specified by --eams_out. This folder is to be included into your project. This is not the only folder to be included. The generated source files depend on other header and source files. These files can be found in EmbeddedProto/src. You are thus required to include this folder as well in you toolchain.
-
-Various examples how to use and integrate Embedded Proto in your project are given in the [Examples](https://embeddedproto.com/examples/) section.
+After running protoc without errors, the generated source code is located in the folder specified by -eams_out. You have to include two folders in your toolchain:
+* The folder you specified with -eams_out, and
+* The source code of Embedded Proto is located in EmbeddedProto/src. 
 
 
 # Examples 
@@ -119,7 +114,7 @@ Our website hosts an array of [examples](https://embeddedproto.com/examples/) de
 
 # Supported Features
 
-Below two tables are given indicating the level of support for various variable types and features.
+Below two tables indicate the level of support for various variable types and features.
 
 | Variable Type | Support |
 | --- | --- |
@@ -149,9 +144,9 @@ singular | Full
 repeated | Length fixed via template or custom option
 optional | Full
 
-All features mentioned above are of version proto3. At this moment proto2 is not supported. Taken from the Protobuf website:
+All features mentioned above are of version proto3. At this moment, proto2 is not supported. Taken from the Protobuf website:
 > Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
-For this reason it is unlikely that Embedded Proto will support proto2 in the future.
+For this reason, it is unlikely that Embedded Proto will support proto2 in the future.
 
 
 # Development
@@ -165,6 +160,6 @@ If you consider helping with the development of Embedded Proto please consider r
 
 # Gratitude
 
-The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you use our library. If you like working with it consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
+The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you using our library. If you like working with it, consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
 
-To stay up to date you can signup for our [User Update](https://EmbeddedProto.com/signup).
+To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
