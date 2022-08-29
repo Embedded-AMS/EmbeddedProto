@@ -26,6 +26,8 @@ This document details the following:
 
 # What is new
 
+To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
+
 ## 3.2.0
 The most notable improvements in this version are:
 * Updated to protobuf v21.5. The python module made by Google for this version is not backwards compatible. Please update your protoc installation!
@@ -161,5 +163,3 @@ If you consider helping with the development of Embedded Proto please consider r
 # Gratitude
 
 The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you using our library. If you like working with it, consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
-
-To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
