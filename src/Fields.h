@@ -110,7 +110,7 @@ namespace EmbeddedProto
 
       FieldTemplate() = default;
       FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
-      FieldTemplate(const VARIABLE_TYPE&& v) : value_(v) { };
+      FieldTemplate(VARIABLE_TYPE&& v) : value_(std::move(v)) { };
       FieldTemplate(const CLASS_TYPE& ft) : value_(ft.value_) { };
 
       ~FieldTemplate() = default;
@@ -148,17 +148,17 @@ namespace EmbeddedProto
       }
 
       void set(const VARIABLE_TYPE& v) { value_ = v; }      
-      void set(const VARIABLE_TYPE&& v) { value_ = v; }
+      void set(VARIABLE_TYPE&& v) { value_ = std::move(v); }
 
       void set(const CLASS_TYPE& ft) { value_ = ft.value_; }
-      void set(const CLASS_TYPE&& ft) { value_ = ft.value_; }
+      void set(CLASS_TYPE&& ft) { value_ = std::move(ft.value_); }
       
       CLASS_TYPE& operator=(const VARIABLE_TYPE& v) 
       { 
         value_ = v;
         return *this;
       }
-      CLASS_TYPE& operator=(const VARIABLE_TYPE&& v) 
+      CLASS_TYPE& operator=(VARIABLE_TYPE&& v) 
       { 
         value_ = v;
         return *this;
@@ -168,9 +168,9 @@ namespace EmbeddedProto
         value_ = ft.value_; 
         return *this; 
       }
-      CLASS_TYPE& operator=(const CLASS_TYPE&& ft) noexcept
+      CLASS_TYPE& operator=(CLASS_TYPE&& ft) noexcept
       { 
-        value_ = ft.value_;
+        value_ = std::move(ft.value_);
         return *this;
       }
 

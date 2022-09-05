@@ -57,7 +57,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     }
 
-    {{ typedef.get_name() }}(const {{typedef.get_name()}}&& rhs ) noexcept
+    {{ typedef.get_name() }}({{typedef.get_name()}}&& rhs ) noexcept
     {
       {% for field in typedef.fields %}
       {% if typedef.optional_fields is defined and field in typedef.optional_fields %}
@@ -120,7 +120,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return *this;
     }
 
-    {{ typedef.name }}& operator=(const {{ typedef.name }}&& rhs) noexcept
+    {{ typedef.name }}& operator=({{ typedef.name }}&& rhs) noexcept
     {
       {% for field in typedef.fields %}
       {% if typedef.optional_fields is defined and field in typedef.optional_fields %}

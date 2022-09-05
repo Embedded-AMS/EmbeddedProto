@@ -49,13 +49,13 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
   }
   {{field.get_variable_name()}} = value;
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+inline void set_{{field.get_name()}}({{field.get_type()}}&& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
     init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
-  {{field.get_variable_name()}} = value;
+  {{field.get_variable_name()}} = std::move(value);
 }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 {
@@ -80,10 +80,10 @@ inline void set_{{field.get_name()}}(const {{field.get_type()}}& value)
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
   {{field.get_variable_name()}} = value;
 }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value)
+inline void set_{{field.get_name()}}({{field.get_type()}}&& value)
 {
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
-  {{field.get_variable_name()}} = value;
+  {{field.get_variable_name()}} = std::move(value);
 }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 {
@@ -93,7 +93,7 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}()
 {% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& value) { {{field.get_variable_name()}} = value; }
-inline void set_{{field.get_name()}}(const {{field.get_type()}}&& value) { {{field.get_variable_name()}} = value; }
+inline void set_{{field.get_name()}}({{field.get_type()}}&& value) { {{field.get_variable_name()}} = std::move(value); }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }

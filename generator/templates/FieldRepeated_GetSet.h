@@ -49,13 +49,13 @@ inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_type()}}&
   }
   {{field.get_variable_name()}}.set(index, value);
 }
-inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_type()}}&& value)
+inline void set_{{field.get_name()}}(uint32_t index, {{field.get_type()}}&& value)
 {
   if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
   {
     init_{{field.get_oneof_name()}}(FieldNumber::{{field.get_variable_id_name()}});
   }
-  {{field.get_variable_name()}}.set(index, value);
+  {{field.get_variable_name()}}.set(index, std::move(value));
 }
 inline void set_{{field.get_name()}}(const {{field.repeated_type}}& values)
 {
@@ -85,7 +85,7 @@ inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
 inline const {{field.get_base_type()}}& {{field.get_name()}}(uint32_t index) const { return {{field.get_variable_name()}}[index]; }
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
 inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_base_type()}}& value) { {{field.get_variable_name()}}.set(index, value); }
-inline void set_{{field.get_name()}}(uint32_t index, const {{field.get_base_type()}}&& value) { {{field.get_variable_name()}}.set(index, value); }
+inline void set_{{field.get_name()}}(uint32_t index, {{field.get_base_type()}}&& value) { {{field.get_variable_name()}}.set(index, std::move(value)); }
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& values) { {{field.get_variable_name()}} = values; }
 inline void add_{{field.get_name()}}(const {{field.get_base_type()}}& value) { {{field.get_variable_name()}}.add(value); }
 inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
