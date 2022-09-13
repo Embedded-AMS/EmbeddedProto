@@ -139,8 +139,8 @@ namespace EmbeddedProto
         */
         Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
         {
-          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
           current_length_ = rhs.current_length_;
+          memcpy(data_.data(), rhs.data_.data(), rhs.current_length_);
           return Error::NO_ERRORS;
         }
 
@@ -153,17 +153,13 @@ namespace EmbeddedProto
         */        
         Error set(const DATA_TYPE* data, const uint32_t length)
         {
-          Error return_value = Error::NO_ERRORS;
-          if(MAX_LENGTH >= length)
-          {
-            current_length_ = length;
-            memcpy(data_.data(), data, length);
+          if (length > MAX_LENGTH) {
+            return Error::ARRAY_FULL;;
           }
-          else
-          {
-            return_value = Error::ARRAY_FULL;
-          }
-          return return_value;
+
+          current_length_ = length;
+          memcpy(data_.data(), data, length);
+          return Error::NO_ERRORS;
         }
 
 
@@ -213,33 +209,27 @@ namespace EmbeddedProto
         Error deserialize(ReadBufferInterface& buffer) override 
         {
           uint32_t availiable = 0;
-          Error return_value = WireFormatter::DeserializeVarint(buffer, availiable);
-          if(Error::NO_ERRORS == return_value)
-          {
-            if(MAX_LENGTH >= availiable) 
-            {
-              clear();
-
-              uint8_t byte = 0;
-              while((current_length_ < availiable) && buffer.pop(byte)) 
-              {
-                (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
-                ++current_length_;
-              }
-
-              if(current_length_ != availiable)
-              {
-                // If at the end we did not read the same number of characters something went wrong.
-                return_value = Error::END_OF_BUFFER;
-              }
-            }
-            else 
-            {
-              return_value = Error::ARRAY_FULL;
-            }
+          if (Error return_value = WireFormatter::DeserializeVarint(buffer, availiable) != Error::NO_ERRORS) {
+            return return_value;
           }
 
-          return return_value;
+          if (available > MAX_LENGTH) {
+            return Error::ARRAY_FULL;
+          }
+
+          current_length_ = 0;
+          for(uint8_t byte = 0; (current_length_ < availiable) && buffer.pop(byte); current_length_++)
+          {
+            data_[current_length_] = static_cast<DATA_TYPE>(byte);
+          }
+
+          if(current_length_ != availiable)
+          {
+            // If at the end we did not read the same number of characters something went wrong.
+            return Error::END_OF_BUFFER;
+          }
+
+          return Error::NO_ERRORS;
         }
         
         Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
@@ -254,10 +244,9 @@ namespace EmbeddedProto
           return return_value;
         }
 
-        //! Reset the field to it's initial value.
+        //! Set length to 0.
         void clear() override 
-        { 
-          data_.fill(0);
+        {
           current_length_ = 0; 
         }
     
