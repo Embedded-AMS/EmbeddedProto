@@ -71,16 +71,23 @@ What is required to be able to generate source files based on .proto files:
 3. Protobuf v21.5
 4. Git
 
-After installing the requirements, continue by cloning the Embedded Proto repo:
+After installing the requirements, continue by cloning the Embedded Proto repo. We advised using Embedded Proto as a submodule in your project. This way, you can track the version of Embedded Proto with the version of your project.
 ```bash
-git clone https://github.com/Embedded-AMS/EmbeddedProto.git
-cd embeddedproto
+cd your_project_dir
+git submodule add https://github.com/Embedded-AMS/EmbeddedProto.git
+git commit -m "Added the latest version of Embedded Proto as a submodule."
+```
+Next, enter the Embedded Proto folder and run the setup script. The script will create a self-contained python environment. In this environment, various python packages will be installed, which are required by Embedded Proto.
+```bash
+cd EmbeddedProto
 python setup.py
 ```
-If the include folder of protobuf is not in your path, you may get an error from the setup script. In this case, you have to provide the location with the --include parameter
+Did you install protoc in a custom folder, or is the include folder of protobuf not in your path? In these cases, you may get an error from the setup script. You have to provide the location of the include with the --include parameter:
 ```bash
 python setup.py --include ~/protobuf/protoc-21.5/include
 ```
+In this example, you have installed a specific version of protoc, and you named its installation folder `~/protobuf/protoc-21.5`.
+
 More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).
 
 
