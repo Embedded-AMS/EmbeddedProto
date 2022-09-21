@@ -37,6 +37,9 @@ from sys import version
 from sys import stderr
 import venv
 
+# Perform a system call to beable to display colors on windows
+os.system("")
+
 CGREEN = '\33[92m'
 CRED = '\33[91m'
 CYELLOW = '\33[93m'
