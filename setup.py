@@ -86,8 +86,17 @@ def check_protoc_version():
     # is indicated as v21.0 without the major version. The minor version between Protoc and the python protobuf
     # package should match.
 
-    print("Checking your Protoc version.", end='')
-    output = subprocess.run(["protoc", "--version"], check=True, capture_output=True)
+    print("Checking your Protoc version", end='')
+    
+    try:
+      output = subprocess.run(["protoc", "--version"], check=False, capture_output=True)
+    except OSError:
+      print(" [" + CRED + "Fail" + CEND + "]")
+      print("Unable to find protoc in your path.")
+      print("Stopping the setup.")
+      exit(0)
+    
+    
     version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
     required_version = read_required_version()
