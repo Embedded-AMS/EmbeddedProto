@@ -34,7 +34,13 @@ import platform
 import os
 import re
 from sys import version
+from sys import stderr
 import venv
+
+CGREEN = '\33[92m'
+CRED = '\33[91m'
+CYELLOW = '\33[93m'
+CEND = '\33[0m'
 
 # The required version of Python.
 REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
@@ -43,14 +49,18 @@ REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
 ####################################################################################
 
 def check_python_version():
-    print("Checking the version of Python")
+    print("Checking the version of Python", end='')
     version_str = version.split(' ')[0]
     major, minor, patch = list(map(int, version_str.split('.')))
     if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
                                                 (minor < REQ_PYTHO_VERSION["minor"])):
+        print(" [" + CRED + "Fail" + CEND + "]")
         print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
-                "for Embedded Proto".format(REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]))
+              "for Embedded Proto".format(version_str, REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]),
+              file=stderr)
         exit(1)
+
+    print(" [" + CGREEN + "Success" + CEND + "]")
 
 
 ####################################################################################
@@ -73,7 +83,7 @@ def check_protoc_version():
     # is indicated as v21.0 without the major version. The minor version between Protoc and the python protobuf
     # package should match.
 
-    print("Checking your Protoc version.")
+    print("Checking your Protoc version.", end='')
     output = subprocess.run(["protoc", "--version"], check=True, capture_output=True)
     version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
@@ -92,11 +102,12 @@ def check_protoc_version():
         # Check if all versions are above v21.0
         if ((21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor')))) or \
                 ((21 > int(installed_version.group('minor'))) and (21 > int(required_version.group('minor')))):
-            while True:
-                text += "\t3. Ignore the difference at your own risk!\n" \
-                        "Ignore the difference [Y/n]: "
 
-                user_input = input(text)
+            print(" [" + CYELLOW + "Warning" + CEND + "]")
+            text += "\t3. Ignore the difference at your own risk!\n"
+            print(text)
+            while True:
+                user_input = input("Ignore the difference [Y/n]: ")
                 if ('Y' == user_input) or ('y' == user_input):
                     # Continue the setup
                     print("Ignoring the difference.")
@@ -104,12 +115,16 @@ def check_protoc_version():
                 elif ('N' == user_input) or ('n' == user_input):
                     # Stop the setup.
                     print("Stopping the setup.")
-                    exit(1)
+                    exit(0)
         else:
             # We can only stop if we have a version prior to v21.0.
+            print(" [" + CRED + "Fail" + CEND + "]")
             print(text)
             print("Stopping the setup.")
-            exit(1)
+            exit(0)
+
+    else:
+        print(" [" + CGREEN + "Success" + CEND + "]")
 
 
 ####################################################################################
@@ -145,11 +160,12 @@ def run(arguments):
         check_protoc_version()
 
         # ---------------------------------------
-        print("Creating a virtual environment for Embedded Proto.")
+        print("Creating a virtual environment for Embedded Proto.", end='')
         venv.create("venv", with_pip=True)
+        print(" [" + CGREEN + "Success" + CEND + "]")
 
         # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.")
+        print("Installing requirement Python packages in the virtual environment.", end='')
         on_windows = "Windows" == platform.system()
         command = []
         if on_windows:
@@ -157,20 +173,33 @@ def run(arguments):
         else:
             command.append("./venv/bin/pip")
         command.extend(["install", "-r", "requirements.txt"])
-        subprocess.run(command, check=True, capture_output=True)
+        result = subprocess.run(command, check=False, capture_output=True)
+        if result.returncode:
+            print(" [" + CRED + "Fail" + CEND + "]")
+            print(result.stderr.decode("utf-8"), end='', file=stderr)
+            exit(1)
+        else:
+            print(" [" + CGREEN + "Success" + CEND + "]")
 
         # ---------------------------------------
-        print("Build the protobuf extension file used to include Embedded Proto custom options.")
+        print("Build the protobuf extension file used to include Embedded Proto custom options.", end='')
         command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
         if arguments.include is not None:
             command.extend(["-I", str(arguments.include)])
-        result = subprocess.run(command, check=True, capture_output=True)
+        result = subprocess.run(command, check=False, capture_output=True)
         if result.returncode:
-            print("Unable to generate the options file. This might be solved by providing the --include option. See "
-                  "--help for more info.")
+            print(" [" + CRED + "Fail" + CEND + "]")
+            print(result.stderr.decode("utf-8"), end='', file=stderr)
+            print("Waring: Unable to generate the options file. This might be solved by providing the --include option."
+                  " See --help for more info.", file=stderr)
+            exit(1)
+        else:
+            print(" [" + CGREEN + "Success" + CEND + "]")
 
     except Exception as e:
-        print("Error: " + str(e))
+        print(" [" + CRED + "Fail" + CEND + "]")
+        print("Error: " + str(e), file=stderr)
+        exit(1)
 
 
 ####################################################################################
@@ -178,7 +207,7 @@ def run(arguments):
 class ReadableDir(argparse.Action):
     # This class is used to check if the --include path provided as a parameter is a valid directory.
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser_obj, namespace, values, option_string=None):
         prospective_dir = values
         if not os.path.isdir(prospective_dir):
             raise argparse.ArgumentTypeError("readable_dir: \"{0}\" is not a valid path".format(prospective_dir))
@@ -190,13 +219,12 @@ class ReadableDir(argparse.Action):
 
 ####################################################################################
 
-def add_parser_arguments(parser):
+def add_parser_arguments(parser_obj):
     # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples 
     # now can extend it with their own parameters.
-
-    parser.add_argument('-I', '--include', action=ReadableDir,
-                        help="Provide the protoc include folder. Required when you installed protoc in a non standard "
-                             "folder, forexample: \"~/protobuf/protoc-21.5/include\".")
+    parser_obj.add_argument('-I', '--include', action=ReadableDir,
+                            help="Provide the protoc include folder. Required when you installed protoc in a non "
+                                 "standard folder, for example: \"~/protobuf/protoc-21.5/include\".")
 
 
 ####################################################################################
