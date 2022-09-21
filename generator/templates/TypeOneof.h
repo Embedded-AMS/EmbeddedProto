@@ -66,7 +66,6 @@ void init_{{_oneof.get_name()}}(const FieldNumber field_id)
     {% if field.oneof_allocation_required() %}
     case FieldNumber::{{field.get_variable_id_name()}}:
       new(&{{field.get_variable_name()}}) {{field.get_type()}};
-      {{_oneof.get_which_oneof()}} = FieldNumber::{{field.get_variable_id_name()}};
       break;
 
     {% endif %}
