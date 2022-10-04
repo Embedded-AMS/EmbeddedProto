@@ -74,7 +74,7 @@ TEST(FieldString, get_set)
   EXPECT_EQ(9, msg.get_txt().get_length());
   ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
 
-  // Teat assigning a string by array pointer with max length.
+  // Test assigning a string by array pointer with max length.
   char text[] = "Foo bar 3!";
   msg.mutable_txt() = text;
   EXPECT_EQ(10, msg.get_txt().get_length());
