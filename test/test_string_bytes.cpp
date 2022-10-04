@@ -74,14 +74,14 @@ TEST(FieldString, get_set)
   EXPECT_EQ(9, msg.get_txt().get_length());
   ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
 
-  // Teat assigning a string by array pointer. 
-  char text[] = "Foo bar 3";
+  // Teat assigning a string by array pointer with max length.
+  char text[] = "Foo bar 3!";
   msg.mutable_txt() = text;
-  EXPECT_EQ(9, msg.get_txt().get_length());
-  ASSERT_STREQ("Foo bar 3", msg.get_txt().get_const());
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 3!", msg.get_txt().get_const());
 
   const char* text2 = msg.get_txt().get_const();
-  ASSERT_STREQ("Foo bar 3", text2);
+  ASSERT_STREQ("Foo bar 3!", text2);
 }
 
 TEST(FieldString, clear)
