@@ -297,15 +297,12 @@ namespace EmbeddedProto
         if(nullptr != rhs) {
           const uint32_t rhs_MAX_LENGTH = strlen(rhs);
           this->set_length(rhs_MAX_LENGTH);
-          strncpy(this->get(), rhs, this->get_length());
-
-          // Make sure the string is null terminated.
-          if(MAX_LENGTH > this->get_length())
-          {
-            // Add a null terminator to make sure. Explicitly use the get operator to the raw 
-            // pointer not to increase the array size with the null terminator.
-            *(this->get() + this->get_length()) = 0;
+          uint32_t lhs_length = this->get_length();
+          // If it fits in this object copy the null terminator.
+          if(MAX_LENGTH > lhs_length) {
+            ++lhs_length;
           }
+          strncpy(this->get(), rhs, lhs_length);
         }
         else {
           this->clear();
