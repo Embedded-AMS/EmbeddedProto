@@ -102,19 +102,31 @@ def test_simple_types():
 
 
 def test_nested_message():
-    msg = nm.message_b()
+    #msg_b = nm.message_b()
 
-    #msg.u = 1.0
-    #msg.v = 1
-    #msg.nested_a.x.append(1)
-    #msg.nested_a.y = 1.0
-    #msg.nested_a.z = 1
+    #msg_b.u = 1.0
+    #msg_b.v = 1
+    #msg_b.nested_a.x.append(1)
+    #msg_b.nested_a.y = 1.0
+    #msg_b.nested_a.z = 1
 
-    msg.u = 1.7976931348623157e+308         # Max double 1.7976931348623157e+308
-    msg.v = pow(2, 31) - 1                  # Max int32
-    msg.nested_a.x.append(pow(2, 31) - 1)   # Max int32
-    msg.nested_a.y = 3.40282347e+38         # Max float
-    msg.nested_a.z = 9223372036854775807    # Max sint64
+    #msg_b.u = 1.7976931348623157e+308         # Max double 1.7976931348623157e+308
+    #msg_b.v = pow(2, 31) - 1                  # Max int32
+    #msg_b.nested_a.x.append(pow(2, 31) - 1)   # Max int32
+    #msg_b.nested_a.y = 3.40282347e+38         # Max float
+    #msg_b.nested_a.z = 9223372036854775807    # Max sint64
+
+    msg_c = nm.message_c()
+    msg_c.nested_b.u = 1.7976931348623157e+308          # Max double 1.7976931348623157e+308
+    msg_c.nested_b.v = pow(2, 31) - 1                   # Max int32
+    msg_c.nested_b.nested_a.x.append(pow(2, 31) - 1)    # Max int32
+    msg_c.nested_b.nested_a.y = 3.40282347e+38          # Max float
+    msg_c.nested_b.nested_a.z = 9223372036854775807     # Max sint64
+    msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
+    msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
+    msg_c.nested_g.g = pow(2, 31) - 1                   # Max int32
+
+    msg = msg_c
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -126,10 +138,23 @@ def test_nested_message():
     print(str)
     print()
 
-    x = bytearray([0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0,
-                   0x3f, 0x1a, 0x09, 0x08, 0x01, 0x15, 0x00, 0x00, 0x80, 0x3f, 0x18, 0x02])
+    # Setup for message c
+    x = bytes([0x0A, 0x28,  # Tag and Size on nested b
+               0x09, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0x7F,  # u
+               0x12, 0x17,  # Tag and size of nested a
+               0x0A, 0x05,  # Tag and size of x
+               0xFF, 0xFF, 0xFF, 0xFF, 0x07,  # x
+               0x15, 0xFF, 0xFF, 0x7F, 0x7F,  # y
+               0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,  # z
+               0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07,  # v
+               0x12, 0x0C,  # Tag and size of nested d
+               0x0A, 0x0A,  # Length of d
+               0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F,  # Value(s) of d
+               0x1A, 0x06,  # Tag and size of nested g
+               0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07,  # Value g
+               ])
 
-    msg2 = nm.message_b()
+    msg2 = nm.message_c()
     msg2.ParseFromString(x)
 
     print(msg2)
@@ -332,11 +357,11 @@ def test_optional_empty():
 
 #test_simple_types()
 #test_repeated_fields()
-test_repeated_message()
+#test_repeated_message()
 #test_string()
 #test_bytes()
 #test_repeated_string_bytes()
-#test_nested_message()
+test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
 #test_optional_empty()

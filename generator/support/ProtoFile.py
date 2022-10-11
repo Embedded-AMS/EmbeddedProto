@@ -41,12 +41,16 @@ def toposort_add_msg(msg, namespace, dependency_data):
     local_definitions = []
     local_namespace = namespace + "." + msg.name
 
+    dependencies = {namespace}
+
     for nested_msg in msg.nested_type:
         dependency_data = toposort_add_msg(nested_msg, local_namespace, dependency_data)
         full_msg_type = local_namespace + "." + nested_msg.name
         local_definitions.append(full_msg_type)
-
-    dependencies = {namespace}
+        for dep in dependency_data[full_msg_type]:
+            # Add requirements on other namespaces.
+            if not dep.startswith(local_namespace):
+                dependencies.add(dep)
 
     for nested_enum in msg.enum_type:
         full_enum_type = local_namespace + "." + nested_enum.name

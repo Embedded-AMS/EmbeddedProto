@@ -235,7 +235,7 @@ def main_cli():
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
         
-        # Check if there is a possible version mis match between Protoc and the protobuf python module.
+        # Check if there is a possible version mismatch between Protoc and the protobuf python module.
         if not check_version(request, response):
             # Error message is set in check_version()
             pass
