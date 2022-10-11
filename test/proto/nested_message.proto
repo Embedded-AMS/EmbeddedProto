@@ -57,4 +57,27 @@ message message_c
 
   message_b nested_b = 1;
   message_d nested_d = 2;
+
+  // Deliberate usage before definition to test topsort algorithm.
+  message_e.message_g nested_g = 3;
+}
+
+message message_e
+{
+  
+  message message_f
+  {
+    int32 f = 1;
+    // Deliberate usage before definition to test topsort algorithm.
+    message_g g_in_f = 2; 
+  }
+
+  message message_g
+  {
+    int32 g = 1;
+  }
+
+  message_f nested_f = 1;
+  message_g nested_g = 2;
+
 }
