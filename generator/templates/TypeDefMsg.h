@@ -270,7 +270,37 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return name;
     }
 
-    private:
+#ifdef MSG_TO_STRING
+
+    ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const override
+    {
+      ::EmbeddedProto::string_view left_chars = str;
+
+      const int32_t n_chars_used = snprintf(str.data, str.size, "%*s\"%s\" {\n", indent_level, " ", name );
+      if(0 < n_chars_used) {
+        left_chars.data += n_chars_used;
+        left_chars.size -= n_chars_used;
+      }
+
+      {% for field in typedef.fields %}
+      {% if field.get_default_value() %}
+      left_chars = {{field.get_variable_name()}}.to_string(left_chars, indent_level + 2, {{field.get_name()|upper}}_NAME);
+      {% else %}
+      // TODO {{field.get_variable_name()}}
+      {% endif %}
+      {% endfor %}
+
+      return left_chars;
+    }
+
+  private:
+
+
+#else
+
+  private:
+
+#endif // End of MSG_TO_STRING
 
       {% if typedef.optional_fields is defined and typedef.optional_fields|length > 0 %}
       // Define constants for tracking the presence of fields.

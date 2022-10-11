@@ -261,6 +261,15 @@ namespace EmbeddedProto
           current_length_ = 0; 
         }
     
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const override
+      {
+        return str;
+      }
+
+#endif // End of MSG_TO_STRING
+    
       protected:
 
         //! Set the current number of items in the array. Only for internal usage.

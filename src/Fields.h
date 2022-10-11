@@ -32,12 +32,17 @@
 #define _FIELDS_H_
 
 #include "Errors.h"
+#include "Defines.h"
 #include "WireFormatter.h"
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
 #include "MessageSizeCalculator.h"
 
 #include <cstdint>
+
+#ifdef MSG_TO_STRING
+#include <cstdio>
+#endif
 
 namespace EmbeddedProto 
 {
@@ -99,6 +104,18 @@ namespace EmbeddedProto
 
       //! Reset the field to it's initial value.
       virtual void clear() = 0;
+
+#ifdef MSG_TO_STRING
+      //! Write all the data in this field to a human readable string.
+      /*!
+          \param str A string view object with a pointer to the current location in the character array and its maximum length.
+          \param indent_level How many spaces should be added before this field.
+          \param name A pointer to the name of this field.
+          \return A string view struct detail how many bytes are left in the string and a pointer to the point where to continue.
+      */
+      virtual ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const = 0;
+
+#endif // End of MSG_TO_STRING
   };
 
   template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE>
@@ -213,7 +230,88 @@ namespace EmbeddedProto
         return calcBuffer.get_size();
       }
 
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
+      {
+        return to_string_<FIELDTYPE>(str, indent_level, name);
+      }
+
     private:
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::boolean != PRF_FIELDTYPE) &&
+                                                                        (Field::FieldTypes::enumeration != PRF_FIELDTYPE), bool>::type = true>
+      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, get());
+        if(0 < n_chars_used) {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+        return left_chars;
+      }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == PRF_FIELDTYPE, bool>::type = true>
+      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, get() ? "true" : "false");
+        if(0 < n_chars_used) {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+        return left_chars;
+      }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == PRF_FIELDTYPE, bool>::type = true>
+      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, static_cast<uint32_t>(get()));
+        if(0 < n_chars_used) {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+        return left_chars;
+      }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::int32 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::sint32 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::sfixed32 == PRF_FIELDTYPE), bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %d,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::int64 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::sint64 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::sfixed32 == PRF_FIELDTYPE), bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %ld,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::uint32 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::fixed32 == PRF_FIELDTYPE), bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %u,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::uint64 == PRF_FIELDTYPE) ||
+                                                                        (Field::FieldTypes::fixed64 == PRF_FIELDTYPE), bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %lu,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == PRF_FIELDTYPE, bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %f,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == PRF_FIELDTYPE, bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %lf,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == PRF_FIELDTYPE, bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %s,\n"; }
+
+      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == PRF_FIELDTYPE, bool>::type = true>
+      constexpr const char* printf_format() const { return "%*s\"%s\": %d,\n"; }
+
+#else
+
+    private:
+
+#endif // End of MSG_TO_STRING
+
 
       VARIABLE_TYPE value_;
 

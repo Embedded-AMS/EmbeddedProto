@@ -42,6 +42,7 @@
 #include <RepeatedFieldFixedSize.h>
 #include <FieldStringBytes.h>
 #include <Errors.h>
+#include <Defines.h>
 #include <limits>
 
 {% endif %}

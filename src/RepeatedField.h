@@ -248,6 +248,16 @@ namespace EmbeddedProto
         return calcBuffer.get_size();
       }
 
+
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const override
+      {
+        return str;
+      }
+
+#endif // End of MSG_TO_STRING
+
     private:
 
       Error serialize_packed(WriteBufferInterface& buffer) const
