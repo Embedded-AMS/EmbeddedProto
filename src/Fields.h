@@ -232,86 +232,82 @@ namespace EmbeddedProto
 
 #ifdef MSG_TO_STRING
 
+      //! Write a field to a character array.
+      /*!
+          \param str The string view struct to write the data to.
+          \param indent_level How many spaces should be added infront of this field.
+          \param name A pointer to the name of this field.
+          \return A string view object with the remaining characters updated pointer.
+      */
       ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
       {
-        return to_string_<FIELDTYPE>(str, indent_level, name);
-      }
-
-    private:
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::boolean != PRF_FIELDTYPE) &&
-                                                                        (Field::FieldTypes::enumeration != PRF_FIELDTYPE), bool>::type = true>
-      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
-      {
         ::EmbeddedProto::string_view left_chars = str;
-        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, get());
+        int32_t n_chars_used = 0;
+
+
+        if constexpr((Field::FieldTypes::int32 == FIELDTYPE) ||
+                          (Field::FieldTypes::sint32 == FIELDTYPE) ||
+                          (Field::FieldTypes::sfixed32 == FIELDTYPE))
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %d,\n", indent_level, " ", name, 
+                                  get());
+        }
+        else if constexpr((Field::FieldTypes::int64 == FIELDTYPE) ||
+                          (Field::FieldTypes::sint64 == FIELDTYPE) ||
+                          (Field::FieldTypes::sfixed32 == FIELDTYPE))
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %ld,\n", indent_level, " ", name, 
+                                  get());
+        }
+        else if constexpr((Field::FieldTypes::uint32 == FIELDTYPE) ||
+                          (Field::FieldTypes::fixed32 == FIELDTYPE))
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %u,\n", indent_level, " ", name, 
+                                  get());
+        }        
+        else if constexpr((Field::FieldTypes::uint64 == FIELDTYPE) ||
+                          (Field::FieldTypes::fixed64 == FIELDTYPE))
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %lu,\n", indent_level, " ", name, 
+                                  get());
+        }
+        else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %s,\n", indent_level, " ", name,
+                                  get() ? "true" : "false");
+        }
+        else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %d,\n", indent_level, " ", name,
+                                  static_cast<uint32_t>(get()));
+        }
+        else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %f,\n", indent_level, " ", name, 
+                                  get());
+        }
+        else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
+        {
+          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %lf,\n", indent_level, " ", name, 
+                                  get());
+        }
+        else
+        {
+          // Should never get here.
+        }
+
         if(0 < n_chars_used) {
+          // Update the character pointer and characters left in the array.
           left_chars.data += n_chars_used;
           left_chars.size -= n_chars_used;
         }
+
         return left_chars;
       }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == PRF_FIELDTYPE, bool>::type = true>
-      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
-      {
-        ::EmbeddedProto::string_view left_chars = str;
-        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, get() ? "true" : "false");
-        if(0 < n_chars_used) {
-          left_chars.data += n_chars_used;
-          left_chars.size -= n_chars_used;
-        }
-        return left_chars;
-      }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == PRF_FIELDTYPE, bool>::type = true>
-      ::EmbeddedProto::string_view to_string_(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
-      {
-        ::EmbeddedProto::string_view left_chars = str;
-        const int32_t n_chars_used = snprintf(str.data, str.size, printf_format<PRF_FIELDTYPE>(), indent_level, " ", name, static_cast<uint32_t>(get()));
-        if(0 < n_chars_used) {
-          left_chars.data += n_chars_used;
-          left_chars.size -= n_chars_used;
-        }
-        return left_chars;
-      }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::int32 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::sint32 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::sfixed32 == PRF_FIELDTYPE), bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %d,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::int64 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::sint64 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::sfixed32 == PRF_FIELDTYPE), bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %ld,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::uint32 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::fixed32 == PRF_FIELDTYPE), bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %u,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<(Field::FieldTypes::uint64 == PRF_FIELDTYPE) ||
-                                                                        (Field::FieldTypes::fixed64 == PRF_FIELDTYPE), bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %lu,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == PRF_FIELDTYPE, bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %f,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == PRF_FIELDTYPE, bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %lf,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == PRF_FIELDTYPE, bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %s,\n"; }
-
-      template<Field::FieldTypes PRF_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == PRF_FIELDTYPE, bool>::type = true>
-      constexpr const char* printf_format() const { return "%*s\"%s\": %d,\n"; }
-
-#else
-
-    private:
 
 #endif // End of MSG_TO_STRING
 
+    private:
 
       VARIABLE_TYPE value_;
 
