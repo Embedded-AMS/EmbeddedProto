@@ -296,6 +296,7 @@ namespace EmbeddedProto
           // Should never get here.
         }
 
+
         if(0 < n_chars_used) {
           // Update the character pointer and characters left in the array.
           left_chars.data += n_chars_used;
@@ -303,6 +304,7 @@ namespace EmbeddedProto
         }
 
         return left_chars;
+        //return to_string_<FIELDTYPE>(str, indent_level, name);
       }
 
 #endif // End of MSG_TO_STRING
