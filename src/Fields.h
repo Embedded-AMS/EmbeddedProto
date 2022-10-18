@@ -111,9 +111,10 @@ namespace EmbeddedProto
           \param str A string view object with a pointer to the current location in the character array and its maximum length.
           \param indent_level How many spaces should be added before this field.
           \param name A pointer to the name of this field.
+          \param first_field A boolean indicating if this is the first field we serialize in this message.
           \return A string view struct detail how many bytes are left in the string and a pointer to the point where to continue.
       */
-      virtual ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const = 0;
+      virtual ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const = 0;
 
 #endif // End of MSG_TO_STRING
   };
@@ -232,70 +233,81 @@ namespace EmbeddedProto
 
 #ifdef MSG_TO_STRING
 
-      //! Write a field to a character array.
+      //! Write all the data in this field to a human readable string.
       /*!
-          \param str The string view struct to write the data to.
-          \param indent_level How many spaces should be added infront of this field.
+          \param str A string view object with a pointer to the current location in the character array and its maximum length.
+          \param indent_level How many spaces should be added before this field.
           \param name A pointer to the name of this field.
-          \return A string view object with the remaining characters updated pointer.
+          \param first_field A boolean indicating if this is the first field we serialize in this message.
+          \return A string view struct detail how many bytes are left in the string and a pointer to the point where to continue.
       */
-      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const
       {
         ::EmbeddedProto::string_view left_chars = str;
         int32_t n_chars_used = 0;
 
+        if(!first_field) {
+          // Add a comma behind the previous field.
+          n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+          if(0 < n_chars_used) {
+            // Update the character pointer and characters left in the array.
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
+          }
+        }
+
+        n_chars_used = 0;
 
         if constexpr((Field::FieldTypes::int32 == FIELDTYPE) ||
-                          (Field::FieldTypes::sint32 == FIELDTYPE) ||
-                          (Field::FieldTypes::sfixed32 == FIELDTYPE))
+                     (Field::FieldTypes::sint32 == FIELDTYPE) ||
+                     (Field::FieldTypes::sfixed32 == FIELDTYPE))
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %d,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %d", indent_level, " ", name, 
                                   get());
         }
         else if constexpr((Field::FieldTypes::int64 == FIELDTYPE) ||
                           (Field::FieldTypes::sint64 == FIELDTYPE) ||
-                          (Field::FieldTypes::sfixed32 == FIELDTYPE))
+                          (Field::FieldTypes::sfixed64 == FIELDTYPE))
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %ld,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %ld", indent_level, " ", name, 
                                   get());
         }
         else if constexpr((Field::FieldTypes::uint32 == FIELDTYPE) ||
                           (Field::FieldTypes::fixed32 == FIELDTYPE))
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %u,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %u", indent_level, " ", name, 
                                   get());
         }        
         else if constexpr((Field::FieldTypes::uint64 == FIELDTYPE) ||
                           (Field::FieldTypes::fixed64 == FIELDTYPE))
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %lu,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %lu", indent_level, " ", name, 
                                   get());
         }
         else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %s,\n", indent_level, " ", name,
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %s", indent_level, " ", name,
                                   get() ? "true" : "false");
         }
         else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %d,\n", indent_level, " ", name,
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %d", indent_level, " ", name,
                                   static_cast<uint32_t>(get()));
         }
         else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %f,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %f", indent_level, " ", name, 
                                   get());
         }
         else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
         {
-          n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": %lf,\n", indent_level, " ", name, 
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %lf", indent_level, " ", name, 
                                   get());
         }
         else
         {
           // Should never get here.
         }
-
 
         if(0 < n_chars_used) {
           // Update the character pointer and characters left in the array.
@@ -304,7 +316,6 @@ namespace EmbeddedProto
         }
 
         return left_chars;
-        //return to_string_<FIELDTYPE>(str, indent_level, name);
       }
 
 #endif // End of MSG_TO_STRING

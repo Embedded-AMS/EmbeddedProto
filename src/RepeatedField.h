@@ -251,7 +251,7 @@ namespace EmbeddedProto
 
 #ifdef MSG_TO_STRING
 
-      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name) const override
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
       {
         return str;
       }
