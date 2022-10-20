@@ -277,13 +277,21 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       ::EmbeddedProto::string_view left_chars = str;
       int32_t n_chars_used = 0;
 
-      if(0 == indent_level)
-      {
-        n_chars_used = snprintf(str.data, str.size, "\"%s\": {\n", name );
+      if(!first_field) {
+        // Add a comma behind the previous field.
+        n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+        if(0 < n_chars_used) {
+          // Update the character pointer and characters left in the array.
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
       }
-      else 
-      {
-        n_chars_used = snprintf(str.data, str.size, "%*s\"%s\": {\n", indent_level, " ", name );
+
+      if( 0 == indent_level) {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\"%s\": {\n", name );
+      }
+      else {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": {\n", indent_level, " ", name );
       }
 
       if(0 < n_chars_used) {
@@ -292,19 +300,22 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       }
 
       {% for field in typedef.fields %}
-      {% if field.get_default_value() %}
+      {%if "FieldErrorRecursive" != field.descriptor.type_name %} {# Test if this is an FieldErrorRecursive #}
       left_chars = {{field.get_variable_name()}}.to_string(left_chars, indent_level + 2, {{field.get_name()|upper}}_NAME, {{ loop.first|lower }});
-      {% else %}
-      // TODO {{field.get_variable_name()}}
       {% endif %}
       {% endfor %}
 
-      n_chars_used = snprintf(left_chars.data, left_chars.size, "\n}");
+      if( 0 == indent_level) {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n}");
+      }
+      else {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n%*s}", indent_level, " ");
+      }
+
       if(0 < n_chars_used) {
         left_chars.data += n_chars_used;
         left_chars.size -= n_chars_used;
       }
-
 
       return left_chars;
     }

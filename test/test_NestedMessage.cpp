@@ -360,4 +360,30 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
   EXPECT_EQ(std::numeric_limits<int32_t>::max(), msg.get_nested_g().get_g());
 }
 
+#ifdef MSG_TO_STRING
+
+TEST(NestedMessage, to_string)
+{
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+
+  constexpr uint32_t N = 1024;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  char name[] = "msg";
+
+  // Test if a nested message can be serialized with values set to one.
+  msg.set_u(1.0F);
+  msg.mutable_nested_a().add_x(1);
+  msg.mutable_nested_a().set_y(1.0F);
+  msg.mutable_nested_a().set_z(1);
+  msg.set_v(1);
+
+  msg.to_string(str_view, 0, name, true);
+  
+  std::cout << std::endl << str << std::endl;
+}
+
+#endif // MSG_TO_STRING
+
 } // End of namespace test_EmbeddedAMS_NestedMessage
