@@ -272,29 +272,53 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
 #ifdef MSG_TO_STRING
 
+    ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str) const
+    {
+      return this->to_string(str, 0, nullptr, true);
+    }
+
     ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
     {
       ::EmbeddedProto::string_view left_chars = str;
       int32_t n_chars_used = 0;
 
-      if(!first_field) {
+      if(!first_field)
+      {
         // Add a comma behind the previous field.
         n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
-        if(0 < n_chars_used) {
+        if(0 < n_chars_used)
+        {
           // Update the character pointer and characters left in the array.
           left_chars.data += n_chars_used;
           left_chars.size -= n_chars_used;
         }
       }
 
-      if( 0 == indent_level) {
-        n_chars_used = snprintf(left_chars.data, left_chars.size, "\"%s\": {\n", name );
+      if(nullptr != name)
+      {
+        if( 0 == indent_level)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "\"%s\": {\n", name);
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": {\n", indent_level, " ", name);
+        }
       }
-      else {
-        n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": {\n", indent_level, " ", name );
+      else
+      {
+        if( 0 == indent_level)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "{\n");
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s{\n", indent_level, " ");
+        }
       }
-
-      if(0 < n_chars_used) {
+      
+      if(0 < n_chars_used)
+      {
         left_chars.data += n_chars_used;
         left_chars.size -= n_chars_used;
       }
@@ -305,14 +329,17 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endif %}
       {% endfor %}
 
-      if( 0 == indent_level) {
+      if( 0 == indent_level) 
+      {
         n_chars_used = snprintf(left_chars.data, left_chars.size, "\n}");
       }
-      else {
+      else 
+      {
         n_chars_used = snprintf(left_chars.data, left_chars.size, "\n%*s}", indent_level, " ");
       }
 
-      if(0 < n_chars_used) {
+      if(0 < n_chars_used)
+      {
         left_chars.data += n_chars_used;
         left_chars.size -= n_chars_used;
       }

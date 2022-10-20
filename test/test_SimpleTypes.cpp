@@ -564,8 +564,6 @@ TEST(SimpleTypes, to_string)
   constexpr uint32_t N = 1024;
   char str[N];
   ::EmbeddedProto::string_view str_view = { str, N };
-
-  char name[] = "msg";
  
   ::Test_Simple_Types msg;
 
@@ -585,14 +583,12 @@ TEST(SimpleTypes, to_string)
   msg.set_a_float(1.0F);
   msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B); 
 
-  str_view = msg.to_string(str_view, 0, name, true);
+  str_view = msg.to_string(str_view);
 
-  const char expected_str[] = "\"msg\": {\n  \"a_int32\": 1,\n  \"a_int64\": 1,\n  \"a_uint32\": 1,\n  \"a_uint64\": 1,\n  \"a_sint32\": 1,\n  \"a_sint64\": 1,\n  \"a_bool\": true,\n  \"a_enum\": 1,\n  \"a_fixed64\": 1,\n  \"a_sfixed64\": 1,\n  \"a_double\": 1.000000,\n  \"a_fixed32\": 1,\n  \"a_sfixed32\": 1,\n  \"a_float\": 1.000000,\n  \"a_nested_enum\": 1\n}";
-
-  std::cout << std::endl << str << std::endl;
-
-  ASSERT_STREQ(expected_str, str);
-
+  // std::cout << std::endl << str << std::endl;
+  
+  const char expected_str[] = "{\n  \"a_int32\": 1,\n  \"a_int64\": 1,\n  \"a_uint32\": 1,\n  \"a_uint64\": 1,\n  \"a_sint32\": 1,\n  \"a_sint64\": 1,\n  \"a_bool\": true,\n  \"a_enum\": 1,\n  \"a_fixed64\": 1,\n  \"a_sfixed64\": 1,\n  \"a_double\": 1.000000,\n  \"a_fixed32\": 1,\n  \"a_sfixed32\": 1,\n  \"a_float\": 1.000000,\n  \"a_nested_enum\": 1\n}";
+ASSERT_STREQ(expected_str, str);
 }
 
 #endif // MSG_TO_STRING

@@ -246,7 +246,8 @@ namespace EmbeddedProto
         ::EmbeddedProto::string_view left_chars = str;
         int32_t n_chars_used = 0;
 
-        if(!first_field) {
+        if(!first_field)
+        {
           // Add a comma behind the previous field.
           n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
           if(0 < n_chars_used) {
@@ -258,51 +259,61 @@ namespace EmbeddedProto
 
         n_chars_used = 0;
 
+        if(nullptr != name)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": ", indent_level, " ", name);
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s", indent_level, " ");
+        }
+
+        if(0 < n_chars_used)
+        {
+          // Update the character pointer and characters left in the array.
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
         if constexpr((Field::FieldTypes::int32 == FIELDTYPE) ||
                      (Field::FieldTypes::sint32 == FIELDTYPE) ||
                      (Field::FieldTypes::sfixed32 == FIELDTYPE))
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %d", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%d", get());
         }
         else if constexpr((Field::FieldTypes::int64 == FIELDTYPE) ||
                           (Field::FieldTypes::sint64 == FIELDTYPE) ||
                           (Field::FieldTypes::sfixed64 == FIELDTYPE))
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %ld", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%ld", get());
         }
         else if constexpr((Field::FieldTypes::uint32 == FIELDTYPE) ||
                           (Field::FieldTypes::fixed32 == FIELDTYPE))
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %u", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%u", get());
         }        
         else if constexpr((Field::FieldTypes::uint64 == FIELDTYPE) ||
                           (Field::FieldTypes::fixed64 == FIELDTYPE))
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %lu", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%lu", get());
         }
         else if constexpr(Field::FieldTypes::boolean == FIELDTYPE)
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %s", indent_level, " ", name,
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%s", 
                                   get() ? "true" : "false");
         }
         else if constexpr(Field::FieldTypes::enumeration == FIELDTYPE)
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %d", indent_level, " ", name,
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%d", 
                                   static_cast<uint32_t>(get()));
         }
         else if constexpr(Field::FieldTypes::floatfixed == FIELDTYPE)
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %f", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%f", get());
         }
         else if constexpr(Field::FieldTypes::doublefixed == FIELDTYPE)
         {
-          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": %lf", indent_level, " ", name, 
-                                  get());
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%lf", get());
         }
         else
         {

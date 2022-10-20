@@ -370,18 +370,21 @@ TEST(NestedMessage, to_string)
   char str[N];
   ::EmbeddedProto::string_view str_view = { str, N };
 
-  char name[] = "msg";
-
   // Test if a nested message can be serialized with values set to one.
   msg.set_u(1.0F);
   msg.mutable_nested_a().add_x(1);
+  msg.mutable_nested_a().add_x(2);
+  msg.mutable_nested_a().add_x(3);
   msg.mutable_nested_a().set_y(1.0F);
   msg.mutable_nested_a().set_z(1);
   msg.set_v(1);
 
-  msg.to_string(str_view, 0, name, true);
+  msg.to_string(str_view);
   
-  std::cout << std::endl << str << std::endl;
+  // std::cout << std::endl << str << std::endl;
+
+  const char expected_str[] = "{\n  \"u\": 1.000000,\n  \"nested_a\": {\n    \"x\": [\n           1,\n           2,\n           3\n         ],\n    \"y\": 1.000000,\n    \"z\": 1\n  },\n  \"v\": 1\n}"; 
+  ASSERT_STREQ(expected_str, str);
 }
 
 #endif // MSG_TO_STRING
