@@ -324,11 +324,13 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       }
 
       {% for field in typedef.fields %}
-      {%if "FieldErrorRecursive" != field.descriptor.type_name %} {# Test if this is an FieldErrorRecursive #}
+      {%if "FieldErrorRecursive" != field.descriptor.type_name %}{# Test if this is an FieldErrorRecursive #}
       left_chars = {{field.get_variable_name()}}.to_string(left_chars, indent_level + 2, {{field.get_name()|upper}}_NAME, {{ loop.first|lower }});
       {% endif %}
       {% endfor %}
-
+      {% for oneof in typedef.oneofs %}
+      left_chars = to_string_{{oneof.get_name()}}(left_chars, indent_level + 2, {{((typedef.fields|length == 0) and loop.first)|lower }});
+      {% endfor %}  
       if( 0 == indent_level) 
       {
         n_chars_used = snprintf(left_chars.data, left_chars.size, "\n}");
@@ -415,5 +417,8 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
       {{ TypeOneof.deserialize(oneof, environment)|indent(6) }}
+#ifdef MSG_TO_STRING 
+      {{ TypeOneof.to_string(oneof)|indent(6) }}
+#endif // End of MSG_TO_STRING
       {% endfor %}
 };
