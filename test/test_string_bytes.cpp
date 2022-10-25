@@ -655,5 +655,53 @@ TEST(RepeatedStringBytes, field_number_to_name)
                           "nested_bytes"));
 }
 
+#ifdef MSG_TO_STRING
+
+TEST(RepeatedStringBytes, to_string)
+{
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
+
+  ::EmbeddedProto::FieldString<15> field_str;
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(0) = "Foo bar 1";
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(1) = "";
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(2) = "Foo bar 3";
+
+  ::EmbeddedProto::FieldBytes<15> data_field;
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i + 5;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i + 10;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  msg.mutable_nested_text().mutable_txt() = "A.B";
+
+  const std::array<uint8_t, 3> b = {1, 2, 3};
+  msg.mutable_nested_bytes().mutable_b().set(b.data(), 3); 
+
+  constexpr uint32_t N = 2048;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  msg.to_string(str_view);
+  
+  //std::cout << std::endl << str << std::endl;
+
+  const char expected_str[] = "{\n  \"array_of_txt\": [\n                    \"Foo bar 1\",\n                    \"\",\n                    \"Foo bar 3\"\n                  ],\n  \"array_of_bytes\": [\n                      [\n                        0,\n                        1,\n                        2,\n                        3,\n                        4,\n                        5,\n                        6,\n                        7,\n                        8,\n                        9\n                      ],\n                      [\n                        5,\n                        6,\n                        7,\n                        8,\n                        9,\n                        10,\n                        11,\n                        12,\n                        13,\n                        14\n                      ],\n                      [\n                        10,\n                        11,\n                        12,\n                        13,\n                        14,\n                        15,\n                        16,\n                        17,\n                        18,\n                        19\n                      ]\n                    ],\n  \"nested_text\": {\n    \"txt\": \"A.B\"\n  },\n  \"nested_bytes\": {\n    \"b\": [\n           1,\n           2,\n           3\n         ]\n  }\n}"; 
+  ASSERT_STREQ(expected_str, str);
+}
+
+#endif // MSG_TO_STRING
 
 } // End of namespace test_EmbeddedAMS_string_bytes

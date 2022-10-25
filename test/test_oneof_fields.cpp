@@ -452,3 +452,31 @@ TEST(OneofField, field_number_to_name)
   EXPECT_TRUE(0 == strcmp(::message_oneof::field_number_to_name(::message_oneof::FieldNumber::MSG_ABC),
                           "msg_ABC"));
 }
+
+
+#ifdef MSG_TO_STRING
+
+TEST(OneofField, to_string)
+{
+  message_oneof msg;
+
+  // X and V
+  msg.set_a(1);
+  msg.set_b(1);
+  msg.set_x(1);
+  msg.set_v(1);
+
+  constexpr uint32_t N = 1024;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  msg.to_string(str_view);
+  
+  std::cout << std::endl << str << std::endl;
+
+  const char expected_str[] = "{\n  \"a\": 1,\n  \"b\": 1,\n  \"x\": 1,\n  \"v\": 1.000000\n}"; 
+  
+  ASSERT_STREQ(expected_str, str);
+}
+
+#endif // End of MSG_TO_STRING

@@ -604,4 +604,37 @@ TEST(RepeatedFieldMessage, deserialize_repeated_enum)
   EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
 }
 
+#ifdef MSG_TO_STRING
+
+TEST(RepeatedFieldMessage, to_string)
+{
+  repeated_message<Y_SIZE> msg;
+  repeated_nested_message rnm;
+
+  constexpr uint32_t N = 1024;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  rnm.set_u(0);
+  rnm.set_v(1);
+  msg.add_b(rnm);
+
+  rnm.set_u(2);
+  rnm.set_v(3);
+  msg.add_b(rnm);
+
+  rnm.set_u(4);
+  rnm.set_v(5);
+  msg.add_b(rnm);
+
+  msg.to_string(str_view);
+  
+  // std::cout << std::endl << str << std::endl;
+
+  const char expected_str[] = "{\n  \"a\": 0,\n  \"b\": [\n         {\n           \"u\": 0,\n           \"v\": 1\n         },\n         {\n           \"u\": 2,\n           \"v\": 3\n         },\n         {\n           \"u\": 4,\n           \"v\": 5\n         }\n       ],\n  \"c\": 0\n}"; 
+  ASSERT_STREQ(expected_str, str);
+}
+
+#endif // MSG_TO_STRING
+
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage

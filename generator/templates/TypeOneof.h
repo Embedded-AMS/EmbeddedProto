@@ -136,3 +136,25 @@ void clear_{{_oneof.get_name()}}()
   return return_value;
 }
 {% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro to_string(_oneof) %}
+::EmbeddedProto::string_view to_string_{{_oneof.get_name()}}(::EmbeddedProto::string_view& str, const uint32_t indent_level, const bool first_field) const
+{
+  ::EmbeddedProto::string_view left_chars = str;
+
+  switch({{_oneof.get_which_oneof()}})
+  {
+    {% for field in _oneof.get_fields() %}
+    case FieldNumber::{{field.get_variable_id_name()}}:
+      left_chars = {{field.get_variable_name()}}.to_string(left_chars, indent_level, {{field.get_name()|upper}}_NAME, first_field);
+      break;
+    {% endfor %}
+    default:
+      break;
+  }
+
+  return left_chars;
+}
+{% endmacro %}
