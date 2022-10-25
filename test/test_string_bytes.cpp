@@ -276,6 +276,16 @@ TEST(FieldBytes, set_get)
   EXPECT_EQ(1, msg.get_b().get_length());
   EXPECT_EQ(1, msg.get_b().get_const(0));
 
+  uint8_t value = 0;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.get_b().get_const(0, value));
+  EXPECT_EQ(1, value);
+
+  value = 99;
+  EXPECT_EQ(::EmbeddedProto::Error::INDEX_OUT_OF_BOUND, msg.get_b().get_const(1, value));
+  // Value should not have changed.
+  EXPECT_EQ(99, value);
+
+
   msg.clear();
   EXPECT_EQ(0, msg.get_b().get_length());
   EXPECT_EQ(0, msg.get_b().get_const(0));
