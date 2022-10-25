@@ -44,6 +44,7 @@ namespace EmbeddedProto
     ARRAY_FULL       = 4, //!< The array is full, it is not possible to push more items in it.
     INVALID_FIELD_ID = 5, //!< When the id obtained from the tag equeals zero.
     OVERLONG_VARINT  = 6, //!< The maximum number of bytes where read for this varint but we did not reach the end of the data.
+    INDEX_OUT_OF_BOUND = 7, //!< You are trying to access an index outside of valid data.
   };
 
 }; // End of namespace EmbeddedProto

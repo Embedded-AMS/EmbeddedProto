@@ -472,7 +472,7 @@ TEST(OneofField, to_string)
 
   msg.to_string(str_view);
   
-  std::cout << std::endl << str << std::endl;
+  //std::cout << std::endl << str << std::endl;
 
   const char expected_str[] = "{\n  \"a\": 1,\n  \"b\": 1,\n  \"x\": 1,\n  \"v\": 1.000000\n}"; 
   

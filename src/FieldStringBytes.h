@@ -100,6 +100,26 @@ namespace EmbeddedProto
           return data_[limited_index]; 
         }
 
+        //! Get a constant reference to the value at the given index.
+        /*!
+          \param[in] index The desired index to return.
+          \param[out] value The value of the desired index is set in this reference.
+          \return An error incase of an index out of bound situation.
+        */
+        Error get_const(const uint32_t index, DATA_TYPE& value) const
+        {
+          Error result = Error::NO_ERRORS;
+          if(index < current_length_)
+          {
+            value = data_[index];
+          }
+          else
+          {
+            result = Error::INDEX_OUT_OF_BOUND;
+          }
+          return result;
+        }
+
         //! Get a reference to the value at the given index. 
         /*!
           This function will update the number of elements used in the array/string.
