@@ -28,6 +28,11 @@ This document details the following:
 
 To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
 
+## 3.3.0
+* Added a to_string function for debugging (see [documentation](https://embeddedproto.com/documentation/to-string/)).
+* Added getter functions which will return an error for index out of bounds cases.
+* Bug fix the toposorting algo for nested message defintions.
+
 ## 3.2.0
 The most notable improvements in this version are:
 * Updated to protobuf v21.5. The python module made by Google for this version is not backwards compatible. Please update your protoc installation!
