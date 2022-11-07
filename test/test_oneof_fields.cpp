@@ -470,13 +470,16 @@ TEST(OneofField, to_string)
   char str[N];
   ::EmbeddedProto::string_view str_view = { str, N };
 
-  msg.to_string(str_view);
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
   
   //std::cout << std::endl << str << std::endl;
 
-  const char expected_str[] = "{\n  \"a\": 1,\n  \"b\": 1,\n  \"x\": 1,\n  \"v\": 1.000000\n}"; 
+  constexpr uint32_t TXT_LEN = 49;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"a\": 1,\n  \"b\": 1,\n  \"x\": 1,\n  \"v\": 1.000000\n}"; 
   
   ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);  
+  EXPECT_EQ(str + TXT_LEN, str_left.data);
 }
 
 #endif // End of MSG_TO_STRING
