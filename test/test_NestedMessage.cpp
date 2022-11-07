@@ -379,12 +379,15 @@ TEST(NestedMessage, to_string)
   msg.mutable_nested_a().set_z(1);
   msg.set_v(1);
 
-  msg.to_string(str_view);
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
   
-  // std::cout << std::endl << str << std::endl;
+  //std::cout << std::endl << str << std::endl;
 
-  const char expected_str[] = "{\n  \"u\": 1.000000,\n  \"nested_a\": {\n    \"x\": [\n           1,\n           2,\n           3\n         ],\n    \"y\": 1.000000,\n    \"z\": 1\n  },\n  \"v\": 1\n}"; 
+  constexpr uint32_t TXT_LEN = 144;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"u\": 1.000000,\n  \"nested_a\": {\n    \"x\": [\n           1,\n           2,\n           3\n         ],\n    \"y\": 1.000000,\n    \"z\": 1\n  },\n  \"v\": 1\n}"; 
   ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);
+  EXPECT_EQ(str + TXT_LEN, str_left.data);
 }
 
 #endif // MSG_TO_STRING

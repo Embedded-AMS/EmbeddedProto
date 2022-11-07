@@ -627,12 +627,15 @@ TEST(RepeatedFieldMessage, to_string)
   rnm.set_v(5);
   msg.add_b(rnm);
 
-  msg.to_string(str_view);
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
   
   // std::cout << std::endl << str << std::endl;
 
-  const char expected_str[] = "{\n  \"a\": 0,\n  \"b\": [\n         {\n           \"u\": 0,\n           \"v\": 1\n         },\n         {\n           \"u\": 2,\n           \"v\": 3\n         },\n         {\n           \"u\": 4,\n           \"v\": 5\n         }\n       ],\n  \"c\": 0\n}"; 
+  constexpr uint32_t TXT_LEN = 220;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"a\": 0,\n  \"b\": [\n         {\n           \"u\": 0,\n           \"v\": 1\n         },\n         {\n           \"u\": 2,\n           \"v\": 3\n         },\n         {\n           \"u\": 4,\n           \"v\": 5\n         }\n       ],\n  \"c\": 0\n}"; 
   ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);
+  EXPECT_EQ(str + TXT_LEN, str_left.data);
 }
 
 #endif // MSG_TO_STRING
