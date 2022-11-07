@@ -201,6 +201,9 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
   msg.mutable_nested_b().mutable_nested_a().set_y(std::numeric_limits<float>::max());
   msg.mutable_nested_b().mutable_nested_a().set_z(std::numeric_limits<int64_t>::max());
   msg.mutable_nested_b().set_v(std::numeric_limits<int32_t>::max());
+  msg.mutable_nested_d().add_d(std::numeric_limits<uint32_t>::max());
+  msg.mutable_nested_d().add_d(std::numeric_limits<uint32_t>::max());
+  msg.mutable_nested_g().set_g(std::numeric_limits<int32_t>::max());
 
   // tag and size of nested b
   EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
@@ -235,6 +238,38 @@ TEST(NestedMessage, serialize_nested_in_nested_max)
                                         0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07};
 
   for(auto e : expected_a) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  // Tag and size of nested d
+  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x0C)).Times(1).WillOnce(Return(true));
+
+  // When called the buffer will have enough space for the message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(12));
+
+  // Tag and length of d
+  EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x0A)).Times(1).WillOnce(Return(true));
+
+  // The next call is for the repeated field d.
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
+  std::array<uint8_t, 10> expected_d = {0xFF, 0xFF, 0xFF, 0xFF, 0x0F,
+                                        0xFF, 0xFF, 0xFF, 0xFF, 0x0F};
+
+  for(auto e : expected_d) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+  
+  // Tag and size of g
+  EXPECT_CALL(buffer, push(0x1A)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x06)).Times(1).WillOnce(Return(true));
+
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
+
+  std::array<uint8_t, 6> expected_g = {0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07}; // g
+  for(auto e : expected_g) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
@@ -286,7 +321,7 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
   Mocks::ReadBufferMock buffer;
 
 
-  static constexpr uint32_t SIZE = 42;
+  static constexpr uint32_t SIZE = 64;
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
@@ -299,7 +334,12 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
                                         0x15, 0xFF, 0xFF, 0x7F, 0x7F, // y
                                         0x18, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, // z
                                         // And back to the parent message with field v.
-                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07 };
+                                        0x18, 0xFF, 0xFF, 0xFF, 0xFF, 0x07,
+                                        0x12, 0x0C, // Tag and size of nested d
+                                        0x0A, 0x0A, // Length of d
+                                        0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F, // Value(s) of d
+                                        0x1A, 0x06, // Tag and size of nested g
+                                        0x08, 0xFF, 0xFF, 0xFF, 0xFF, 0x07 }; // Value g 
 
   for(auto r: referee) {
     EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
@@ -314,6 +354,42 @@ TEST(NestedMessage, deserialize_nested_in_nested_max)
   EXPECT_EQ(std::numeric_limits<float>::max(), msg.get_nested_b().get_nested_a().get_y());
   EXPECT_EQ(std::numeric_limits<int64_t>::max(), msg.get_nested_b().get_nested_a().get_z());
   EXPECT_EQ(std::numeric_limits<int32_t>::max(), msg.get_nested_b().get_v());
+  EXPECT_EQ(2, msg.get_nested_d().get_d().get_length());
+  EXPECT_EQ(std::numeric_limits<uint32_t>::max(), msg.get_nested_d().d(0));
+  EXPECT_EQ(std::numeric_limits<uint32_t>::max(), msg.get_nested_d().d(1));
+  EXPECT_EQ(std::numeric_limits<int32_t>::max(), msg.get_nested_g().get_g());
 }
+
+#ifdef MSG_TO_STRING
+
+TEST(NestedMessage, to_string)
+{
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+
+  constexpr uint32_t N = 1024;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  // Test if a nested message can be serialized with values set to one.
+  msg.set_u(1.0F);
+  msg.mutable_nested_a().add_x(1);
+  msg.mutable_nested_a().add_x(2);
+  msg.mutable_nested_a().add_x(3);
+  msg.mutable_nested_a().set_y(1.0F);
+  msg.mutable_nested_a().set_z(1);
+  msg.set_v(1);
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+  
+  //std::cout << std::endl << str << std::endl;
+
+  constexpr uint32_t TXT_LEN = 144;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"u\": 1.000000,\n  \"nested_a\": {\n    \"x\": [\n           1,\n           2,\n           3\n         ],\n    \"y\": 1.000000,\n    \"z\": 1\n  },\n  \"v\": 1\n}"; 
+  ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);
+  EXPECT_EQ(str + TXT_LEN, str_left.data);
+}
+
+#endif // MSG_TO_STRING
 
 } // End of namespace test_EmbeddedAMS_NestedMessage

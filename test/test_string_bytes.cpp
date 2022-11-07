@@ -74,14 +74,14 @@ TEST(FieldString, get_set)
   EXPECT_EQ(9, msg.get_txt().get_length());
   ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
 
-  // Teat assigning a string by array pointer. 
-  char text[] = "Foo bar 3";
+  // Test assigning a string by array pointer with max length.
+  char text[] = "Foo bar 3!";
   msg.mutable_txt() = text;
-  EXPECT_EQ(9, msg.get_txt().get_length());
-  ASSERT_STREQ("Foo bar 3", msg.get_txt().get_const());
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 3!", msg.get_txt().get_const());
 
   const char* text2 = msg.get_txt().get_const();
-  ASSERT_STREQ("Foo bar 3", text2);
+  ASSERT_STREQ("Foo bar 3!", text2);
 }
 
 TEST(FieldString, clear)
@@ -275,6 +275,16 @@ TEST(FieldBytes, set_get)
   msg.mutable_b()[0] = 1;
   EXPECT_EQ(1, msg.get_b().get_length());
   EXPECT_EQ(1, msg.get_b().get_const(0));
+
+  uint8_t value = 0;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.get_b().get_const(0, value));
+  EXPECT_EQ(1, value);
+
+  value = 99;
+  EXPECT_EQ(::EmbeddedProto::Error::INDEX_OUT_OF_BOUND, msg.get_b().get_const(1, value));
+  // Value should not have changed.
+  EXPECT_EQ(99, value);
+
 
   msg.clear();
   EXPECT_EQ(0, msg.get_b().get_length());
@@ -655,5 +665,56 @@ TEST(RepeatedStringBytes, field_number_to_name)
                           "nested_bytes"));
 }
 
+#ifdef MSG_TO_STRING
+
+TEST(RepeatedStringBytes, to_string)
+{
+  repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
+
+  ::EmbeddedProto::FieldString<15> field_str;
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(0) = "Foo bar 1";
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(1) = "";
+  msg.add_array_of_txt(field_str);
+  msg.mutable_array_of_txt(2) = "Foo bar 3";
+
+  ::EmbeddedProto::FieldBytes<15> data_field;
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i + 5;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  for(uint8_t i = 0; i < 10; ++i) {
+    data_field[i] = i + 10;
+  }
+  msg.mutable_array_of_bytes().add(data_field);
+
+  msg.mutable_nested_text().mutable_txt() = "A.B";
+
+  const std::array<uint8_t, 3> b = {1, 2, 3};
+  msg.mutable_nested_bytes().mutable_b().set(b.data(), 3); 
+
+  constexpr uint32_t N = 2048;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+  
+  //std::cout << std::endl << str << std::endl;
+
+  constexpr uint32_t TXT_LEN = 1274;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"array_of_txt\": [\n                    \"Foo bar 1\",\n                    \"\",\n                    \"Foo bar 3\"\n                  ],\n  \"array_of_bytes\": [\n                      [\n                        0,\n                        1,\n                        2,\n                        3,\n                        4,\n                        5,\n                        6,\n                        7,\n                        8,\n                        9\n                      ],\n                      [\n                        5,\n                        6,\n                        7,\n                        8,\n                        9,\n                        10,\n                        11,\n                        12,\n                        13,\n                        14\n                      ],\n                      [\n                        10,\n                        11,\n                        12,\n                        13,\n                        14,\n                        15,\n                        16,\n                        17,\n                        18,\n                        19\n                      ]\n                    ],\n  \"nested_text\": {\n    \"txt\": \"A.B\"\n  },\n  \"nested_bytes\": {\n    \"b\": [\n           1,\n           2,\n           3\n         ]\n  }\n}"; 
+  ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);
+  EXPECT_EQ(str + TXT_LEN, str_left.data);
+}
+
+#endif // MSG_TO_STRING
 
 } // End of namespace test_EmbeddedAMS_string_bytes

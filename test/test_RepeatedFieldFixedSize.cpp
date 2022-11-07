@@ -116,6 +116,16 @@ TEST(RepeatedFieldFixedSize, get)
   x.get(3) = 3U;
   EXPECT_EQ(3U, x.get_const(2));
   EXPECT_EQ(3U, x.get_const(3));
+
+  // Test the get_const which will return out of bound errors.
+  ::EmbeddedProto::uint32 value = 0;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, x.get_const(1, value));
+  EXPECT_EQ(1, value);
+
+  value = 99;
+  EXPECT_EQ(::EmbeddedProto::Error::INDEX_OUT_OF_BOUND, x.get_const(3, value));
+  // Value should not have changed.
+  EXPECT_EQ(99, value);
 }
 
 TEST(RepeatedFieldFixedSize, set_data_array) 

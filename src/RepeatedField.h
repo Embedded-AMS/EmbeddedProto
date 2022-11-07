@@ -98,6 +98,14 @@ namespace EmbeddedProto
       */
       virtual const DATA_TYPE& get_const(uint32_t index) const = 0;
 
+      //! Get a constant reference to the value at the given index.
+      /*!
+        \param[in] index The desired index to return.
+        \param[out] value The value of the desired index is set in this reference.
+        \return An error incase of an index out of bound situation.
+      */
+      virtual Error get_const(const int32_t index, DATA_TYPE& value) const = 0;
+
       //! Get a reference to the value at the given index. 
       /*!
         \param[in] index The desired index to return.
@@ -247,6 +255,52 @@ namespace EmbeddedProto
         serialize_unpacked(field_number, calcBuffer);
         return calcBuffer.get_size();
       }
+
+
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        int32_t n_chars_used = 0;
+
+        if(!first_field)
+        {
+          // Add a comma behind the previous field.
+          n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+          if(0 < n_chars_used)
+          {
+            // Update the character pointer and characters left in the array.
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
+          }
+        }
+
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": [\n", indent_level, " ", name );
+        
+        if(0 < n_chars_used) 
+        {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
+        for(uint32_t i = 0; i < this->get_length(); ++i)
+        {
+          left_chars = this->get_const(i).to_string(left_chars, n_chars_used, nullptr, (0 == i));
+        }
+
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n%*s]", n_chars_used - 2, " ");
+        
+        if(0 < n_chars_used)
+        {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
+        return left_chars;
+      }
+
+#endif // End of MSG_TO_STRING
 
     private:
 

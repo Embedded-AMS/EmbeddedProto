@@ -270,7 +270,88 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return name;
     }
 
-    private:
+#ifdef MSG_TO_STRING
+
+    ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str) const
+    {
+      return this->to_string(str, 0, nullptr, true);
+    }
+
+    ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
+    {
+      ::EmbeddedProto::string_view left_chars = str;
+      int32_t n_chars_used = 0;
+
+      if(!first_field)
+      {
+        // Add a comma behind the previous field.
+        n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+        if(0 < n_chars_used)
+        {
+          // Update the character pointer and characters left in the array.
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+      }
+
+      if(nullptr != name)
+      {
+        if( 0 == indent_level)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "\"%s\": {\n", name);
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": {\n", indent_level, " ", name);
+        }
+      }
+      else
+      {
+        if( 0 == indent_level)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "{\n");
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s{\n", indent_level, " ");
+        }
+      }
+      
+      if(0 < n_chars_used)
+      {
+        left_chars.data += n_chars_used;
+        left_chars.size -= n_chars_used;
+      }
+
+      {% for field in typedef.fields %}
+      {%if "FieldErrorRecursive" != field.descriptor.type_name %}{# Test if this is an FieldErrorRecursive #}
+      left_chars = {{field.get_variable_name()}}.to_string(left_chars, indent_level + 2, {{field.get_name()|upper}}_NAME, {{ loop.first|lower }});
+      {% endif %}
+      {% endfor %}
+      {% for oneof in typedef.oneofs %}
+      left_chars = to_string_{{oneof.get_name()}}(left_chars, indent_level + 2, {{((typedef.fields|length == 0) and loop.first)|lower }});
+      {% endfor %}  
+      if( 0 == indent_level) 
+      {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n}");
+      }
+      else 
+      {
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n%*s}", indent_level, " ");
+      }
+
+      if(0 < n_chars_used)
+      {
+        left_chars.data += n_chars_used;
+        left_chars.size -= n_chars_used;
+      }
+
+      return left_chars;
+    }
+
+#endif // End of MSG_TO_STRING
+
+  private:
 
       {% if typedef.optional_fields is defined and typedef.optional_fields|length > 0 %}
       // Define constants for tracking the presence of fields.
@@ -336,5 +417,8 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
       {{ TypeOneof.deserialize(oneof, environment)|indent(6) }}
+#ifdef MSG_TO_STRING 
+      {{ TypeOneof.to_string(oneof)|indent(6) }}
+#endif // End of MSG_TO_STRING
       {% endfor %}
 };

@@ -122,6 +122,20 @@ namespace EmbeddedProto
         return data_[limited_index]; 
       }
 
+      Error get_const(const int32_t index, DATA_TYPE& value) const override
+      {
+        Error result = Error::NO_ERRORS;
+        if(index < current_length_)
+        {
+          value = data_[index];
+        }
+        else
+        {
+          result = Error::INDEX_OUT_OF_BOUND;
+        }
+        return result;
+      }
+
       void set(uint32_t index, const DATA_TYPE& value) override 
       { 
         uint32_t limited_index = std::min(index, MAX_LENGTH-1);

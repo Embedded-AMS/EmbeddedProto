@@ -100,6 +100,26 @@ namespace EmbeddedProto
           return data_[limited_index]; 
         }
 
+        //! Get a constant reference to the value at the given index.
+        /*!
+          \param[in] index The desired index to return.
+          \param[out] value The value of the desired index is set in this reference.
+          \return An error incase of an index out of bound situation.
+        */
+        Error get_const(const uint32_t index, DATA_TYPE& value) const
+        {
+          Error result = Error::NO_ERRORS;
+          if(index < current_length_)
+          {
+            value = data_[index];
+          }
+          else
+          {
+            result = Error::INDEX_OUT_OF_BOUND;
+          }
+          return result;
+        }
+
         //! Get a reference to the value at the given index. 
         /*!
           This function will update the number of elements used in the array/string.
@@ -260,7 +280,7 @@ namespace EmbeddedProto
           data_.fill(0);
           current_length_ = 0; 
         }
-    
+       
       protected:
 
         //! Set the current number of items in the array. Only for internal usage.
@@ -297,21 +317,58 @@ namespace EmbeddedProto
         if(nullptr != rhs) {
           const uint32_t rhs_MAX_LENGTH = strlen(rhs);
           this->set_length(rhs_MAX_LENGTH);
-          strncpy(this->get(), rhs, this->get_length());
-
-          // Make sure the string is null terminated.
-          if(MAX_LENGTH > this->get_length())
-          {
-            // Add a null terminator to make sure. Explicitly use the get operator to the raw 
-            // pointer not to increase the array size with the null terminator.
-            *(this->get() + this->get_length()) = 0;
+          uint32_t lhs_length = this->get_length();
+          // If it fits in this object copy the null terminator.
+          if(MAX_LENGTH > lhs_length) {
+            ++lhs_length;
           }
+          strncpy(this->get(), rhs, lhs_length);
         }
         else {
           this->clear();
         }
         return *this;
       }
+
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        int32_t n_chars_used = 0;
+
+        if(!first_field)
+        {
+          // Add a comma behind the previous field.
+          n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+          if(0 < n_chars_used)
+          {
+            // Update the character pointer and characters left in the array.
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
+          }
+        }
+
+        if(nullptr != name)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": \"%s\"", indent_level, " ", name, this->get_const());
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\"", indent_level, " ", this->get_const());
+        }
+        
+        if(0 < n_chars_used) 
+        {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
+        return left_chars;
+      }
+
+#endif // End of MSG_TO_STRING
+
   };
 
   //! The class definition used in messages for Bytes fields.
@@ -320,7 +377,61 @@ namespace EmbeddedProto
   {
     public:
       FieldBytes() = default;
-      ~FieldBytes() override = default; 
+      ~FieldBytes() override = default;
+
+#ifdef MSG_TO_STRING
+
+      ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str, const uint32_t indent_level, char const* name, const bool first_field) const override
+      {
+        ::EmbeddedProto::string_view left_chars = str;
+        int32_t n_chars_used = 0;
+
+        if(!first_field)
+        {
+          // Add a comma behind the previous field.
+          n_chars_used = snprintf(left_chars.data, left_chars.size, ",\n");
+          if(0 < n_chars_used)
+          {
+            // Update the character pointer and characters left in the array.
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
+          }
+        }
+
+        if(nullptr != name)
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s\"%s\": [\n", indent_level, " ", name );
+        }
+        else
+        {
+          n_chars_used = snprintf(left_chars.data, left_chars.size, "%*s[\n", indent_level, " ");
+        }
+        
+        if(0 < n_chars_used) 
+        {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
+        uint32 field;
+        for(uint32_t i = 0; i < this->get_length(); ++i)
+        {
+          field = this->get_const(i);
+          left_chars = field.to_string(left_chars, n_chars_used, nullptr, (0 == i));
+        }
+
+        n_chars_used = snprintf(left_chars.data, left_chars.size, "\n%*s]", n_chars_used - 2, " ");
+        
+        if(0 < n_chars_used)
+        {
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
+        }
+
+        return left_chars;
+      }
+
+#endif // End of MSG_TO_STRING
   };
 
 

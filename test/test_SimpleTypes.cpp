@@ -557,4 +557,44 @@ TEST(SimpleTypes, field_number_to_name)
                           "Invalid FieldNumber"));
 }
 
+#ifdef MSG_TO_STRING
+
+TEST(SimpleTypes, to_string)
+{
+  constexpr uint32_t N = 1024;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+ 
+  ::Test_Simple_Types msg;
+
+  msg.set_a_int32(1);   
+  msg.set_a_int64(1);     
+  msg.set_a_uint32(1);    
+  msg.set_a_uint64(1);
+  msg.set_a_sint32(1);
+  msg.set_a_sint64(1);
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
+  msg.set_a_fixed64(1);
+  msg.set_a_sfixed64(1);
+  msg.set_a_double(1.0);
+  msg.set_a_fixed32(1);
+  msg.set_a_sfixed32(1); 
+  msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B); 
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+
+  // std::cout << std::endl << str << std::endl;
+  
+  constexpr uint32_t TXT_LEN = 278;
+  const char expected_str[TXT_LEN + 1] = "{\n  \"a_int32\": 1,\n  \"a_int64\": 1,\n  \"a_uint32\": 1,\n  \"a_uint64\": 1,\n  \"a_sint32\": 1,\n  \"a_sint64\": 1,\n  \"a_bool\": true,\n  \"a_enum\": 1,\n  \"a_fixed64\": 1,\n  \"a_sfixed64\": 1,\n  \"a_double\": 1.000000,\n  \"a_fixed32\": 1,\n  \"a_sfixed32\": 1,\n  \"a_float\": 1.000000,\n  \"a_nested_enum\": 1\n}";
+  ASSERT_STREQ(expected_str, str);
+  EXPECT_EQ(N - TXT_LEN, str_left.size);
+  EXPECT_EQ(str + TXT_LEN, str_left.data);  
+
+}
+
+#endif // MSG_TO_STRING
+
 } // End of namespace test_EmbeddedAMS_SimpleTypes
