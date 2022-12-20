@@ -1,7 +1,7 @@
 @echo off
 
 ::
-:: Copyright (C) 2020-2022 Embedded AMS B.V. - All Rights Reserved
+:: Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
 ::
 :: This file is part of Embedded Proto.
 ::
