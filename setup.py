@@ -159,6 +159,35 @@ def display_feedback():
 
 ####################################################################################
 
+def create_venv():
+    print("Creating a virtual environment for Embedded Proto.", end='')
+    venv.create("venv", with_pip=True)
+    print(" [" + CGREEN + "Success" + CEND + "]")
+
+
+####################################################################################
+
+def install_pip():
+    print("Installing requirement Python packages in the virtual environment.", end='')
+    on_windows = "Windows" == platform.system()
+    command = []
+    if on_windows:
+        command.append("./venv/Scripts/pip")
+    else:
+        command.append("./venv/bin/pip")
+    command.extend(["install", "-r", "requirements.txt"])
+    result = subprocess.run(command, check=False, capture_output=True)
+    if result.returncode:
+        print(" [" + CRED + "Fail" + CEND + "]")
+        print(result.stderr.decode("utf-8"), end='', file=stderr)
+        exit(1)
+    else:
+        print(" [" + CGREEN + "Success" + CEND + "]")
+
+
+####################################################################################
+
+
 def run(arguments):
     # Execute the setup process for Embedded Proto.
 
@@ -171,26 +200,10 @@ def run(arguments):
         check_protoc_version()
 
         # ---------------------------------------
-        print("Creating a virtual environment for Embedded Proto.", end='')
-        venv.create("venv", with_pip=True)
-        print(" [" + CGREEN + "Success" + CEND + "]")
+        create_venv()
 
         # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.", end='')
-        on_windows = "Windows" == platform.system()
-        command = []
-        if on_windows:
-            command.append("./venv/Scripts/pip")
-        else:
-            command.append("./venv/bin/pip")
-        command.extend(["install", "-r", "requirements.txt"])
-        result = subprocess.run(command, check=False, capture_output=True)
-        if result.returncode:
-            print(" [" + CRED + "Fail" + CEND + "]")
-            print(result.stderr.decode("utf-8"), end='', file=stderr)
-            exit(1)
-        else:
-            print(" [" + CGREEN + "Success" + CEND + "]")
+        install_pip()
 
         # ---------------------------------------
         print("Build the protobuf extension file used to include Embedded Proto custom options.", end='')
@@ -231,7 +244,7 @@ class ReadableDir(argparse.Action):
 ####################################################################################
 
 def add_parser_arguments(parser_obj):
-    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples 
+    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples
     # now can extend it with their own parameters.
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
