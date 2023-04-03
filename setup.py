@@ -200,10 +200,12 @@ def run(arguments):
         check_protoc_version()
 
         # ---------------------------------------
-        create_venv()
+        if not arguments.system_libs:
+            create_venv()
 
         # ---------------------------------------
-        install_pip()
+        if not arguments.system_libs:
+            install_pip()
 
         # ---------------------------------------
         print("Build the protobuf extension file used to include Embedded Proto custom options.", end='')
@@ -249,6 +251,9 @@ def add_parser_arguments(parser_obj):
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
                                  "standard folder, for example: \"~/protobuf/protoc-21.5/include\".")
+
+    # When creating packages for software distributions you might want to use globally installed Python libraries.
+    parser_obj.add_argument("--system-libs", help="Use globally installed Python packages.", action="store_true")
 
 
 ####################################################################################
