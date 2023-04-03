@@ -87,7 +87,7 @@ def check_protoc_version():
     # package should match.
 
     print("Checking your Protoc version", end='')
-    
+
     try:
         output = subprocess.run(["protoc", "--version"], check=False, capture_output=True)
     except OSError:
@@ -249,6 +249,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args)
-    
+
     # ---------------------------------------
     print("Setup completed with success!")
