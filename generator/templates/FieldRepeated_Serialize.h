@@ -23,8 +23,8 @@ Info:
   info at EmbeddedProto dot com
 
 Postal address:
-  Johan Huizingalaan 763a
-  1066 VH, Amsterdam
+  Atoomweg 2
+  1627 LE, Hoorn
   the Netherlands
 #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
