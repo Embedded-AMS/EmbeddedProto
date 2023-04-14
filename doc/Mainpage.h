@@ -23,8 +23,8 @@
  *    info at EmbeddedProto dot com
  *
  *  Postal address:
- *    Johan Huizingalaan 763a
- *    1066 VH, Amsterdam
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
  *    the Netherlands
  */
 
@@ -59,8 +59,8 @@
  * &nbsp;&nbsp;info at %EmbeddedProto dot com<br>
  * <br>
  * Postal address:<br>
- * &nbsp;&nbsp;Johan Huizingalaan 763a<br>
- * &nbsp;&nbsp;066 VH, Amsterdam<br>
+ * &nbsp;&nbsp;Atoomweg 2<br>
+ * &nbsp;&nbsp;1627 LE, Hoorn<br>
  * &nbsp;&nbsp;the Netherlands<br></p>
  *
  */
