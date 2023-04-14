@@ -53,7 +53,7 @@
 {% if proto_file.get_dependencies() is defined %}
 // Include external proto definitions
 {% for dependency in proto_file.get_dependencies() %}
-#include <{{dependency}}>
+#include "{{dependency}}"
 {% endfor %}
 
 {% endif %}
