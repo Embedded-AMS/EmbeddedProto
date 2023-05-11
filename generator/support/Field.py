@@ -52,7 +52,7 @@ class Field:
         self.variable_id_name = self.name.upper()
         self.variable_id = self.descriptor.number
         self.template_file = template_filename
-        
+
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == proto_descriptor.type
 
     @staticmethod

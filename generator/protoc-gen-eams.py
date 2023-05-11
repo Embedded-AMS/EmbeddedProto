@@ -42,31 +42,31 @@ from importlib.metadata import version
 
 def check_version(request, response):
     # Check if the installed version of Protoc compiler match that of the protobuf python module.
-    
-    module_version_str = version('protobuf')    
+
+    module_version_str = version('protobuf')
     module_version = re.search(r"(\w+).(\w+).(\w+)", module_version_str)
     module_major = int(module_version.group(1))
     module_minor = int(module_version.group(2))
     module_patch = int(module_version.group(3))
-    
+
     if request.compiler_version.minor == module_minor:
         return True
     else:
-        protoc_version_str = "{major}.{minor}.{patch}".format(major=request.compiler_version.major, 
+        protoc_version_str = "{major}.{minor}.{patch}".format(major=request.compiler_version.major,
                                                               minor=request.compiler_version.minor,
                                                               patch=request.compiler_version.patch)
-        desired_protoc_version_str = "{major}.{minor}.xx".format(major=module_major, 
+        desired_protoc_version_str = "{major}.{minor}.xx".format(major=module_major,
                                                                  minor=module_minor)
-        
+
         response.error += "Embedded Proto ERROR - Version mismatch between the protoc compiler "\
                           "version {protoc_version} and the python protobuf module version " \
                           "{module_version}\nPlease install protoc version {desired_protoc}\n\n" \
-                          .format(module_version=module_version_str, 
-                                  protoc_version=protoc_version_str, 
+                          .format(module_version=module_version_str,
+                                  protoc_version=protoc_version_str,
                                   desired_protoc=desired_protoc_version_str)
-        
+
         return False
-        
+
 
 # -----------------------------------------------------------------------------
 
@@ -148,10 +148,10 @@ def main_plugin():
     try:
         import embedded_proto_options_pb2
     except ImportError as ie:
-        # When the import failed this might be due to a version difference between protoc and 
+        # When the import failed this might be due to a version difference between protoc and
         # the python protobuf module or the file is simply not there because it is not generated.
         import_exception = ie
-    
+
     # Read request message from stdin
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
@@ -161,7 +161,7 @@ def main_plugin():
         # Error message is set in check_version()
         pass
 
-    # If the options if is not generated only give an error when the --no-options-file parameters 
+    # If the options if is not generated only give an error when the --no-options-file parameters
     # is not set.
     elif import_exception and not '--no-options-file' in sys.argv:
         response.error = "Embedded Proto ERROR - The Embedded Proto Options file 'generator/" \
@@ -174,10 +174,10 @@ def main_plugin():
                          "example:\n\n" \
                          "$EmbeddedProtoDir/venv/bin/python $EmbeddedProtoDir/generator/protoc-'" \
                          "gen-eams.py --protoc-plugin --no-options-file\n\n"
-        
+
     # Generate the output
     else:
-           
+
         # If desired output debug data.
         if '--debug' in sys.argv:
             # Write the requests to a file for easy debugging.
@@ -185,7 +185,7 @@ def main_plugin():
                 file.write(request.SerializeToString())
 
             from google.protobuf.json_format import MessageToJson
-            
+
             with open("./debug_embedded_proto.json", 'w') as file:
                 file.write(MessageToJson(request))
 
@@ -228,19 +228,19 @@ def main_cli():
         try:
             import embedded_proto_options_pb2
         except ImportError as ie:
-            # When the import failed this might be due to a version difference between protoc and 
+            # When the import failed this might be due to a version difference between protoc and
             # the python protobuf module or the file is simply not there because it is not generated.
             import_exception = ie
-        
+
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
-        
+
         # Check if there is a possible version mismatch between Protoc and the protobuf python module.
         if not check_version(request, response):
             # Error message is set in check_version()
             pass
 
-        # If the options if is not generated only give an error when the --no-options-file parameters 
+        # If the options if is not generated only give an error when the --no-options-file parameters
         # is not set.
         elif import_exception and not '--no-options-file' in sys.argv:
             response.error = "Embedded Proto ERROR - The Embedded Proto Options file 'generator/" \
@@ -253,7 +253,7 @@ def main_cli():
                              "example:\n\n" \
                              "$EmbeddedProtoDir/venv/bin/python $EmbeddedProtoDir/generator/protoc-'" \
                              "gen-eams.py --protoc-plugin --no-options-file\n\n"
-            
+
         # Generate the output
         else:
 
