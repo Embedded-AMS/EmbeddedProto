@@ -87,7 +87,7 @@ def check_protoc_version():
     # package should match.
 
     print("Checking your Protoc version", end='')
-    
+
     try:
         output = subprocess.run(["protoc", "--version"], check=False, capture_output=True)
     except OSError:
@@ -175,34 +175,26 @@ def run(arguments):
         venv.create("venv", with_pip=True)
         print(" [" + CGREEN + "Success" + CEND + "]")
 
+        # Add extra include directories for protobuf build
+        if arguments.include is not None:
+            os.environ["EMBEDDEDPROTO_PROTOC_INCLUDE"] = str(arguments.include)
+
         # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.", end='')
+        print("Installing EmbeddedProto in the virtual environment.", end='')
         on_windows = "Windows" == platform.system()
         command = []
         if on_windows:
             command.append("./venv/Scripts/pip")
         else:
             command.append("./venv/bin/pip")
-        command.extend(["install", "-r", "requirements.txt"])
+        command.extend(["install", "-e", "./generator"])
         result = subprocess.run(command, check=False, capture_output=True)
         if result.returncode:
             print(" [" + CRED + "Fail" + CEND + "]")
             print(result.stderr.decode("utf-8"), end='', file=stderr)
-            exit(1)
-        else:
-            print(" [" + CGREEN + "Success" + CEND + "]")
+            print("If the error is related to protoc generating the options file it might be solved by providing"
+                  " the --include option. See --help for more info.", end='', file=stderr)
 
-        # ---------------------------------------
-        print("Build the protobuf extension file used to include Embedded Proto custom options.", end='')
-        command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
-        if arguments.include is not None:
-            command.extend(["-I", str(arguments.include)])
-        result = subprocess.run(command, check=False, capture_output=True)
-        if result.returncode:
-            print(" [" + CRED + "Fail" + CEND + "]")
-            print(result.stderr.decode("utf-8"), end='', file=stderr)
-            print("Waring: Unable to generate the options file. This might be solved by providing the --include option."
-                  " See --help for more info.", file=stderr)
             exit(1)
         else:
             print(" [" + CGREEN + "Success" + CEND + "]")
@@ -231,7 +223,7 @@ class ReadableDir(argparse.Action):
 ####################################################################################
 
 def add_parser_arguments(parser_obj):
-    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples 
+    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples
     # now can extend it with their own parameters.
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
@@ -249,6 +241,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args)
-    
+
     # ---------------------------------------
     print("Setup completed with success!")
