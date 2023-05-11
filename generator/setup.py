@@ -71,6 +71,7 @@ class Sdist(sdist):
 
 
 setup(
+    python_requires=">=3.8.0",
     cmdclass={
         "build": Build,
         "editable_wheel": EditableWheel,

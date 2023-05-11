@@ -45,26 +45,6 @@ CRED = '\33[91m'
 CYELLOW = '\33[93m'
 CEND = '\33[0m'
 
-# The required version of Python.
-REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
-
-
-####################################################################################
-
-def check_python_version():
-    print("Checking the version of Python", end='')
-    version_str = version.split(' ')[0]
-    major, minor, patch = list(map(int, version_str.split('.')))
-    if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
-                                                (minor < REQ_PYTHO_VERSION["minor"])):
-        print(" [" + CRED + "Fail" + CEND + "]")
-        print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
-              "for Embedded Proto".format(version_str, REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]),
-              file=stderr)
-        exit(1)
-
-    print(" [" + CGREEN + "Success" + CEND + "]")
-
 
 ####################################################################################
 
@@ -163,10 +143,6 @@ def run(arguments):
     # Execute the setup process for Embedded Proto.
 
     try:
-
-        # ---------------------------------------
-        check_python_version()
-
         # ---------------------------------------
         check_protoc_version()
 
