@@ -29,6 +29,7 @@
 #
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
+from . import embedded_proto_options_pb2
 import copy
 
 
@@ -255,13 +256,8 @@ class BaseStringBytes(Field):
 
         # Find options we know and use in this type of field.
         self.MaxLength = None
-        try:
-            import embedded_proto_options_pb2
-        except Exception as e:
-            pass
-        else:
-            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
-                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
+        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+            self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -499,13 +495,8 @@ class FieldRepeated(Field):
 
         # Find options we know and use in this type of field.
         self.MaxLength = None
-        try:
-            import embedded_proto_options_pb2
-        except Exception as e:
-            pass
-        else:
-            if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
-                self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
+        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+            self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"
@@ -578,4 +569,3 @@ class FieldErrorRecursive(Field):
 
     def render_deserialize(self, jinja_env):
         return ""
-
