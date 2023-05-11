@@ -31,7 +31,7 @@
 import io
 import sys
 import os
-from support.ProtoFile import ProtoFile
+from EmbeddedProto.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
 import re
