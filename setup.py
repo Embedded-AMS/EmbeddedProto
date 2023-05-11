@@ -69,7 +69,7 @@ def check_python_version():
 ####################################################################################
 
 def read_required_version():
-    with open("requirements.txt", 'r') as f:
+    with open("generator/setup.py", "r") as f:
         lines = f.readlines()
         required_re_compiled = re.compile(r"protobuf==(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
         for line in lines:
@@ -77,7 +77,7 @@ def read_required_version():
             if match_req:
                 return match_req
 
-        raise Exception("Unable to find protobuf version in requirements.txt.")
+        raise Exception("Unable to find protobuf version in generator/setup.py")
 
 
 def check_protoc_version():
