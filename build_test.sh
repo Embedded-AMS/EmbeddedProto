@@ -62,7 +62,5 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.p
 protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/field_options.proto
 
 # Build the tests
-mkdir -p build/test
-cd build/test/
-cmake -DCMAKE_BUILD_TYPE=Debug ../../
-make -j16
+cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
+make -j16 -C ./build/test
