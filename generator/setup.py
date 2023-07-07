@@ -80,11 +80,11 @@ setup(
     version="3.3.0",
     packages=find_packages(),
     install_requires=[
-        "Jinja2==3.0.3",
-        "MarkupSafe==2.0.1",
-        "protobuf==4.21.6",
-        "six==1.16.0",
-        "toposort==1.7",
+        "Jinja2>=3,<4",
+        "MarkupSafe>=2.0,<3",
+        "protobuf<=4.21.6,<5",
+        "six>=1.16.0,<2",
+        "toposort>=1.7,<2",
     ],
     package_data={
         "EmbeddedProto": [ "templates/*" ],

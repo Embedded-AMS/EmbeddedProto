@@ -33,7 +33,6 @@ import argparse
 import platform
 import os
 import re
-from sys import version
 from sys import stderr
 import venv
 
@@ -51,7 +50,7 @@ CEND = '\33[0m'
 def read_required_version():
     with open("generator/setup.py", "r") as f:
         lines = f.readlines()
-        required_re_compiled = re.compile(r"protobuf==(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
+        required_re_compiled = re.compile(r"protobuf<=(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
         for line in lines:
             match_req = required_re_compiled.search(line)
             if match_req:
