@@ -1,5 +1,4 @@
-#! /bin/sh
-
+#!/usr/bin/env bash
 #
 # Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
 #
@@ -29,6 +28,9 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+
+# Fail on first non-zero return code
+set -exuo pipefail
 
 # Generate sources using the EAMS plugin.
 mkdir -p ./build/EAMS
