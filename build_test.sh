@@ -1,5 +1,4 @@
-#! /bin/sh
-
+#!/usr/bin/env bash
 #
 # Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
 #
@@ -29,6 +28,9 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+
+# Fail on first non-zero return code
+set -exuo pipefail
 
 # Generate sources using the EAMS plugin.
 mkdir -p ./build/EAMS
@@ -60,7 +62,5 @@ protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.p
 protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/field_options.proto
 
 # Build the tests
-mkdir -p build/test
-cd build/test/
-cmake -DCMAKE_BUILD_TYPE=Debug ../../
-make -j16
+cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
+make -j16 -C ./build/test

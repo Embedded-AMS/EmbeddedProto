@@ -1,12 +1,11 @@
-#! /bin/bash
-
+#!/usr/bin/env bash
 #
 # Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
-# Embedded Proto is open source software: you can redistribute it and/or 
-# modify it under the terms of the GNU General Public License as published 
+# Embedded Proto is open source software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
 # by the Free Software Foundation, version 3 of the license.
 #
 # Embedded Proto  is distributed in the hope that it will be useful,
@@ -29,6 +28,7 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+set -euxo pipefail
 
 ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 

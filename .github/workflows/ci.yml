@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  build-test:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v2
+      with:
+        version: "21.x"
+    - name: Install Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - name: Install gcovr
+      run: pip install gcovr==5.2
+    - name: Setup venv
+      run: python setup.py
+    - name: Build test
+      run: ./build_test.sh
+    - name: Code coverage
+      run: ./code_coverage.sh
