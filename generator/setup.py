@@ -71,28 +71,9 @@ class Sdist(sdist):
 
 
 setup(
-    python_requires=">=3.8.0",
     cmdclass={
         "build": Build,
         "editable_wheel": EditableWheel,
         "sdist": Sdist,
     },
-    version="3.3.0",
-    packages=find_packages(),
-    install_requires=[
-        "Jinja2>=3,<4",
-        "MarkupSafe>=2.0,<3",
-        "protobuf<=4.21.6,<5",
-        "six>=1.16.0,<2",
-        "toposort>=1.7,<2",
-    ],
-    package_data={
-        "EmbeddedProto": [ "templates/*" ],
-    },
-    entry_points={
-        'console_scripts': [
-            'protoc-gen-eams = EmbeddedProto.main:main_plugin',
-        ]
-    },
-    include_package_data=True,
 )
