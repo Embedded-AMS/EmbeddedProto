@@ -30,43 +30,10 @@
 
 import io
 import sys
-import os
 from EmbeddedProto.ProtoFile import ProtoFile
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
-import re
-from importlib.metadata import version
 from importlib.resources import path as resource_path
-
-# -----------------------------------------------------------------------------
-
-
-def check_version(request, response):
-    # Check if the installed version of Protoc compiler match that of the protobuf python module.
-
-    module_version_str = version('protobuf')
-    module_version = re.search(r"(\w+).(\w+).(\w+)", module_version_str)
-    module_major = int(module_version.group(1))
-    module_minor = int(module_version.group(2))
-    module_patch = int(module_version.group(3))
-
-    if request.compiler_version.minor == module_minor:
-        return True
-    else:
-        protoc_version_str = "{major}.{minor}.{patch}".format(major=request.compiler_version.major,
-                                                              minor=request.compiler_version.minor,
-                                                              patch=request.compiler_version.patch)
-        desired_protoc_version_str = "{major}.{minor}.xx".format(major=module_major,
-                                                                 minor=module_minor)
-
-        response.error += "Embedded Proto ERROR - Version mismatch between the protoc compiler "\
-                          "version {protoc_version} and the python protobuf module version " \
-                          "{module_version}\nPlease install protoc version {desired_protoc}\n\n" \
-                          .format(module_version=module_version_str,
-                                  protoc_version=protoc_version_str,
-                                  desired_protoc=desired_protoc_version_str)
-
-        return False
 
 
 # -----------------------------------------------------------------------------
@@ -147,40 +114,32 @@ def main_plugin():
     data = io.open(sys.stdin.fileno(), "rb").read()
     request = plugin.CodeGeneratorRequest.FromString(data)
 
-    # Check if there is a possible version mis match between Protoc and the protobuf python module.
-    if not check_version(request, response):
-        # Error message is set in check_version()
-        pass
+    # If desired output debug data.
+    if '--debug' in sys.argv:
+        # Write the requests to a file for easy debugging.
+        with open("./debug_embedded_proto.bin", 'wb') as file:
+            file.write(request.SerializeToString())
 
-    # Generate the output
-    else:
+        from google.protobuf.json_format import MessageToJson
 
-        # If desired output debug data.
-        if '--debug' in sys.argv:
-            # Write the requests to a file for easy debugging.
-            with open("./debug_embedded_proto.bin", 'wb') as file:
-                file.write(request.SerializeToString())
+        with open("./debug_embedded_proto.json", 'w') as file:
+            file.write(MessageToJson(request))
 
-            from google.protobuf.json_format import MessageToJson
-
-            with open("./debug_embedded_proto.json", 'w') as file:
-                file.write(MessageToJson(request))
-
-        # Generate code
-        try:
-            generate_code(request, response)
-        except jinja2.UndefinedError as e:
-            response.error = "Embedded Proto ERROR - Template Undefined Error exception: " + str(e)
-        except jinja2.TemplateRuntimeError as e:
-            response.error = "Embedded Proto ERROR - Template Runtime Error exception: " + str(e)
-        except jinja2.TemplateAssertionError as e:
-            response.error = "Embedded Proto ERROR - TemplateAssertionError exception: " + str(e)
-        except jinja2.TemplateSyntaxError as e:
-            response.error = "Embedded Proto ERROR - TemplateSyntaxError exception: " + str(e)
-        except jinja2.TemplateError as e:
-            response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
-        except Exception as e:
-            response.error = "Embedded Proto ERROR - " + str(e)
+    # Generate code
+    try:
+        generate_code(request, response)
+    except jinja2.UndefinedError as e:
+        response.error = "Embedded Proto ERROR - Template Undefined Error exception: " + str(e)
+    except jinja2.TemplateRuntimeError as e:
+        response.error = "Embedded Proto ERROR - Template Runtime Error exception: " + str(e)
+    except jinja2.TemplateAssertionError as e:
+        response.error = "Embedded Proto ERROR - TemplateAssertionError exception: " + str(e)
+    except jinja2.TemplateSyntaxError as e:
+        response.error = "Embedded Proto ERROR - TemplateSyntaxError exception: " + str(e)
+    except jinja2.TemplateError as e:
+        response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
+    except Exception as e:
+        response.error = "Embedded Proto ERROR - " + str(e)
 
     # Serialize response message
     output = response.SerializeToString()
@@ -203,29 +162,21 @@ def main_cli():
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
 
-        # Check if there is a possible version mismatch between Protoc and the protobuf python module.
-        if not check_version(request, response):
-            # Error message is set in check_version()
-            pass
-
-        # Generate the output
-        else:
-
-            # Generate code
-            try:
-                generate_code(request, response)
-            except jinja2.UndefinedError as e:
-                response.error = "Embedded Proto ERROR - Template Undefined Error exception: " + str(e)
-            except jinja2.TemplateRuntimeError as e:
-                response.error = "Embedded Proto ERROR - Template Runtime Error exception: " + str(e)
-            except jinja2.TemplateAssertionError as e:
-                response.error = "Embedded Proto ERROR - TemplateAssertionError exception: " + str(e)
-            except jinja2.TemplateSyntaxError as e:
-                response.error = "Embedded Proto ERROR - TemplateSyntaxError exception: " + str(e)
-            except jinja2.TemplateError as e:
-                response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
-            except Exception as e:
-                response.error = "Embedded Proto ERROR - " + str(e)
+        # Generate code
+        try:
+            generate_code(request, response)
+        except jinja2.UndefinedError as e:
+            response.error = "Embedded Proto ERROR - Template Undefined Error exception: " + str(e)
+        except jinja2.TemplateRuntimeError as e:
+            response.error = "Embedded Proto ERROR - Template Runtime Error exception: " + str(e)
+        except jinja2.TemplateAssertionError as e:
+            response.error = "Embedded Proto ERROR - TemplateAssertionError exception: " + str(e)
+        except jinja2.TemplateSyntaxError as e:
+            response.error = "Embedded Proto ERROR - TemplateSyntaxError exception: " + str(e)
+        except jinja2.TemplateError as e:
+            response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
+        except Exception as e:
+            response.error = "Embedded Proto ERROR - " + str(e)
 
         # For debugging purposes print the result to the console.
         for response_file in response.file:
