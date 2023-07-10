@@ -9,7 +9,11 @@ on:
 
 jobs:
   build-test:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        protoc-version: ["21.x", "23.x"]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -17,7 +21,7 @@ jobs:
     - name: Install Protoc
       uses: arduino/setup-protoc@v2
       with:
-        version: "21.x"
+        version: ${{ matrix.protoc-version }}
     - name: Install Python
       uses: actions/setup-python@v4
       with:
