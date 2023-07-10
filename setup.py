@@ -75,16 +75,15 @@ def check_protoc_version():
         print("Stopping the setup.")
         exit(0)
 
-    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?")
+    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
     required_version = read_required_version()
 
     if installed_version.group('minor') != required_version.group('minor'):
         text = "\n"
-        text += "The version of Protoc (v{0}.{1})".format(installed_version.group('minor'),
-                                                          installed_version.group('patch'))
+        text += "The version of Protoc (v{0}.{1})".format(installed_version.group('minor'))
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
+                "(v{0}.{1}) ".format(required_version.group('minor'))
         text += "Embedded Proto requires. These are your options:\n" \
                 "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
