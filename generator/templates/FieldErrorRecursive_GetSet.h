@@ -23,8 +23,8 @@ Info:
   info at EmbeddedProto dot com
 
 Postal address:
-  Johan Huizingalaan 763a
-  1066 VH, Amsterdam
+  Atoomweg 2
+  1627 LE, Hoorn
   the Netherlands
 #}
 #warning "You have a recursive inclusion with the field: '{{field.get_name()}}'. Embedded Proto is unable to determine the template parameters in this case. We could only generate this message by leaving it out."
