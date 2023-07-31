@@ -75,13 +75,51 @@ TEST(FieldString, get_set)
   ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
 
   // Test assigning a string by array pointer with max length.
-  char text[] = "Foo bar 3!";
-  msg.mutable_txt() = text;
+  char text_3[] = "Foo bar 3!";
+  msg.mutable_txt() = text_3;
   EXPECT_EQ(10, msg.get_txt().get_length());
   ASSERT_STREQ("Foo bar 3!", msg.get_txt().get_const());
 
   const char* text2 = msg.get_txt().get_const();
   ASSERT_STREQ("Foo bar 3!", text2);
+
+  // Test the set function.
+  char text_4[] = "Foo bar 4!";
+  msg.mutable_txt().set(text_4);
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 4!", msg.get_txt().get_const());
+
+  // Test setting strings using a pointer. 
+  msg.clear();
+  char* text_5_p;
+  char text_5[] = "Foo bar";
+  text_5_p = &(text_5[0]);
+  msg.mutable_txt() = text_5_p;
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msg.get_txt().get_const());
+
+  msg.clear();
+  msg.mutable_txt().set(text_5_p);
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msg.get_txt().get_const());
+
+  // Use a static string with the set function
+  msg.clear();
+  msg.mutable_txt().set("Foo bar 6");
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 6", msg.get_txt().get_const());
+
+  // Set an array which is longer
+  msg.clear();
+  msg.mutable_txt() = "12345678901234567890";
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+
+  msg.clear();
+  msg.mutable_txt().set("12345678901234567890");
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+
 }
 
 TEST(FieldString, clear)

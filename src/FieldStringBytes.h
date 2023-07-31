@@ -309,25 +309,46 @@ namespace EmbeddedProto
   class FieldString : public internal::FieldStringBytes<MAX_LENGTH, char>
   {
     public:
+
+      using internal::FieldStringBytes<MAX_LENGTH, char>::set;
+
       FieldString() = default;
       ~FieldString() override = default;
 
-      FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
+      //! Assign a c style string to this object.
+      /*!
+          A short example:
+            char text[] = "Foo bar";
+            msg.mutable_txt() = text;
+          
+          \param[in] rhs The c style string from which to take the characters and copy it to this object.
+          \return A reference to this object used for function chaining.
+      */
+      FieldString<MAX_LENGTH>& operator=(const char* const rhs)
       {
-        if(nullptr != rhs) {
-          const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-          this->set_length(rhs_MAX_LENGTH);
-          uint32_t lhs_length = this->get_length();
+        this->set(rhs);
+        return *this;
+      }
+
+      //! Assign the data from the given c style string to this object.
+      /*!
+          \param[in] str The c style string from which to take the characters and copy it to this object.
+      */
+      void set(const char* const str)
+      {
+        if(nullptr != str) {
+          const uint32_t str_MAX_LENGTH = strlen(str);
+          this->set_length(str_MAX_LENGTH);
+          uint32_t this_length = this->get_length();
           // If it fits in this object copy the null terminator.
-          if(MAX_LENGTH > lhs_length) {
-            ++lhs_length;
+          if(MAX_LENGTH > this_length) {
+            ++this_length;
           }
-          strncpy(this->get(), rhs, lhs_length);
+          strncpy(this->get(), str, this_length);
         }
         else {
           this->clear();
-        }
-        return *this;
+        }      
       }
 
 #ifdef MSG_TO_STRING
