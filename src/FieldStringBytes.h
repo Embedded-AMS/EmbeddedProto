@@ -335,7 +335,7 @@ namespace EmbeddedProto
       void set(const char* const str)
       {
         if(nullptr != str) {
-          const uint32_t str_MAX_LENGTH = strlen(str);
+          const uint32_t str_MAX_LENGTH = strnlen(str, MAX_LENGTH + 1);
           this->set_length(str_MAX_LENGTH);
           uint32_t this_length = this->get_length();
           // If it fits in this object copy the null terminator.
@@ -387,6 +387,21 @@ namespace EmbeddedProto
       }
 
 #endif // End of MSG_TO_STRING
+
+    private:
+      //! Use our own implementation of limited string length function.
+      /*!
+          \param s The character array.
+          \param len The maximum length to search for a null terminator.
+          
+          \return The length of this character array will be returned or the value of len.
+      */
+      uint32_t strnlen(const char* s, uint32_t len) 
+      {
+        uint32_t i = 0;
+        for ( ; (i < len) && (s[i] != '\0'); ++i);
+        return i;
+      }
 
   };
 
