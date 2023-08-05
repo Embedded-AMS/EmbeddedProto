@@ -138,33 +138,18 @@ namespace EmbeddedProto
         */
         const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
-
-        //! Assign the values in the right hand side FieldStringBytes object to this object.
-        /*!
-            This is only compatible with the same data type and length.
-            \param[in] rhs The object from which to copy the data.
-            \return A reference to this object.
-        */
-        FieldStringBytes<MAX_LENGTH, DATA_TYPE>& operator=(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
-        {
-          this->set(rhs);
-          return *this;
-        }
-
         //! Assign the values in the right hand side FieldStringBytes object to this object.
         /*!
             This is only compatible with the same data type and length.
             \param[in] rhs The object from which to copy the data.
             \return Always return NO_ERRORS, this was added to be compadible with the other set function.
         */
-        Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        template<uint32_t RHS_LENGTH> 
+        Error set(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs)
         {
-          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
-          current_length_ = rhs.current_length_;
-          return Error::NO_ERRORS;
+          return this->set(rhs.get_const(), rhs.get_length());
         }
 
-        
         //! Assign data in the given array to this object.
         /*!
             \param[in] data A pointer to an array with data.
@@ -314,6 +299,19 @@ namespace EmbeddedProto
 
       FieldString() = default;
       ~FieldString() override = default;
+      
+      //! Assign the values in the right hand side FieldStringBytes object to this object.
+      /*!
+          This is only compatible with the same data type and length.
+          \param[in] rhs The object from which to copy the data.
+          \return A reference to this object.
+      */
+      template<uint32_t RHS_LENGTH> 
+      FieldString<MAX_LENGTH>& operator=(const FieldString<RHS_LENGTH>& rhs)
+      {
+        this->set(rhs.get_const(), rhs.get_length());
+        return *this;
+      }
 
       //! Assign a c style string to this object.
       /*!
@@ -399,6 +397,19 @@ namespace EmbeddedProto
     public:
       FieldBytes() = default;
       ~FieldBytes() override = default;
+
+      //! Assign the values in the right hand side FieldStringBytes object to this object.
+      /*!
+          This is only compatible with the same data type and length.
+          \param[in] rhs The object from which to copy the data.
+          \return A reference to this object.
+      */
+      template<uint32_t RHS_LENGTH> 
+      FieldBytes<MAX_LENGTH>& operator=(const FieldBytes<RHS_LENGTH>& rhs)
+      {
+        this->set(rhs.get_const(), rhs.get_length());
+        return *this;
+      }
 
 #ifdef MSG_TO_STRING
 
