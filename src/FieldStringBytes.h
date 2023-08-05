@@ -399,7 +399,10 @@ namespace EmbeddedProto
       uint32_t strnlen(const char* s, uint32_t len) 
       {
         uint32_t i = 0;
-        for ( ; (i < len) && (s[i] != '\0'); ++i);
+        for(; (i < len) && (s[i] != '\0'); ++i)
+        {
+          // Do nothing but the loop checks.
+        }
         return i;
       }
 
