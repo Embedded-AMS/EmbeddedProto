@@ -55,7 +55,7 @@ namespace test_EmbeddedAMS_string_bytes
 
 TEST(FieldString, get_set)
 {
-  text<10> msg;  
+  text<10> msg;
   
   // Test directly assigning a static string.
   msg.mutable_txt() = "Foo Bar";
@@ -75,13 +75,101 @@ TEST(FieldString, get_set)
   ASSERT_STREQ("foo bar 2", msg.get_txt().get_const());
 
   // Test assigning a string by array pointer with max length.
-  char text[] = "Foo bar 3!";
-  msg.mutable_txt() = text;
+  char text_3[] = "Foo bar 3!";
+  msg.mutable_txt() = text_3;
   EXPECT_EQ(10, msg.get_txt().get_length());
   ASSERT_STREQ("Foo bar 3!", msg.get_txt().get_const());
 
   const char* text2 = msg.get_txt().get_const();
   ASSERT_STREQ("Foo bar 3!", text2);
+
+  // Test the set function.
+  char text_4[] = "Foo bar 4!";
+  msg.mutable_txt().set(text_4);
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 4!", msg.get_txt().get_const());
+
+  // Test setting strings using a pointer. 
+  msg.clear();
+  char* text_5_p;
+  char text_5[] = "Foo bar";
+  text_5_p = &(text_5[0]);
+  msg.mutable_txt() = text_5_p;
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msg.get_txt().get_const());
+
+  msg.clear();
+  msg.mutable_txt().set(text_5_p);
+  EXPECT_EQ(7, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msg.get_txt().get_const());
+
+  // Use a static string with the set function
+  msg.clear();
+  msg.mutable_txt().set("Foo bar 6");
+  EXPECT_EQ(9, msg.get_txt().get_length());
+  ASSERT_STREQ("Foo bar 6", msg.get_txt().get_const());
+
+  // Set an array which is longer
+  // Asignment operator
+  msg.clear();
+  msg.mutable_txt() = "12345678901234567890";
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+
+  // Set function
+  msg.clear();
+  msg.mutable_txt().set("12345678901234567890");
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+}
+
+TEST(FieldString, set_smaller)
+{
+  text<10> msgA;
+  text<5> msgB;
+  
+  msgA.mutable_txt().set("Foo bar");
+
+  // Asignment operator, too big.
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msgB.mutable_txt().set(msgA.get_txt()));
+  EXPECT_EQ(0, msgB.get_txt().get_length());
+
+  // Use the assignment operator with too much characters.
+  // The error will not be visible but the effect of not setting msgB will!
+  msgB.mutable_txt() = msgA.get_txt();
+  EXPECT_EQ(0, msgB.get_txt().get_length());
+
+  // Set a suitable amount of characters in the lager string.
+  msgA.clear();
+  msgA.mutable_txt().set("1234"); // Leave one space for the null terminator.
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msgB.mutable_txt().set(msgA.get_txt()));
+  EXPECT_EQ(4, msgB.get_txt().get_length());
+  ASSERT_STREQ("1234", msgB.get_txt().get_const());
+  
+  // Use the asignment operator with something that fits.
+  msgB.clear();
+  msgB.mutable_txt() = msgA.get_txt();
+  EXPECT_EQ(4, msgB.get_txt().get_length());
+  ASSERT_STREQ("1234", msgB.get_txt().get_const());
+}
+
+TEST(FieldString, set_larger)
+{
+  text<10> msgA;
+  text<15> msgB;
+
+  msgA.mutable_txt().set("Foo bar");
+
+  // Use the set function
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msgB.mutable_txt().set(msgA.get_txt()));
+  EXPECT_EQ(7, msgB.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msgB.get_txt().get_const());
+
+  // Use the assignment operator.
+  msgB.clear();
+  msgB.mutable_txt() = msgA.get_txt();
+  EXPECT_EQ(7, msgB.get_txt().get_length());
+  ASSERT_STREQ("Foo bar", msgB.get_txt().get_const());
 }
 
 TEST(FieldString, clear)
@@ -307,6 +395,50 @@ TEST(FieldBytes, set_get)
   uint8_t big_array[11] = {0};
   big_array[10] = 11;
   EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.mutable_b().set(big_array, 11));
+
+  // Expect an error when setting more bytes in a smaller message.
+  raw_bytes<5> msgB;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msgB.mutable_b().set(msg.get_b()));
+
+  // Set the full array when it fits.
+  msg.clear();
+  for(uint8_t i = 0; i < msgB.get_b().get_max_length(); ++i)
+  {
+    msg.mutable_b()[i] = i;
+  }
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msgB.mutable_b().set(msg.get_b()));
+  EXPECT_EQ(msgB.get_b().get_length(), msg.get_b().get_length());
+
+  for(uint8_t i = 0; i < msgB.mutable_b().get_max_length(); ++i) {
+    EXPECT_EQ(i, msgB.get_b()[i]);
+  }
+
+  // Use the assignment operator .
+  msgB.clear();
+  msgB.mutable_b() = msg.get_b();
+  EXPECT_EQ(msgB.get_b().get_length(), msg.get_b().get_length());
+
+  for(uint8_t i = 0; i < msgB.mutable_b().get_max_length(); ++i) {
+    EXPECT_EQ(i, msgB.get_b()[i]);
+  }
+
+  // Now with a message destination which has more element compared to the source.
+  raw_bytes<15> msgC;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msgC.mutable_b().set(msg.get_b()));
+  EXPECT_EQ(msgC.get_b().get_length(), msg.get_b().get_length());
+
+  for(uint8_t i = 0; i < msgC.mutable_b().get_length(); ++i) {
+    EXPECT_EQ(i, msgC.get_b()[i]);
+  }
+
+  // Use the assignment operator.
+  msgC.clear();
+  msgC.mutable_b() = msg.get_b();
+  EXPECT_EQ(msgC.get_b().get_length(), msg.get_b().get_length());
+
+  for(uint8_t i = 0; i < msgC.mutable_b().get_length(); ++i) {
+    EXPECT_EQ(i, msgC.get_b()[i]);
+  }
 }
 
 TEST(FieldBytes, assign_msg) 
@@ -317,7 +449,7 @@ TEST(FieldBytes, assign_msg)
   msgA.mutable_b().set(data.data(), 10);
   msgB = msgA;
 
-  for(uint8_t i = 0; i < 10; ++i) {
+  for(uint8_t i = 0; i < msgB.mutable_b().get_max_length(); ++i) {
     EXPECT_EQ(data[i], msgB.get_b()[i]);
   }
 }
