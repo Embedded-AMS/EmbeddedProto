@@ -36,7 +36,7 @@
 #include "Errors.h"
 
 #include <cstdint>
-#include <string.h>
+#include <cstring>
 #include <type_traits>
 #include <array>
 
@@ -138,33 +138,18 @@ namespace EmbeddedProto
         */
         const DATA_TYPE& operator[](uint32_t index) const { return this->get_const(index); }
 
-
-        //! Assign the values in the right hand side FieldStringBytes object to this object.
-        /*!
-            This is only compatible with the same data type and length.
-            \param[in] rhs The object from which to copy the data.
-            \return A reference to this object.
-        */
-        FieldStringBytes<MAX_LENGTH, DATA_TYPE>& operator=(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
-        {
-          this->set(rhs);
-          return *this;
-        }
-
         //! Assign the values in the right hand side FieldStringBytes object to this object.
         /*!
             This is only compatible with the same data type and length.
             \param[in] rhs The object from which to copy the data.
             \return Always return NO_ERRORS, this was added to be compadible with the other set function.
         */
-        Error set(const FieldStringBytes<MAX_LENGTH, DATA_TYPE>& rhs)
+        template<uint32_t RHS_LENGTH> 
+        Error set(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs)
         {
-          memcpy(data_.data(), rhs.data_.data(), MAX_LENGTH);
-          current_length_ = rhs.current_length_;
-          return Error::NO_ERRORS;
+          return this->set(rhs.get_const(), rhs.get_length());
         }
 
-        
         //! Assign data in the given array to this object.
         /*!
             \param[in] data A pointer to an array with data.
@@ -309,25 +294,59 @@ namespace EmbeddedProto
   class FieldString : public internal::FieldStringBytes<MAX_LENGTH, char>
   {
     public:
+
+      using internal::FieldStringBytes<MAX_LENGTH, char>::set;
+
       FieldString() = default;
       ~FieldString() override = default;
 
-      FieldString<MAX_LENGTH>& operator=(const char* const &&rhs)
+      //! Assign the values in the right hand side FieldStringBytes object to this object.
+      /*!
+          This is only compatible with the same data type and length.
+          \param[in] rhs The object from which to copy the data.
+          \return A reference to this object.
+      */
+      template<uint32_t RHS_LENGTH> 
+      FieldString<MAX_LENGTH>& operator=(const FieldString<RHS_LENGTH>& rhs)
       {
-        if(nullptr != rhs) {
-          const uint32_t rhs_MAX_LENGTH = strlen(rhs);
-          this->set_length(rhs_MAX_LENGTH);
-          uint32_t lhs_length = this->get_length();
+        this->set(rhs.get_const(), rhs.get_length());
+        return *this;
+      }
+
+      //! Assign a c style string to this object.
+      /*!
+          A short example:
+            char text[] = "Foo bar";
+            msg.mutable_txt() = text;
+          
+          \param[in] rhs The c style string from which to take the characters and copy it to this object.
+          \return A reference to this object used for function chaining.
+      */
+      FieldString<MAX_LENGTH>& operator=(const char* const rhs)
+      {
+        this->set(rhs);
+        return *this;
+      }
+
+      //! Assign the data from the given c style string to this object.
+      /*!
+          \param[in] str The c style string from which to take the characters and copy it to this object.
+      */
+      void set(const char* const str)
+      {
+        if(nullptr != str) {
+          const uint32_t str_MAX_LENGTH = strnlen(str, MAX_LENGTH + 1);
+          this->set_length(str_MAX_LENGTH);
+          uint32_t this_length = this->get_length();
           // If it fits in this object copy the null terminator.
-          if(MAX_LENGTH > lhs_length) {
-            ++lhs_length;
+          if(MAX_LENGTH > this_length) {
+            ++this_length;
           }
-          strncpy(this->get(), rhs, lhs_length);
+          strncpy(this->get(), str, this_length);
         }
         else {
           this->clear();
-        }
-        return *this;
+        }      
       }
 
 #ifdef MSG_TO_STRING
@@ -369,6 +388,24 @@ namespace EmbeddedProto
 
 #endif // End of MSG_TO_STRING
 
+    private:
+      //! Use our own implementation of limited string length function.
+      /*!
+          \param s The character array.
+          \param len The maximum length to search for a null terminator.
+          
+          \return The length of this character array will be returned or the value of len.
+      */
+      uint32_t strnlen(const char* s, uint32_t len) 
+      {
+        uint32_t i = 0;
+        for(; (i < len) && (s[i] != '\0'); ++i)
+        {
+          // Do nothing but the loop checks.
+        }
+        return i;
+      }
+
   };
 
   //! The class definition used in messages for Bytes fields.
@@ -378,6 +415,19 @@ namespace EmbeddedProto
     public:
       FieldBytes() = default;
       ~FieldBytes() override = default;
+
+      //! Assign the values in the right hand side FieldStringBytes object to this object.
+      /*!
+          This is only compatible with the same data type and length.
+          \param[in] rhs The object from which to copy the data.
+          \return A reference to this object.
+      */
+      template<uint32_t RHS_LENGTH> 
+      FieldBytes<MAX_LENGTH>& operator=(const FieldBytes<RHS_LENGTH>& rhs)
+      {
+        this->set(rhs.get_const(), rhs.get_length());
+        return *this;
+      }
 
 #ifdef MSG_TO_STRING
 
