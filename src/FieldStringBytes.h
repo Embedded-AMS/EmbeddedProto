@@ -36,7 +36,7 @@
 #include "Errors.h"
 
 #include <cstdint>
-#include <string.h>
+#include <cstring>
 #include <type_traits>
 #include <array>
 
@@ -299,7 +299,7 @@ namespace EmbeddedProto
 
       FieldString() = default;
       ~FieldString() override = default;
-      
+
       //! Assign the values in the right hand side FieldStringBytes object to this object.
       /*!
           This is only compatible with the same data type and length.
