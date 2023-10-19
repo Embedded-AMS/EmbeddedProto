@@ -33,7 +33,7 @@ import argparse
 import platform
 import os
 import re
-from sys import stderr
+from sys import stderr, stdout
 import venv
 
 # Perform a system call to beable to display colors on windows
@@ -146,6 +146,7 @@ def run(arguments):
 
         # ---------------------------------------
         print("Creating a virtual environment for Embedded Proto.", end='')
+        stdout.flush()
         venv.create("venv", with_pip=True)
         print(" [" + CGREEN + "Success" + CEND + "]")
 
@@ -155,6 +156,7 @@ def run(arguments):
 
         # ---------------------------------------
         print("Installing EmbeddedProto in the virtual environment.", end='')
+        stdout.flush()
         on_windows = "Windows" == platform.system()
         command = []
         if on_windows:
@@ -168,7 +170,7 @@ def run(arguments):
             print(result.stderr.decode("utf-8"), end='', file=stderr)
             print("If the error is related to protoc generating the options file it might be solved by providing"
                   " the --include option. See --help for more info.", end='', file=stderr)
-
+            stdout.flush()
             exit(1)
         else:
             print(" [" + CGREEN + "Success" + CEND + "]")
