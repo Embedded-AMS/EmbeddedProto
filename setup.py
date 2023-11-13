@@ -96,7 +96,7 @@ def check_protoc_version():
         print("Stopping the setup.")
         exit(0)
 
-    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?")
+    version_re_compiled = re.compile(r".*\s(?P<minor>\d+)\.(?P<patch>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
     required_version = read_required_version()
 
