@@ -9,7 +9,12 @@ on:
 
 jobs:
   build-test:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        protoc-version: ["21.x", "23.x"]
+        python-version: ["3.8", "3.11"]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -17,11 +22,12 @@ jobs:
     - name: Install Protoc
       uses: arduino/setup-protoc@v2
       with:
-        version: "21.x"
+        version: ${{ matrix.protoc-version }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: ${{ matrix.python-version }}
     - name: Install gcovr
       run: pip install gcovr==5.2
     - name: Setup venv
