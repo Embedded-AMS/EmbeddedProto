@@ -52,7 +52,7 @@ export PATH="$PATH:$PWD/build-wrapper"
 if [ -d "$PWD/sonar-scanner/" ]; then
   echo "found sonar scanner scanner cache"
 else
-  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
   unzip -o sonar-scanner-cli-*-linux.zip
   mv sonar-scanner*/ sonar-scanner/
 fi
@@ -64,10 +64,12 @@ else
   python setup.py
 fi
 
-tree
+#tree
 
-cd generator
-protoc -I . --python_out=EmbeddedProto embedded_proto_options.proto
-cd -
+#cd generator
+#protoc -I . --python_out=EmbeddedProto embedded_proto_options.proto
+#cd -
 
+echo
 ls generator/EmbeddedProto
+echo
