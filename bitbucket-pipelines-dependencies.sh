@@ -64,3 +64,5 @@ else
   python setup.py
 fi
 
+tree
+
