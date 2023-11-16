@@ -66,3 +66,8 @@ fi
 
 tree
 
+cd generator
+protoc -I . --python_out=EmbeddedProto embedded_proto_options.proto
+cd -
+
+ls generator/EmbeddedProto
