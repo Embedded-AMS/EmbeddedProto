@@ -1,4 +1,4 @@
-image: atlassian/default-image:3
+image: atlassian/default-image:4
 
 clone: 
   depth: full
