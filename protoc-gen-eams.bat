@@ -5,8 +5,8 @@
 ::
 :: This file is part of Embedded Proto.
 ::
-:: Embedded Proto is open source software: you can redistribute it and/or 
-:: modify it under the terms of the GNU General Public License as published 
+:: Embedded Proto is open source software: you can redistribute it and/or
+:: modify it under the terms of the GNU General Public License as published
 :: by the Free Software Foundation, version 3 of the license.
 ::
 :: Embedded Proto  is distributed in the hope that it will be useful,
@@ -30,9 +30,9 @@
 ::   the Netherlands
 ::
 
-:: This file is used to invoke protoc-gen-eams.py as a plugin to protoc on 
+:: This file is used to invoke protoc-gen-eams.py as a plugin to protoc on
 :: Windows. The reason this has to be used is that protoc expects a binary or
 :: terminal script as plugin. Directly calling python scripts is not supported.
 
 set EmbeddedProtoDir=%~dp0
-%EmbeddedProtoDir%\venv\Scripts\python %EmbeddedProtoDir%\generator\protoc-gen-eams.py --protoc-plugin
+%EmbeddedProtoDir%\venv\Scripts\protoc-gen-eams

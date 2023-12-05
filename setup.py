@@ -33,8 +33,7 @@ import argparse
 import platform
 import os
 import re
-from sys import version
-from sys import stderr
+from sys import stderr, stdout
 import venv
 
 # Perform a system call to beable to display colors on windows
@@ -45,39 +44,19 @@ CRED = '\33[91m'
 CYELLOW = '\33[93m'
 CEND = '\33[0m'
 
-# The required version of Python.
-REQ_PYTHO_VERSION = {"major": 3, "minor": 8}
-
-
-####################################################################################
-
-def check_python_version():
-    print("Checking the version of Python", end='')
-    version_str = version.split(' ')[0]
-    major, minor, patch = list(map(int, version_str.split('.')))
-    if (major < REQ_PYTHO_VERSION["major"]) or ((major == REQ_PYTHO_VERSION["major"]) and
-                                                (minor < REQ_PYTHO_VERSION["minor"])):
-        print(" [" + CRED + "Fail" + CEND + "]")
-        print("The used version of Python ({0}) is incompatible with the minimal required version {1}.{2}.x) "
-              "for Embedded Proto".format(version_str, REQ_PYTHO_VERSION["major"], REQ_PYTHO_VERSION["minor"]),
-              file=stderr)
-        exit(1)
-
-    print(" [" + CGREEN + "Success" + CEND + "]")
-
 
 ####################################################################################
 
 def read_required_version():
-    with open("requirements.txt", 'r') as f:
+    with open("generator/pyproject.toml", "r") as f:
         lines = f.readlines()
-        required_re_compiled = re.compile(r"protobuf==(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
+        required_re_compiled = re.compile(r"protobuf>=(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
         for line in lines:
             match_req = required_re_compiled.search(line)
             if match_req:
                 return match_req
 
-        raise Exception("Unable to find protobuf version in requirements.txt.")
+        raise Exception("Unable to find protobuf version in generator/setup.py")
 
 
 def check_protoc_version():
@@ -87,7 +66,7 @@ def check_protoc_version():
     # package should match.
 
     print("Checking your Protoc version", end='')
-    
+
     try:
         output = subprocess.run(["protoc", "--version"], check=False, capture_output=True)
     except OSError:
@@ -96,7 +75,7 @@ def check_protoc_version():
         print("Stopping the setup.")
         exit(0)
 
-    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?")
+    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
     required_version = read_required_version()
 
@@ -114,7 +93,7 @@ def check_protoc_version():
         text += "The version of Protoc (v{0}.{1})".format(installed_version_minor,
                                                           installed_version_patch)
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
+                "(v{0}.{1}) ".format(required_version.group('minor'))
         text += "Embedded Proto requires. These are your options:\n" \
                 "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
@@ -173,46 +152,36 @@ def run(arguments):
     # Execute the setup process for Embedded Proto.
 
     try:
-
-        # ---------------------------------------
-        check_python_version()
-
         # ---------------------------------------
         check_protoc_version()
 
         # ---------------------------------------
         print("Creating a virtual environment for Embedded Proto.", end='')
+        stdout.flush()
         venv.create("venv", with_pip=True)
         print(" [" + CGREEN + "Success" + CEND + "]")
 
+        # Add extra include directories for protobuf build
+        if arguments.include is not None:
+            os.environ["EMBEDDEDPROTO_PROTOC_INCLUDE"] = str(arguments.include)
+
         # ---------------------------------------
-        print("Installing requirement Python packages in the virtual environment.", end='')
+        print("Installing EmbeddedProto in the virtual environment.", end='')
+        stdout.flush()
         on_windows = "Windows" == platform.system()
         command = []
         if on_windows:
             command.append("./venv/Scripts/pip")
         else:
             command.append("./venv/bin/pip")
-        command.extend(["install", "-r", "requirements.txt"])
+        command.extend(["install", "-e", "./generator"])
         result = subprocess.run(command, check=False, capture_output=True)
         if result.returncode:
             print(" [" + CRED + "Fail" + CEND + "]")
             print(result.stderr.decode("utf-8"), end='', file=stderr)
-            exit(1)
-        else:
-            print(" [" + CGREEN + "Success" + CEND + "]")
-
-        # ---------------------------------------
-        print("Build the protobuf extension file used to include Embedded Proto custom options.", end='')
-        command = ["protoc", "-I", "generator", "--python_out=generator", "embedded_proto_options.proto"]
-        if arguments.include is not None:
-            command.extend(["-I", str(arguments.include)])
-        result = subprocess.run(command, check=False, capture_output=True)
-        if result.returncode:
-            print(" [" + CRED + "Fail" + CEND + "]")
-            print(result.stderr.decode("utf-8"), end='', file=stderr)
-            print("Waring: Unable to generate the options file. This might be solved by providing the --include option."
-                  " See --help for more info.", file=stderr)
+            print("If the error is related to protoc generating the options file it might be solved by providing"
+                  " the --include option. See --help for more info.", end='', file=stderr)
+            stdout.flush()
             exit(1)
         else:
             print(" [" + CGREEN + "Success" + CEND + "]")
@@ -241,7 +210,7 @@ class ReadableDir(argparse.Action):
 ####################################################################################
 
 def add_parser_arguments(parser_obj):
-    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples 
+    # This function is used to add parameters required by the Embedded Proto script. Setup scripts used in examples
     # now can extend it with their own parameters.
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
@@ -259,6 +228,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args)
-    
+
     # ---------------------------------------
     print("Setup completed with success!")

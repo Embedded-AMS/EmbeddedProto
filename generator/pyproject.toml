@@ -1,0 +1,30 @@
+[project]
+name = "EmbeddedProto"
+authors = [
+    {name = "Embedded AMS B.V.", email = "info@embeddedproto.com"},
+]
+description = "EmbeddedProto generator"
+requires-python = ">=3.8"
+license = {text = "GPL-3.0-only"}
+classifiers = [ ]
+dependencies = [
+    "Jinja2>=3,<4",
+    "MarkupSafe>=2.0,<3",
+    "protobuf>=4.21.6,<5",
+    "six>=1.16.0,<2",
+    "toposort>=1.7,<2",
+]
+dynamic = ["version"]
+
+[project.scripts]
+protoc-gen-eams = "EmbeddedProto.main:main_plugin"
+
+[tool.setuptools.package-data]
+EmbeddedProto = ["templates/*"]
+
+[tool.setuptools_scm]
+root = ".."
+
+[build-system]
+requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"

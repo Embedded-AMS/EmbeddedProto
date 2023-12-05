@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 #
 # Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
 #
@@ -30,10 +28,8 @@
 #   the Netherlands
 #
 
-# This file is used to invoke protoc-gen-eams.py as a plugin to protoc on
-# Linux. The reason this has to be used is that protoc expects a binary or
-# terminal script as plugin. Directly calling python scripts is not supported.
+from .main import main
 
 
-EmbeddedProtoDir=$(dirname "$0")
-$EmbeddedProtoDir/venv/bin/protoc-gen-eams
+if __name__ == '__main__':
+    main()
