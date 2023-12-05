@@ -75,22 +75,33 @@ def check_protoc_version():
         print("Stopping the setup.")
         exit(0)
 
-    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)")
+    version_re_compiled = re.compile(r".*\s(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?")
     installed_version = version_re_compiled.search(output.stdout.decode("utf-8"))
     required_version = read_required_version()
 
-    if installed_version.group('minor') < required_version.group('minor'):
+    installed_version_major = installed_version.group('major')
+    installed_version_minor = installed_version.group('minor')
+    installed_version_patch = installed_version.group('patch')
+
+    # If the installed protobuf version does not include a major number 
+    if installed_version_patch is None:
+        installed_version_patch = installed_version_minor
+        installed_version_minor = installed_version_major
+
+    if installed_version_minor != required_version.group('minor'):
         text = "\n"
-        text += "The version of Protoc (v{0}.{1})".format(installed_version.group('minor'))
+        text += "The version of Protoc (v{0}.{1})".format(installed_version_minor,
+                                                          installed_version_patch)
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                "(v{0}.{1}) ".format(required_version.group('minor'))
+                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
         text += "Embedded Proto requires. These are your options:\n" \
                 "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
 
         # Check if all versions are above v21.0
-        if ((21 <= int(installed_version.group('minor'))) and (21 <= int(required_version.group('minor')))) or \
-                ((21 > int(installed_version.group('minor'))) and (21 > int(required_version.group('minor')))):
+        if ((21 <= int(installed_version_minor)) and (21 <= int(required_version.group('minor')))) or \
+                ((21 > int(installed_version_minor)) and (21 > int(required_version.group('minor')))):
+
 
             print(" [" + CYELLOW + "Warning" + CEND + "]")
             text += "\t3. Ignore the difference at your own risk!\n"
