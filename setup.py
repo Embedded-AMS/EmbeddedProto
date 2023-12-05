@@ -82,6 +82,10 @@ def check_protoc_version():
     installed_version_major = installed_version.group('major')
     installed_version_minor = installed_version.group('minor')
     installed_version_patch = installed_version.group('patch')
+    print("")
+    print("DBG - major: " + installed_version_major)
+    print("DBG - minor: " + installed_version_minor)
+    print("DBG - patch: " + installed_version_patch)
 
     # If the installed protobuf version does not include a major number 
     if installed_version_patch is None:
