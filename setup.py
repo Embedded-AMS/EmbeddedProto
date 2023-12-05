@@ -88,10 +88,12 @@ def check_protoc_version():
         installed_version_patch = installed_version_minor
         installed_version_minor = installed_version_major
         print("")
+        print("DBG - required: " + str(required_version))
         print("DBG - minor: " + installed_version_minor)
         print("DBG - patch: " + installed_version_patch)
     else:
         print("")
+        print("DBG - required: " + str(required_version))
         print("DBG - major: " + installed_version_major)
         print("DBG - minor: " + installed_version_minor)
         print("DBG - patch: " + installed_version_patch)
