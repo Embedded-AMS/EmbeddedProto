@@ -87,23 +87,16 @@ def check_protoc_version():
     if installed_version_patch is None:
         installed_version_patch = installed_version_minor
         installed_version_minor = installed_version_major
-        print("")
-        print("DBG - required: " + str(required_version))
-        print("DBG - minor: " + installed_version_minor)
-        print("DBG - patch: " + installed_version_patch)
-    else:
-        print("")
-        print("DBG - required: " + str(required_version))
-        print("DBG - major: " + installed_version_major)
-        print("DBG - minor: " + installed_version_minor)
-        print("DBG - patch: " + installed_version_patch)
+
+    print("DBG installed_version_minor:" + installed_version_minor)
+    print("DBG required_version.group('minor'):" + required_version.group('minor'))
 
     if installed_version_minor != required_version.group('minor'):
         text = "\n"
         text += "The version of Protoc (v{0}.{1})".format(installed_version_minor,
                                                           installed_version_patch)
         text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                "(v{0}.{1}) ".format(required_version.group('minor'))
+                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
         text += "Embedded Proto requires. These are your options:\n" \
                 "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
