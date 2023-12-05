@@ -88,9 +88,6 @@ def check_protoc_version():
         installed_version_patch = installed_version_minor
         installed_version_minor = installed_version_major
 
-    print("DBG installed_version_minor:" + installed_version_minor)
-    print("DBG required_version.group('minor'):" + required_version.group('minor'))
-
     if installed_version_minor != required_version.group('minor'):
         text = "\n"
         text += "The version of Protoc (v{0}.{1})".format(installed_version_minor,
