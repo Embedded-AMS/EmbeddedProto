@@ -59,7 +59,7 @@ def read_required_version():
         raise Exception("Unable to find protobuf version in generator/setup.py")
 
 
-def check_protoc_version():
+def check_protoc_version(arguments):
     # Protobuf has a version numbering change with version 3.21.0. The python packages got a major rewrite at this
     # point. Therefore the python package got a major version update (4.21.0). After this point, the Protoc version
     # is indicated as v21.0 without the major version. The minor version between Protoc and the python protobuf
@@ -83,7 +83,7 @@ def check_protoc_version():
     installed_version_minor = installed_version.group('minor')
     installed_version_patch = installed_version.group('patch')
 
-    # If the installed protobuf version does not include a major number 
+    # If the installed protobuf version does not include a major number
     if installed_version_patch is None:
         installed_version_patch = installed_version_minor
         installed_version_minor = installed_version_major
@@ -92,9 +92,9 @@ def check_protoc_version():
         text = "\n"
         text += "The version of Protoc (v{0}.{1})".format(installed_version_minor,
                                                           installed_version_patch)
-        text += " you have installed is not compatible with the version of\nthe protobuf python package " \
-                "(v{0}.{1}) ".format(required_version.group('minor'), required_version.group('patch'))
-        text += "Embedded Proto requires. These are your options:\n" \
+        text += " you have installed is not the same as the version of\nthe protobuf python package " \
+                "(v{0}.{1}).".format(required_version.group('minor'), required_version.group('patch'))
+        text += "These are your options:\n" \
                 "\t1. Install a matching version of Protoc.\n" \
                 "\t2. Change the version of Embedded Proto.\n"
 
@@ -102,20 +102,24 @@ def check_protoc_version():
         if ((21 <= int(installed_version_minor)) and (21 <= int(required_version.group('minor')))) or \
                 ((21 > int(installed_version_minor)) and (21 > int(required_version.group('minor')))):
 
-
-            print(" [" + CYELLOW + "Warning" + CEND + "]")
-            text += "\t3. Ignore the difference at your own risk!\n"
+            print(" [" + CYELLOW + "Caution" + CEND + "]")
+            text += ("\t3. Ignore the difference and try if it works for you (please let us know if it does not stating"
+                     " the versions you used).\n")
             print(text)
-            while True:
-                user_input = input("Ignore the difference [Y/n]: ")
-                if ('Y' == user_input) or ('y' == user_input):
-                    # Continue the setup
-                    print("Ignoring the difference.")
-                    break
-                elif ('N' == user_input) or ('n' == user_input):
-                    # Stop the setup.
-                    print("Stopping the setup.")
-                    exit(0)
+            if arguments.ignore_version_diff:
+                # Continue the setup
+                print("Automatically ignoring the difference.")
+            else:
+                while True:
+                    user_input = input("Ignore the difference [Y/n]: ")
+                    if ('Y' == user_input) or ('y' == user_input):
+                        # Continue the setup
+                        print("Ignoring the difference.")
+                        break
+                    elif ('N' == user_input) or ('n' == user_input):
+                        # Stop the setup.
+                        print("Stopping the setup.")
+                        exit(0)
         else:
             # We can only stop if we have a version prior to v21.0.
             print(" [" + CRED + "Fail" + CEND + "]")
@@ -153,7 +157,7 @@ def run(arguments):
 
     try:
         # ---------------------------------------
-        check_protoc_version()
+        check_protoc_version(arguments)
 
         # ---------------------------------------
         print("Creating a virtual environment for Embedded Proto.", end='')
@@ -215,6 +219,10 @@ def add_parser_arguments(parser_obj):
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
                                  "standard folder, for example: \"~/protobuf/protoc-21.5/include\".")
+
+    parser_obj.add_argument('--ignore_version_diff', action='store_true',
+                            help="Ignore differences in the version of Protoc and that of the installed python package."
+                                 " Try to run with the different version.")
 
 
 ####################################################################################
