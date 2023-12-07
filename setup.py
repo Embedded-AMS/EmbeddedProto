@@ -52,6 +52,8 @@ def clean_folder():
     # This function removes the folders and files created during setup and building the project. This way the folder is
     # brought back to its original state.
 
+    print("Cleaning the folder.")
+
     shutil.rmtree("./venv", ignore_errors=True)
     shutil.rmtree("./build", ignore_errors=True)
     shutil.rmtree("./generator/EmbeddedProto.egg-info", ignore_errors=True)
