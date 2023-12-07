@@ -35,6 +35,7 @@ import os
 import re
 from sys import stderr, stdout
 import venv
+import shutil
 
 # Perform a system call to beable to display colors on windows
 os.system("")
@@ -43,6 +44,25 @@ CGREEN = '\33[92m'
 CRED = '\33[91m'
 CYELLOW = '\33[93m'
 CEND = '\33[0m'
+
+
+###################################################################################
+
+def clean_folder():
+    # This function removes the folders and files created during setup and building the project. This way the folder is
+    # brought back to its original state.
+
+    print("Cleaning the folder.")
+
+    shutil.rmtree("./venv", ignore_errors=True)
+    shutil.rmtree("./build", ignore_errors=True)
+    shutil.rmtree("./generator/EmbeddedProto.egg-info", ignore_errors=True)
+    try:
+        os.remove("./generator/EmbeddedProto/embedded_proto_options_pb2.py")
+    except FileNotFoundError:
+        # This exception we can safely ignore as it means the file was not there. In that case we do not have to remove
+        # it.
+        pass
 
 
 ####################################################################################
@@ -157,6 +177,10 @@ def run(arguments):
 
     try:
         # ---------------------------------------
+        if arguments.clean:
+            clean_folder()
+
+        # ---------------------------------------
         check_protoc_version(arguments)
 
         # ---------------------------------------
@@ -219,6 +243,9 @@ def add_parser_arguments(parser_obj):
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
                                  "standard folder, for example: \"~/protobuf/protoc-21.5/include\".")
+
+    parser_obj.add_argument('-c', '--clean', action='store_true',
+                            help="Clean aka delete  the virtual environment and previous build results.")
 
     parser_obj.add_argument('--ignore_version_diff', action='store_true',
                             help="Ignore differences in the version of Protoc and that of the installed python package."
