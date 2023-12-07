@@ -29,7 +29,7 @@ When you have trouble compiling the code also include:
 
 ## Creating a pull request
 
-If you wish to contribute code to Embedded Proto please use the Github work flow of creating a fork and requesting a pull request. Please note we wish you to branch of the development branch. Your pull request should merge back into develop.
+If you wish to contribute code to Embedded Proto please use the Github work flow of creating a fork and requesting a pull request. Please note we wish you to branch of the **develop branch**. Your pull request should merge back into develop.
 
 ## Requesting a feature
 

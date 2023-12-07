@@ -28,10 +28,15 @@ This document details the following:
 
 To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
 
+## 3.4.0
+* In the background the installation switched to using Python SetupTools (thanks to the contributors). In the future we would like to use Pip for the installation.
+* Problems with non-matching versions have been addressed. You now get a warning which allows you to continue even if the version does not match exactly.
+* Added some useful command line options to the setup script.
+
 ## 3.3.0
 * Added a to_string function for debugging (see [documentation](https://embeddedproto.com/documentation/to-string/)).
 * Added getter functions which will return an error for index out of bounds cases.
-* Bug fix the toposorting algo for nested message defintions.
+* Bug fix the toposorting algo for nested message definitions.
 
 ## 3.2.0
 The most notable improvements in this version are:
@@ -73,7 +78,7 @@ You can request more information about a commercial license on our [website](htt
 What is required to be able to generate source files based on .proto files:
 1. Python 3.8 and up
 2. Pip
-3. Protobuf v21.5
+3. Protobuf v21.5 and up (tested with v25.1)
 4. Git
 
 After installing the requirements, continue by cloning the Embedded Proto repo. We advised using Embedded Proto as a submodule in your project. This way, you can track the version of Embedded Proto with the version of your project.
@@ -92,6 +97,11 @@ Did you install protoc in a custom folder, or is the include folder of protobuf 
 python setup.py --include ~/protobuf/protoc-21.5/include
 ```
 In this example, you have installed a specific version of protoc, and you named its installation folder `~/protobuf/protoc-21.5`.
+
+You can check out latest the command line parameters of the setup script using the help parameter:
+```bash
+python setup.py --help
+```
 
 More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).
 
