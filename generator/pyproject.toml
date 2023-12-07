@@ -16,6 +16,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[tool.setuptools]
+py-modules = ["EmbeddedProto"]
+
 [project.scripts]
 protoc-gen-eams = "EmbeddedProto.main:main_plugin"
 
