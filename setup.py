@@ -49,10 +49,19 @@ CEND = '\33[0m'
 ###################################################################################
 
 def clean_folder():
-    shutil.rmtree("./venv")
-    shutil.rmtree("./build")
-    shutil.rmtree("./generator/EmbeddedProto.egg-info")
-    os.remove("./generator/EmbeddedProto/embedded_proto_options_pb2.py")
+    # This function removes the folders and files created during setup and building the project. This way the folder is
+    # brought back to its original state.
+
+    shutil.rmtree("./venv", ignore_errors=True)
+    shutil.rmtree("./build", ignore_errors=True)
+    shutil.rmtree("./generator/EmbeddedProto.egg-info", ignore_errors=True)
+    try:
+        os.remove("./generator/EmbeddedProto/embedded_proto_options_pb2.py")
+    except FileNotFoundError:
+        # This exception we can safely ignore as it means the file was not there. In that case we do not have to remove
+        # it.
+        pass
+
 
 ####################################################################################
 
