@@ -35,6 +35,7 @@ import os
 import re
 from sys import stderr, stdout
 import venv
+import shutil
 
 # Perform a system call to beable to display colors on windows
 os.system("")
@@ -44,6 +45,14 @@ CRED = '\33[91m'
 CYELLOW = '\33[93m'
 CEND = '\33[0m'
 
+
+###################################################################################
+
+def clean_folder():
+    shutil.rmtree("./venv")
+    shutil.rmtree("./build")
+    shutil.rmtree("./generator/EmbeddedProto.egg-info")
+    os.remove("./generator/EmbeddedProto/embedded_proto_options_pb2.py")
 
 ####################################################################################
 
@@ -157,6 +166,10 @@ def run(arguments):
 
     try:
         # ---------------------------------------
+        if arguments.clean:
+            clean_folder()
+
+        # ---------------------------------------
         check_protoc_version(arguments)
 
         # ---------------------------------------
@@ -219,6 +232,9 @@ def add_parser_arguments(parser_obj):
     parser_obj.add_argument('-I', '--include', action=ReadableDir,
                             help="Provide the protoc include folder. Required when you installed protoc in a non "
                                  "standard folder, for example: \"~/protobuf/protoc-21.5/include\".")
+
+    parser_obj.add_argument('-c', '--clean', action='store_true',
+                            help="Clean aka delete  the virtual environment and previous build results.")
 
     parser_obj.add_argument('--ignore_version_diff', action='store_true',
                             help="Ignore differences in the version of Protoc and that of the installed python package."
