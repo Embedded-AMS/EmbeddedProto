@@ -10,10 +10,14 @@ pipelines:
           - git-modules
           - sonar
         script:
-          - export TZ=Europe/Amsterdam
-          - add-apt-repository ppa:ubuntu-toolchain-r/test -y
           - apt-get update
+          - export DEBIAN_FRONTEND=noninteractive
+          - apt-get install -y tzdata
+          - ln -fs /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+
+          - add-apt-repository ppa:ubuntu-toolchain-r/test -y
           - apt-get install -y jq gcc-9 g++-9 unzip cmake lib32ncurses6 lib32z1 lib32stdc++6 python3-venv python-is-python3 gcovr tree
+
           - git submodule update --recursive --init
           - source bitbucket-pipelines-dependencies.sh
 
