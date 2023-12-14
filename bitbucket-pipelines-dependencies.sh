@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -33,7 +33,7 @@
 if [ -d "$PWD/protoc" ]; then
   echo "found protoc cache"
 else
-  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protoc-21.5-linux-x86_64.zip
+  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip
   unzip -o protoc*.zip -d protoc/
 fi
 export PATH="$PATH:$PWD/protoc/bin"
