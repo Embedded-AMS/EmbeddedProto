@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2020-2023 Embedded AMS B.V. - All Rights Reserved
+# Copyright (C) 2020-2024 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
@@ -33,7 +33,7 @@
 if [ -d "$PWD/protoc" ]; then
   echo "found protoc cache"
 else
-  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protoc-21.5-linux-x86_64.zip
+  curl --insecure -OL https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip
   unzip -o protoc*.zip -d protoc/
 fi
 export PATH="$PATH:$PWD/protoc/bin"
@@ -52,7 +52,7 @@ export PATH="$PATH:$PWD/build-wrapper"
 if [ -d "$PWD/sonar-scanner/" ]; then
   echo "found sonar scanner scanner cache"
 else
-  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+  curl --insecure -OL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
   unzip -o sonar-scanner-cli-*-linux.zip
   mv sonar-scanner*/ sonar-scanner/
 fi
@@ -64,3 +64,12 @@ else
   python setup.py
 fi
 
+#tree
+
+#cd generator
+#protoc -I . --python_out=EmbeddedProto embedded_proto_options.proto
+#cd -
+
+echo
+ls generator/EmbeddedProto
+echo
