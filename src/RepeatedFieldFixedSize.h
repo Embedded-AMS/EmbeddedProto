@@ -122,7 +122,7 @@ namespace EmbeddedProto
         return data_[limited_index]; 
       }
 
-      Error get_const(const int32_t index, DATA_TYPE& value) const override
+      Error get_const(const uint32_t index, DATA_TYPE& value) const override
       {
         Error result = Error::NO_ERRORS;
         if(index < current_length_)

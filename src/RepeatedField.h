@@ -104,7 +104,7 @@ namespace EmbeddedProto
         \param[out] value The value of the desired index is set in this reference.
         \return An error incase of an index out of bound situation.
       */
-      virtual Error get_const(const int32_t index, DATA_TYPE& value) const = 0;
+      virtual Error get_const(const uint32_t index, DATA_TYPE& value) const = 0;
 
       //! Get a reference to the value at the given index. 
       /*!
