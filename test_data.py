@@ -340,10 +340,10 @@ def test_optional_empty():
     msg = op.optional_fields()
     msg.b = 0
     msg.y = 0.0
-    msg.pos.xpos = 0.0
+    #msg.pos.xpos = 0.0
     msg.state = op.states.A
-    msg.bytes_array = bytes()
-    msg.str = ""
+    #msg.bytes_array = bytes()
+    #msg.str = ""
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -355,13 +355,19 @@ def test_optional_empty():
     print(str)
     print()
 
+    msg2 = op.optional_fields()
+    msg2.ParseFromString(bytes(msg_str))
+
+    print(msg2)
+
+
 #test_simple_types()
 #test_repeated_fields()
 #test_repeated_message()
 #test_string()
 #test_bytes()
 #test_repeated_string_bytes()
-test_nested_message()
+#test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
-#test_optional_empty()
+test_optional_empty()
