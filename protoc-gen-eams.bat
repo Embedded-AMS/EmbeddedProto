@@ -35,4 +35,4 @@
 :: terminal script as plugin. Directly calling python scripts is not supported.
 
 set EmbeddedProtoDir=%~dp0
-%EmbeddedProtoDir%\venv\Scripts\protoc-gen-eams
+call "%EmbeddedProtoDir%\venv\Scripts\protoc-gen-eams"
