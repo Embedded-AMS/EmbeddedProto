@@ -4,7 +4,7 @@
 
 Embedded Proto is a product of Embedded AMS B.V. For more information about Embedded Proto please visit [EmbeddedProto.com](https://EmbeddedProto.com).
 
-Copyrights 2020-2023 Embedded AMS B.V. Amsterdam, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
+Copyrights 2020-2024 Embedded AMS B.V., [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
 
 
 # Introduction
@@ -21,12 +21,17 @@ This document details the following:
 * Supported Features
 * Examples
 * Development
-* Gratitude
 
 
 # What is new
 
 To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
+
+## 3.5.0
+* Bub fix related to optional string or bytes fields. They where not check to be set or not.
+* Small interface change in RepeatedField class to use correct array index type. Tjos is a possible breaking change when you derived from the RepeatedField.
+* Support for spaces in folder names on Windows.
+* Started reworking the company internal toolchain.
 
 ## 3.4.0
 * In the background the installation switched to using Python SetupTools (thanks to the contributors). In the future we would like to use Pip for the installation.
@@ -175,13 +180,6 @@ For this reason, it is unlikely that Embedded Proto will support proto2 in the f
 
 # Development
 
-If you consider helping with the development of Embedded Proto please consider reading [this](https://embeddedproto.com/documentation/intallation/#for-embedded-proto-developers). It details how you can build the unit tests included in this repo.
+If you consider helping with the development of Embedded Proto please consider reading [this](https://embeddedproto.com/documentation/installation/#for-embedded-proto-developers). It details how you can build the unit tests included in this repo.
 
 
-# Give your feedback
-
-[![alt text](https://embeddedproto.com/wp-content/uploads/2022/06/feedback.png)](https://embeddedproto.com/feedback/)
-
-# Gratitude
-
-The team would like to thank you for your interest in Embedded Proto! We greatly appreciate you using our library. If you like working with it, consider to Star the library on [Github](https://github.com/Embedded-AMS/EmbeddedProto).
