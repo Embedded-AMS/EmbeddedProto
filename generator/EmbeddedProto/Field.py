@@ -276,7 +276,7 @@ class BaseStringBytes(Field):
         return True
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldStringBytes_Serialize.h", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)

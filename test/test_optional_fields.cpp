@@ -178,6 +178,8 @@ TEST(OptionalFields, clear)
 TEST(OptionalFields, empty_serialization) 
 {
   ::optional_fields<5,10> msg;
+
+  // The actual values are set to their default values or clear such that the presense flag will remain active.
   msg.set_b(0);
   msg.set_y(0.0F);
   msg.mutable_pos().clear();
@@ -200,21 +202,39 @@ TEST(OptionalFields, empty_serialization)
   }
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+} 
+
+TEST(OptionalFields, cleared_serialization) 
+{
+  ::optional_fields<5,10> msg;
+  // Clear the presense flags no data is to be expected.
+  msg.clear_b();
+  msg.clear_y();
+  msg.clear_pos();
+  msg.clear_state();
+  msg.clear_bytes_array();
+  msg.clear_str();
+
+  InSequence s;
+  Mocks::WriteBufferMock buffer;
+
+  // No data is expected to be pushed into the buffer.
+  EXPECT_CALL(buffer, push(_)).Times(0).WillOnce(Return(true));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
 TEST(OptionalFields, empty_deserialization) 
 {
+  // Test is empty and default vvalues will set the precense flags.
   ::optional_fields<5,10> msg;
 
   InSequence s;
-
   Mocks::ReadBufferMock buffer;
 
   static constexpr uint32_t SIZE = 15;
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
-
-  // Test if a double nested message can be deserialized with values set to maximum.
 
   std::array<uint8_t, SIZE> referee = { 0x10, 0x00, // b
                                         0x25, 0x00, 0x00, 0x00, 0x00, // y
@@ -236,7 +256,30 @@ TEST(OptionalFields, empty_deserialization)
   EXPECT_TRUE(msg.has_state());
   EXPECT_TRUE(msg.has_bytes_array());
   EXPECT_TRUE(msg.has_str());
+}
 
+TEST(OptionalFields, cleared_deserialization) 
+{
+  ::optional_fields<5,10> msg;
+
+  InSequence s;
+
+  Mocks::ReadBufferMock buffer;
+
+  static constexpr uint32_t SIZE = 0;
+
+  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+
+  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_FALSE(msg.has_b());
+  EXPECT_FALSE(msg.has_y());
+  EXPECT_FALSE(msg.has_pos());
+  EXPECT_FALSE(msg.has_state());
+  EXPECT_FALSE(msg.has_bytes_array());
+  EXPECT_FALSE(msg.has_str());
 }
 
 TEST(OptionalFields, presence_size)
