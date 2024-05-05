@@ -76,7 +76,7 @@ def read_required_version():
             if match_req:
                 return match_req
 
-        raise Exception("Unable to find protobuf version in generator/setup.py")
+        raise Exception("Unable to find protobuf version in generator/pyproject.toml")
 
 
 def check_protoc_version(arguments):
