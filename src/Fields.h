@@ -119,12 +119,12 @@ namespace EmbeddedProto
 #endif // End of MSG_TO_STRING
   };
 
-  template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE>
+  template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE, uint32_t MAX_SIZE>
   class FieldTemplate
   {
     public:
       using TYPE = VARIABLE_TYPE;
-      using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE>;
+      using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE, MAX_SIZE>;
 
       FieldTemplate() = default;
       FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
@@ -209,18 +209,18 @@ namespace EmbeddedProto
       bool operator>=(const VARIABLE_TYPE& rhs) { return value_ >= rhs; }
       bool operator<=(const VARIABLE_TYPE& rhs) { return value_ <= rhs; }
 
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator==(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ == rhs.get(); }
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator!=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ != rhs.get(); }
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator>(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ > rhs.get(); }
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator<(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ < rhs.get(); }
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator>=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ >= rhs.get(); }
-      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS>
-      bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS>& rhs) { return value_ <= rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator==(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ == rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator!=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ != rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator>(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ > rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator<(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ < rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator>=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ >= rhs.get(); }
+      template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
+      bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ <= rhs.get(); }
 
       void clear() { value_ = static_cast<VARIABLE_TYPE>(0); }
 
@@ -229,6 +229,17 @@ namespace EmbeddedProto
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
         this->serialize(calcBuffer);
         return calcBuffer.get_size();
+      }
+
+      //! When serialized with the most unfavrouble value how much bytes does this field need.
+      /*!
+        This function takes into account the field number and tag combination.
+        \param[in] field_number We need to include the field number. This because large field numbers require more bytes.
+        \return The number of bytes required at most.
+      */
+      static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+      {
+        return MAX_SIZE + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
       }
 
 #ifdef MSG_TO_STRING
@@ -438,22 +449,22 @@ namespace EmbeddedProto
   };
 
 
-  using int32 = FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT>;
-  using int64 = FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT>;
-  using uint32 = FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT>; 
-  using uint64 = FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT>; 
-  using sint32 = FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT>; 
-  using sint64 = FieldTemplate<Field::FieldTypes::sint64, int64_t, WireFormatter::WireType::VARINT>; 
-  using boolean = FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT>; 
-  using fixed32 = FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32>; 
-  using fixed64 = FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64>; 
-  using sfixed32 = FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32>; 
-  using sfixed64 = FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64>; 
-  using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32>; 
-  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64>;
+  using int32 = FieldTemplate<Field::FieldTypes::int32, int32_t, WireFormatter::WireType::VARINT, 5>;
+  using int64 = FieldTemplate<Field::FieldTypes::int64, int64_t, WireFormatter::WireType::VARINT, 10>;
+  using uint32 = FieldTemplate<Field::FieldTypes::uint32, uint32_t, WireFormatter::WireType::VARINT, 5>; 
+  using uint64 = FieldTemplate<Field::FieldTypes::uint64, uint64_t, WireFormatter::WireType::VARINT, 10>; 
+  using sint32 = FieldTemplate<Field::FieldTypes::sint32, int32_t, WireFormatter::WireType::VARINT, 5>; 
+  using sint64 = FieldTemplate<Field::FieldTypes::sint64, int64_t, WireFormatter::WireType::VARINT, 10>; 
+  using boolean = FieldTemplate<Field::FieldTypes::boolean, bool, WireFormatter::WireType::VARINT, 1>; 
+  using fixed32 = FieldTemplate<Field::FieldTypes::fixed32, uint32_t, WireFormatter::WireType::FIXED32, 4>; 
+  using fixed64 = FieldTemplate<Field::FieldTypes::fixed64, uint64_t, WireFormatter::WireType::FIXED64, 8>; 
+  using sfixed32 = FieldTemplate<Field::FieldTypes::sfixed32, int32_t, WireFormatter::WireType::FIXED32, 4>; 
+  using sfixed64 = FieldTemplate<Field::FieldTypes::sfixed64, int64_t, WireFormatter::WireType::FIXED64, 8>; 
+  using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32, 4>; 
+  using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64, 8>;
 
   template<class ENUM_TYPE>
-  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT>;
+  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT, 5>;
 
 } // End of namespace EmbeddedProto.
 #endif
