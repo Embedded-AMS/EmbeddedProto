@@ -33,6 +33,7 @@
 
 #include <WireFormatter.h>
 #include <Fields.h>
+#include <FieldStringBytes.h>
 
 namespace test_max_field_size
 {
@@ -94,4 +95,13 @@ TEST(MaxFieldSize, Field_max_serialized_size)
   EXPECT_EQ(10, EmbeddedProto::doublefixed::max_serialized_size(16));  
 } 
 
+TEST(MaxFieldSize, FieldStringBytes_max_serialized_size)
+{
+  // N byte + varint for the number of bytes + tag size.
+  EXPECT_EQ(1+1+1, EmbeddedProto::FieldBytes<1>::max_serialized_size(1));
+  EXPECT_EQ(15+1+1, EmbeddedProto::FieldBytes<15>::max_serialized_size(1));
+  EXPECT_EQ(127+1+1, EmbeddedProto::FieldBytes<127>::max_serialized_size(1));
+  EXPECT_EQ(128+2+1, EmbeddedProto::FieldBytes<128>::max_serialized_size(1));
+}
+  
 } // End of namespace test_max_field_size
