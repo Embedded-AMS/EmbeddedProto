@@ -32,21 +32,6 @@
 # Fail on first non-zero return code
 set -exuo pipefail
 
-# For validation and testing generate the same message using python
-mkdir -p ./build/python
-mkdir -p ./build/python/subfolder
-protoc -I./test/proto --python_out=./build/python ./test/proto/simple_types.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/nested_message.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/repeated_fields.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/oneof_fields.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/include_other_files.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/subfolder/file_to_include_from_subfolder.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/empty_file_to_include.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/string_bytes.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.proto
-protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/field_options.proto
-
 # Build the tests
 cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
 make -j16 -C ./build/test
