@@ -270,6 +270,34 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return name;
     }
 
+    //! Calculate the maximum number of bytes required to serialize this type of message.
+    /*!
+      This function does not take into account a possible id of this message object is self.
+      \return The number of bytes required at most to serialize this message type.
+    */
+    static constexpr uint32_t max_serialized_size()
+    {
+      return 
+        {% for field in typedef.fields %}
+          {{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}})){{" +" if not loop.last }}{{";" if loop.last}}
+        {% endfor %}
+        {% if typedef.fields is not defined or typedef.fields|length == 0 %}
+          0;
+        {% endif %}
+    }
+
+    //! Calculate the maximum number of bytes required to serialize this message including the field id number and tag.
+    /*!
+      \return The number of bytes required at most to serialize this message type.
+    */
+    static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+    {
+      using namespace ::EmbeddedProto;
+      return WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED)) // Size of the tag
+        + WireFormatter::VarintSize(max_serialized_size()) // Length delimted value
+        + max_serialized_size(); // Length of the serialized content
+    }
+
 #ifdef MSG_TO_STRING
 
     ::EmbeddedProto::string_view to_string(::EmbeddedProto::string_view& str) const
