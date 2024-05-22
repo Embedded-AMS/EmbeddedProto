@@ -193,6 +193,36 @@ namespace EmbeddedProto
       //! Return a reference to the internal data storage array.
       const std::array<DATA_TYPE, MAX_LENGTH>& get_data_const() const { return data_; }
 
+      //! When serialized with the most unfavrouble value how much bytes does this field need.
+      /*!
+        This function takes into account the field number and tag combination.
+        \param[in] field_number We need to include the field number. This because large field numbers require more bytes.
+        \return The number of bytes required at most.
+      */
+      static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+      {
+        return RepeatedField<DATA_TYPE>::REPEATED_FIELD_IS_PACKED 
+                  ? max_packed_serialized_size(field_number)
+                  : max_unpacked_serialized_size(field_number);
+      }
+
+      static constexpr uint32_t max_packed_serialized_size(const uint32_t field_number)
+      {
+        return WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, 
+                                                                WireFormatter::WireType::LENGTH_DELIMITED))
+          + WireFormatter::VarintSize(MAX_LENGTH)
+          + (MAX_LENGTH * DATA_TYPE::max_serialized_size());
+      }
+
+      static constexpr uint32_t max_unpacked_serialized_size(const uint32_t field_number)
+      {
+        return MAX_LENGTH * (WireFormatter::VarintSize(WireFormatter::MakeTag(field_number,  WireFormatter::WireType::LENGTH_DELIMITED))
+                             + DATA_TYPE::max_serialized_size());
+      }
+
+
+ 
+
     private:
 
       //! Number of item in the data array.

@@ -62,12 +62,13 @@ namespace EmbeddedProto
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
                   "A Field can only be used as template paramter.");
 
-    //! Check how this field shoeld be serialized, packed or not.
-    static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of<MessageInterface, DATA_TYPE>::value
-            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
-
     public:
+
+      //! Check how this field shoeld be serialized, packed or not.
+      static constexpr bool REPEATED_FIELD_IS_PACKED = 
+            !(std::is_base_of<MessageInterface, DATA_TYPE>::value
+              || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
+
 
       RepeatedField() = default;
       ~RepeatedField() override = default;
@@ -255,7 +256,6 @@ namespace EmbeddedProto
         serialize_unpacked(field_number, calcBuffer);
         return calcBuffer.get_size();
       }
-
 
 #ifdef MSG_TO_STRING
 
