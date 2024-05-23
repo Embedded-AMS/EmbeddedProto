@@ -112,7 +112,7 @@ class TypeDefinition:
 
 class EnumDefinition(TypeDefinition):
     def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope, "TypeDefEnum.h")
+        super().__init__(proto_descriptor, parent_scope, "TypeDefEnum.h.jinja2")
 
     # Loop through the values defined in the enum.
     def values(self):
@@ -124,7 +124,7 @@ class EnumDefinition(TypeDefinition):
 
 class MessageDefinition(TypeDefinition):
     def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h")
+        super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h.jinja2")
 
         self.nested_enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
         self.nested_msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.nested_type]

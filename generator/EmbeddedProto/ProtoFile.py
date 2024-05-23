@@ -175,7 +175,7 @@ class ProtoFile:
         return all_parameters_registered
 
     def render(self, jinja_environment):
-        template_file = "Header.h"
+        template_file = "Header.h.jinja2"
         template = jinja_environment.get_template(template_file)
         file_str = template.render(proto_file=self, environment=jinja_environment)
         return file_str

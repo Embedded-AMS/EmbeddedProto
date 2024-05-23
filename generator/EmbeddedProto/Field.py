@@ -216,7 +216,7 @@ class FieldBasic(Field):
                          FieldDescriptorProto.TYPE_SFIXED32: "FIXED32"}
 
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldBasic.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldBasic.h.jinja2", oneof)
 
     def get_wire_type_str(self):
         return self.type_to_wire_type[self.descriptor.type]
@@ -234,13 +234,13 @@ class FieldBasic(Field):
         return self.type_to_default_value[self.descriptor.type]
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldBasic_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldBasic_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldBasic_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldBasic_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
 
 # -----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ class FieldBasic(Field):
 # A base class for both the String and Bytes type field
 class BaseStringBytes(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldString.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldString.h.jinja2", oneof)
 
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "LENGTH"
@@ -276,10 +276,10 @@ class BaseStringBytes(Field):
         return True
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldStringBytes_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldStringBytes_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
 
 # -----------------------------------------------------------------------------
@@ -302,7 +302,7 @@ class FieldString(BaseStringBytes):
         return "FieldString"
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldString_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldString_GetSet.h.jinja2", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -324,7 +324,7 @@ class FieldBytes(BaseStringBytes):
         return "FieldBytes"
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldBytes_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldBytes_GetSet.h.jinja2", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -332,7 +332,7 @@ class FieldBytes(BaseStringBytes):
 # This class is used to wrap around any enum used as a field.
 class FieldEnum(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldEnum.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldEnum.h.jinja2", oneof)
 
         # Reserve a member variable for the reference to the enum definition used for this field.
         self.definition = None
@@ -386,13 +386,13 @@ class FieldEnum(Field):
             raise Exception("Unable to find the definition of this enum: " + self.name)
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldEnum_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldEnum_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldEnum_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldEnum_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldEnum_Deserialize.h", jinja_environment=jinja_env)
+        return self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -400,7 +400,7 @@ class FieldEnum(Field):
 # This class is used to wrap around any type of message used as a field.
 class FieldMessage(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldMsg.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldMsg.h.jinja2", oneof)
 
         # Reserve a member variable for the reference to the message definition used for this field.
         self.definition = None
@@ -471,13 +471,13 @@ class FieldMessage(Field):
         return self.definition.scope.get()
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldMsg_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldMsg_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldMsg_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldMsg_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldMsg_Deserialize.h", jinja_environment=jinja_env)
+        return self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -539,13 +539,13 @@ class FieldRepeated(Field):
         return True
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldRepeated_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldRepeated_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
-        return self.render("FieldRepeated_Serialize.h", jinja_environment=jinja_env)
+        return self.render("FieldRepeated_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        str = self.render("FieldBasic_Deserialize.h", jinja_environment=jinja_env)
+        str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
 
 # -----------------------------------------------------------------------------
@@ -554,7 +554,7 @@ class FieldRepeated(Field):
 # This class represents a field we can not include because it causes a recursive inclusion.
 class FieldErrorRecursive(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
-        super().__init__(proto_descriptor, parent_msg, "FieldRepeated.h", oneof)
+        super().__init__(proto_descriptor, parent_msg, "FieldRepeated.h.jinja2", oneof)
 
         self.descriptor.type_name = "FieldErrorRecursive"
 
@@ -562,7 +562,7 @@ class FieldErrorRecursive(Field):
         return "//"
 
     def render_get_set(self, jinja_env):
-        return self.render("FieldErrorRecursive_GetSet.h", jinja_environment=jinja_env)
+        return self.render("FieldErrorRecursive_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_serialize(self, jinja_env):
         return ""

@@ -27,7 +27,7 @@ Postal address:
   1627 LE, Hoorn
   the Netherlands
 #}
-{% import 'TypeOneof.h' as TypeOneof %}
+{% import 'TypeOneof.h.jinja2' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
 {{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{"\n>" if loop.last}}
 {% endfor %}
@@ -270,6 +270,17 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return name;
     }
 
+    static constexpr uint32_t max_serialized_data_size()
+    {
+      return
+        {% for field in typedef.fields %}
+          {{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}})){{" +" if not loop.last }}{{";" if loop.last}}
+        {% endfor %}
+        {% if typedef.fields is not defined or typedef.fields|length == 0 %}
+          0;
+        {% endif %}
+    }
+
     //! Calculate the maximum number of bytes required to serialize this type of message.
     /*!
       This function does not take into account a possible id of this message object is self.
@@ -277,13 +288,9 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     */
     static constexpr uint32_t max_serialized_size()
     {
-      return 
-        {% for field in typedef.fields %}
-          {{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}})){{" +" if not loop.last }}{{";" if loop.last}}
-        {% endfor %}
-        {% if typedef.fields is not defined or typedef.fields|length == 0 %}
-          0;
-        {% endif %}
+      using namespace ::EmbeddedProto;
+      return WireFormatter::VarintSize(max_serialized_data_size()) // Length delimted value
+               + max_serialized_data_size();
     }
 
     //! Calculate the maximum number of bytes required to serialize this message including the field id number and tag.
@@ -294,7 +301,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {
       using namespace ::EmbeddedProto;
       return WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED)) // Size of the tag
-        + WireFormatter::VarintSize(max_serialized_size()) // Length delimted value
         + max_serialized_size(); // Length of the serialized content
     }
 
