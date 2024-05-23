@@ -35,6 +35,8 @@
 #include <Fields.h>
 #include <FieldStringBytes.h>
 
+#include <simple_types.h>
+
 namespace test_max_field_size
 {
 
@@ -96,6 +98,15 @@ TEST(MaxFieldSize, Field_max_serialized_size)
   EXPECT_EQ(10, EmbeddedProto::doublefixed::max_serialized_size(16));
   EXPECT_EQ(3, EmbeddedProto::boolean::max_serialized_size(16));
 } 
+
+TEST(MaxFieldSize, SimpleTypesMsg_max_serialized_size)
+{
+  // First all the basic fields with tag, two enums with tag, a boolean and the length varint.
+  EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1, ::Test_Simple_Types::max_serialized_size());
+
+  // Include the field tag.
+  EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1 + 1, ::Test_Simple_Types::max_serialized_size(1));
+}
 
 TEST(MaxFieldSize, FieldStringBytes_max_serialized_size)
 {

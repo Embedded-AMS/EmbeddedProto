@@ -242,6 +242,11 @@ namespace EmbeddedProto
         return MAX_SIZE + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
       }
 
+      static constexpr uint32_t max_serialized_size()
+      {
+        return MAX_SIZE;
+      }
+
 #ifdef MSG_TO_STRING
 
       //! Write all the data in this field to a human readable string.
