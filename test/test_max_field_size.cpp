@@ -78,7 +78,8 @@ TEST(MaxFieldSize, Field_max_serialized_size)
   EXPECT_EQ(5, EmbeddedProto::sfixed32::max_serialized_size(1));
   EXPECT_EQ(9, EmbeddedProto::sfixed64::max_serialized_size(1));
   EXPECT_EQ(5, EmbeddedProto::floatfixed::max_serialized_size(1));
-  EXPECT_EQ(9, EmbeddedProto::doublefixed::max_serialized_size(1));  
+  EXPECT_EQ(9, EmbeddedProto::doublefixed::max_serialized_size(1));
+  EXPECT_EQ(2, EmbeddedProto::boolean::max_serialized_size(1));
 
   // Next with a large ID such that the tag becomes multiple bytes
   EXPECT_EQ(7, EmbeddedProto::int32::max_serialized_size(16));
@@ -92,7 +93,8 @@ TEST(MaxFieldSize, Field_max_serialized_size)
   EXPECT_EQ(6, EmbeddedProto::sfixed32::max_serialized_size(16));
   EXPECT_EQ(10, EmbeddedProto::sfixed64::max_serialized_size(16));
   EXPECT_EQ(6, EmbeddedProto::floatfixed::max_serialized_size(16));
-  EXPECT_EQ(10, EmbeddedProto::doublefixed::max_serialized_size(16));  
+  EXPECT_EQ(10, EmbeddedProto::doublefixed::max_serialized_size(16));
+  EXPECT_EQ(3, EmbeddedProto::boolean::max_serialized_size(16));
 } 
 
 TEST(MaxFieldSize, FieldStringBytes_max_serialized_size)
