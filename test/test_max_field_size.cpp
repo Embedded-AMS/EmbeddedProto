@@ -34,6 +34,7 @@
 #include <WireFormatter.h>
 #include <Fields.h>
 #include <FieldStringBytes.h>
+#include <RepeatedFieldFixedSize.h>
 
 #include <simple_types.h>
 
@@ -116,5 +117,26 @@ TEST(MaxFieldSize, FieldStringBytes_max_serialized_size)
   EXPECT_EQ(127+1+1, EmbeddedProto::FieldBytes<127>::max_serialized_size(1));
   EXPECT_EQ(128+2+1, EmbeddedProto::FieldBytes<128>::max_serialized_size(1));
 }
+
+TEST(MaxFieldSize, RepeatedFieldFixedSize_Packed)
+{
+  constexpr uint32_t max_ser_size_A = EmbeddedProto::RepeatedFieldFixedSize<EmbeddedProto::uint32, 3>::max_serialized_size(1);
+  constexpr uint32_t max_ser_size_B = EmbeddedProto::RepeatedFieldFixedSize<EmbeddedProto::uint32, 3>::max_serialized_size(16);
+  constexpr uint32_t max_ser_size_C = EmbeddedProto::RepeatedFieldFixedSize<EmbeddedProto::uint32, 128>::max_serialized_size(1);
+  // id + size + data
+  EXPECT_EQ(1 + 1 + (3*5), max_ser_size_A);
+  EXPECT_EQ(2 + 1 + (3*5), max_ser_size_B);
+  EXPECT_EQ(1 + 2 + (128*5), max_ser_size_C);
+}
+
+TEST(MaxFieldSize, RepeatedFieldFixedSize_Unpacked)
+{
+  constexpr uint32_t max_ser_size_A = EmbeddedProto::RepeatedFieldFixedSize<Test_Simple_Types, 3>::max_serialized_size(1);
+  constexpr uint32_t max_ser_size_B = EmbeddedProto::RepeatedFieldFixedSize<Test_Simple_Types, 3>::max_serialized_size(16);
   
+  // N times id + data
+  EXPECT_EQ((3*(1 + (3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1))), max_ser_size_A);
+  EXPECT_EQ((3*(2 + (3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1))), max_ser_size_B);
+}
+
 } // End of namespace test_max_field_size
