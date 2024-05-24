@@ -274,11 +274,15 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     {
       return
         {% for field in typedef.fields %}
-          {{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}})){{" +" if not loop.last }}{{";" if loop.last}}
+          {{" +" if not loop.first }}{{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}}))
         {% endfor %}
-        {% if typedef.fields is not defined or typedef.fields|length == 0 %}
-          0;
+        {% for oneof in typedef.oneofs %}
+          {{" +" if not loop.first or typedef.fields|length != 0}}max_serialized_size_{{oneof.get_name()}}()
+        {% endfor %}
+        {% if typedef.fields|length == 0 and typedef.oneofs|length == 0 %}
+          0
         {% endif %}
+        ;
     }
 
     //! Calculate the maximum number of bytes required to serialize this type of message.
@@ -451,6 +455,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {{ TypeOneof.init(oneof)|indent(6) }}
       {{ TypeOneof.clear(oneof)|indent(6) }}
       {{ TypeOneof.deserialize(oneof, environment)|indent(6) }}
+      {{ TypeOneof.max_serialized_size(oneof)|indent(6) }}
 #ifdef MSG_TO_STRING 
       {{ TypeOneof.to_string(oneof)|indent(6) }}
 #endif // End of MSG_TO_STRING
