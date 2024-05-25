@@ -216,7 +216,7 @@ namespace EmbeddedProto
 
       static constexpr uint32_t max_unpacked_serialized_size(const uint32_t field_number)
       {
-        return MAX_LENGTH * (WireFormatter::VarintSize(WireFormatter::MakeTag(field_number,  WireFormatter::WireType::LENGTH_DELIMITED))
+        return MAX_LENGTH * (WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED))
                              + DATA_TYPE::max_serialized_size());
       }
 

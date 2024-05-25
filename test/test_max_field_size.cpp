@@ -35,8 +35,10 @@
 #include <Fields.h>
 #include <FieldStringBytes.h>
 #include <RepeatedFieldFixedSize.h>
+#include <WriteBufferFixedSize.h>
 
 #include <simple_types.h>
+#include <oneof_fields.h>
 
 namespace test_max_field_size
 {
@@ -107,6 +109,30 @@ TEST(MaxFieldSize, SimpleTypesMsg_max_serialized_size)
 
   // Include the field tag.
   EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1 + 1, ::Test_Simple_Types::max_serialized_size(1));
+
+
+  Test_Simple_Types msg;
+  EmbeddedProto::WriteBufferFixedSize<150> buffer;
+
+  msg.set_a_int32(std::numeric_limits<int32_t>::max());   
+  msg.set_a_int64(std::numeric_limits<int64_t>::max());     
+  msg.set_a_uint32(std::numeric_limits<uint32_t>::max());    
+  msg.set_a_uint64(std::numeric_limits<uint64_t>::max());
+  msg.set_a_sint32(std::numeric_limits<int32_t>::max());
+  msg.set_a_sint64(std::numeric_limits<int64_t>::max());
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::TWOBILLION);
+  msg.set_a_fixed64(std::numeric_limits<uint64_t>::max());
+  msg.set_a_sfixed64(std::numeric_limits<int64_t>::max());
+  msg.set_a_double(std::numeric_limits<double>::max());
+  msg.set_a_fixed32(std::numeric_limits<uint32_t>::max());
+  msg.set_a_sfixed32(std::numeric_limits<int32_t>::max()); 
+  msg.set_a_float(std::numeric_limits<float>::max());
+
+  msg.serialize(buffer);
+
+  EXPECT_EQ((Test_Simple_Types::max_serialized_size()), buffer.get_size());
+
 }
 
 TEST(MaxFieldSize, FieldStringBytes_max_serialized_size)
@@ -137,6 +163,17 @@ TEST(MaxFieldSize, RepeatedFieldFixedSize_Unpacked)
   // N times id + data
   EXPECT_EQ((3*(1 + (3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1))), max_ser_size_A);
   EXPECT_EQ((3*(2 + (3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1))), max_ser_size_B);
+}
+
+TEST(MaxFieldSize, OneofMaxFieldSize)
+{
+  EXPECT_EQ(3*6 + 7 + (2 + 1 + 3*6), message_oneof::max_serialized_size());
+
+  EXPECT_EQ(25+1+1+1, (string_bytes_oneof<25,1>::max_serialized_size()));
+  EXPECT_EQ(50+1+1+1, (string_bytes_oneof<1,50>::max_serialized_size()));
+
+  EXPECT_EQ(1 + 1 + (3*6 + 7 + (2 + 1 + 3*6)), (combined_oneof<1,1>::max_serialized_size()));
+  EXPECT_EQ((50+1+1+1) + 1 + 1, (combined_oneof<1,50>::max_serialized_size()));
 }
 
 } // End of namespace test_max_field_size
