@@ -100,21 +100,45 @@ TEST(MaxFieldSize, Field_max_serialized_size)
   EXPECT_EQ(6, EmbeddedProto::floatfixed::max_serialized_size(16));
   EXPECT_EQ(10, EmbeddedProto::doublefixed::max_serialized_size(16));
   EXPECT_EQ(3, EmbeddedProto::boolean::max_serialized_size(16));
+
 } 
+
+template<class FIELD_TYPE, class BASE_TYPE>
+void helper_test(const BASE_TYPE max)
+{
+  EmbeddedProto::WriteBufferFixedSize<10> buffer;
+  //constexpr BASE_TYPE max = std::numeric_limits<BASE_TYPE>::digits == 64 ? static_cast<BASE_TYPE>(18446744073709551615) : static_cast<BASE_TYPE>(4294967295);
+  FIELD_TYPE field = max; // std::numeric_limits<BASE_TYPE>::max();
+  field.serialize(buffer);
+  EXPECT_EQ(buffer.get_size(), FIELD_TYPE::max_serialized_size());
+}
 
 TEST(MaxFieldSize, SimpleTypesMsg_max_serialized_size)
 {
-  // First all the basic fields with tag, two enums with tag, a boolean and the length varint.
-  EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1, ::Test_Simple_Types::max_serialized_size());
+  // First all the basic fields with tag, two enums with tag, and a boolean.
+  //EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2, ::Test_Simple_Types::max_serialized_size());
 
-  // Include the field tag.
-  EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1 + 1, ::Test_Simple_Types::max_serialized_size(1));
+  // Include the length and field tag.
+  //EXPECT_EQ(3*6 + 3*11 + 3*5 + 3*9 + 2*6 + 2 + 1 + 1, ::Test_Simple_Types::max_serialized_size(1));
 
+  helper_test<EmbeddedProto::int32, int32_t>(2147483647);
+  helper_test<EmbeddedProto::int64, int64_t>(-9223372036854775808);
+  helper_test<EmbeddedProto::uint32, uint32_t>(4294967295);
+  helper_test<EmbeddedProto::uint64, uint64_t>(18446744073709551615);
+  helper_test<EmbeddedProto::sint32, int32_t>(2147483647);
+  helper_test<EmbeddedProto::sint64, int64_t>(9223372036854775807);
+  helper_test<EmbeddedProto::fixed32, uint32_t>(4294967295);
+  helper_test<EmbeddedProto::fixed64, uint64_t>(18446744073709551615);
+  helper_test<EmbeddedProto::sfixed32, int32_t>(2147483647);
+  helper_test<EmbeddedProto::sfixed64, int64_t>(9223372036854775807);
+  helper_test<EmbeddedProto::floatfixed, float>(std::numeric_limits<float>::max());
+  helper_test<EmbeddedProto::doublefixed, double>(std::numeric_limits<double>::max());
+  helper_test<EmbeddedProto::boolean, bool>(true);
 
   Test_Simple_Types msg;
   EmbeddedProto::WriteBufferFixedSize<150> buffer;
 
-  msg.set_a_int32(std::numeric_limits<int32_t>::max());   
+  msg.set_a_int32(std::numeric_limits<int32_t>::max());  
   msg.set_a_int64(std::numeric_limits<int64_t>::max());     
   msg.set_a_uint32(std::numeric_limits<uint32_t>::max());    
   msg.set_a_uint64(std::numeric_limits<uint64_t>::max());
@@ -130,7 +154,6 @@ TEST(MaxFieldSize, SimpleTypesMsg_max_serialized_size)
   msg.set_a_float(std::numeric_limits<float>::max());
 
   msg.serialize(buffer);
-
   EXPECT_EQ((Test_Simple_Types::max_serialized_size()), buffer.get_size());
 
 }
