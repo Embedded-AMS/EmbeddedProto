@@ -119,12 +119,12 @@ namespace EmbeddedProto
 #endif // End of MSG_TO_STRING
   };
 
-  template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE, uint32_t MAX_SIZE>
+  template<Field::FieldTypes FIELDTYPE, class VARIABLE_TYPE, WireFormatter::WireType WIRETYPE, uint32_t MAX_SER_SIZE>
   class FieldTemplate
   {
     public:
       using TYPE = VARIABLE_TYPE;
-      using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE, MAX_SIZE>;
+      using CLASS_TYPE = FieldTemplate<FIELDTYPE, VARIABLE_TYPE, WIRETYPE, MAX_SER_SIZE>;
 
       FieldTemplate() = default;
       FieldTemplate(const VARIABLE_TYPE& v) : value_(v) { };
@@ -239,12 +239,12 @@ namespace EmbeddedProto
       */
       static constexpr uint32_t max_serialized_size(const uint32_t field_number)
       {
-        return MAX_SIZE + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
+        return MAX_SER_SIZE + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
       }
 
       static constexpr uint32_t max_serialized_size()
       {
-        return MAX_SIZE;
+        return MAX_SER_SIZE;
       }
 
 #ifdef MSG_TO_STRING
@@ -468,8 +468,8 @@ namespace EmbeddedProto
   using floatfixed = FieldTemplate<Field::FieldTypes::floatfixed, float, WireFormatter::WireType::FIXED32, 4>; 
   using doublefixed = FieldTemplate<Field::FieldTypes::doublefixed, double, WireFormatter::WireType::FIXED64, 8>;
 
-  template<class ENUM_TYPE>
-  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT, 5>;
+  template<class ENUM_TYPE, uint32_t MAX_SER_SIZE>
+  using enumeration = FieldTemplate<Field::FieldTypes::enumeration, ENUM_TYPE, WireFormatter::WireType::VARINT, MAX_SER_SIZE>;
 
 } // End of namespace EmbeddedProto.
 #endif
