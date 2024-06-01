@@ -81,6 +81,24 @@ namespace EmbeddedProto
         FIXED32           = 5,  //!< fixed32, sfixed32, float
       };
 
+      //! Calculate the number of bytes a varint value will take. 
+      /*!
+        \param[in] value The value of which to calculate the size.
+        \return The number of bytes required for serializing the varint.
+      */
+      static constexpr uint32_t VarintSize(const uint64_t value)
+      {
+        return (value < (1ULL << 7)) ? 1 :
+           (value < (1ULL << 14)) ? 2 :
+           (value < (1ULL << 21)) ? 3 :
+           (value < (1ULL << 28)) ? 4 :
+           (value < (1ULL << 35)) ? 5 :
+           (value < (1ULL << 42)) ? 6 :
+           (value < (1ULL << 49)) ? 7 :
+           (value < (1ULL << 56)) ? 8 :
+           (value < (1ULL << 63)) ? 9 : 10;
+      }
+
       //! Encode a signed integer using the zig zag method
       /*!
         As specified the right-shift must be arithmetic, hence the cast is after the shift. The 

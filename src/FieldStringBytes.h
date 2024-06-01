@@ -265,6 +265,20 @@ namespace EmbeddedProto
           data_.fill(0);
           current_length_ = 0; 
         }
+
+        //! When serialized with the all elements set, how much bytes are then required.
+        /*!
+          This function takes into account the field number and tag combination.
+          \param[in] field_number We need to include the field number. This because large field numbers require more bytes.
+          \return The number of bytes required at most.
+        */
+        static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+        {
+          return MAX_LENGTH // The number of bytes of the data.
+                  + WireFormatter::VarintSize(MAX_LENGTH) // The varint indicating the actual number of bytes.
+                  + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, 
+                                                                     WireFormatter::WireType::LENGTH_DELIMITED)); // The field and tag comby
+        }
        
       protected:
 

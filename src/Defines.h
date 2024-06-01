@@ -83,6 +83,11 @@ namespace EmbeddedProto
   using string_view = array_view<char>;
   using bytes_view = array_view<uint8_t>;
 
+  //! Simple max function as constexpr
+  constexpr uint32_t max(const uint32_t a, const uint32_t b)
+  {
+    return (a > b) ? a : b;    
+  }
 }
 
 #endif //_EMBEDDED_PROTO_DEFINES_H_

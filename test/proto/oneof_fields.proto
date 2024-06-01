@@ -93,3 +93,12 @@ message string_bytes_oneof
     bytes  data = 2;
   }
 }
+
+message combined_oneof
+{
+  oneof combi
+  {
+    message_oneof msg_oneof = 1;
+    string_bytes_oneof msg_sb_oneof = 2;
+  }
+}

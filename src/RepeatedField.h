@@ -55,19 +55,20 @@ namespace EmbeddedProto
     struct is_specialization_of_FieldTemplate : std::false_type {};
 
     //! Definition of a trait to check if DATA_TYPE is a specialization of the FieldTemplate.
-    template<Field::FieldTypes F, typename V, WireFormatter::WireType W>
-    struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W>> : std::true_type {};
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
+    struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W,S>> : std::true_type {};
 
     //! This class only supports Field and FieldTemplate classes as template parameter.
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
                   "A Field can only be used as template paramter.");
 
-    //! Check how this field shoeld be serialized, packed or not.
-    static constexpr bool REPEATED_FIELD_IS_PACKED = 
-          !(std::is_base_of<MessageInterface, DATA_TYPE>::value
-            || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
-
     public:
+
+      //! Check how this field shoeld be serialized, packed or not.
+      static constexpr bool REPEATED_FIELD_IS_PACKED = 
+            !(std::is_base_of<MessageInterface, DATA_TYPE>::value
+              || std::is_base_of<internal::BaseStringBytes, DATA_TYPE>::value);
+
 
       RepeatedField() = default;
       ~RepeatedField() override = default;
@@ -255,7 +256,6 @@ namespace EmbeddedProto
         serialize_unpacked(field_number, calcBuffer);
         return calcBuffer.get_size();
       }
-
 
 #ifdef MSG_TO_STRING
 

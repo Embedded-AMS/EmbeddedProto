@@ -43,7 +43,7 @@ file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
 # Include the source code template files in the dependencies such that when the templates change 
 # the code is regenerated.
-file(GLOB_RECURSE TEMPLATE_FILES "${CMAKE_SOURCE_DIR}/generator/EmbeddedProto/templates/*.h")
+file(GLOB_RECURSE TEMPLATE_FILES "${CMAKE_SOURCE_DIR}/generator/EmbeddedProto/templates/*.h.jinja2")
 
 # Create a custom target for generating the protobuf files with the Embedded Proto plugin
 foreach(PROTO_FILE ${PROTO_FILES})

@@ -158,3 +158,23 @@ void clear_{{_oneof.get_name()}}()
   return left_chars;
 }
 {% endmacro %}
+{# #}
+{# ------------------------------------------------------------------------------------------------------------------ #}
+{# #}
+{% macro max_serialized_size(_oneof) %}
+static constexpr uint32_t max_serialized_size_{{_oneof.get_name()}}()
+{
+  using namespace EmbeddedProto;
+  return
+  {% for field in _oneof.get_fields() %}
+    {% if not loop.last %}
+      {{ ' ' * (loop.index0 * 2) }}max({{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}})),
+    {% else %}
+      {{ ' ' * (2 + (loop.index0 * 2))}}{{field.get_type()}}::max_serialized_size(static_cast<uint32_t>(FieldNumber::{{field.variable_id_name}}))
+    {% endif %}
+  {% endfor %}
+  {% for i in range(_oneof.get_fields() | length - 1) %}
+  {{ ' ' * (5 + (loop.revindex * 2)) }}){{ ";" if loop.last }}
+  {% endfor %}
+}
+{% endmacro %}
