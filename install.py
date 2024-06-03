@@ -56,9 +56,9 @@ def clean_folder():
 
     shutil.rmtree("./venv", ignore_errors=True)
     shutil.rmtree("./build", ignore_errors=True)
-    shutil.rmtree("./generator/EmbeddedProto.egg-info", ignore_errors=True)
+    shutil.rmtree("./EmbeddedProto.egg-info", ignore_errors=True)
     try:
-        os.remove("./generator/EmbeddedProto/embedded_proto_options_pb2.py")
+        os.remove("./EmbeddedProto/embedded_proto_options_pb2.py")
     except FileNotFoundError:
         # This exception we can safely ignore as it means the file was not there. In that case we do not have to remove
         # it.
@@ -68,7 +68,7 @@ def clean_folder():
 ####################################################################################
 
 def read_required_version():
-    with open("generator/pyproject.toml", "r") as f:
+    with open("pyproject.toml", "r") as f:
         lines = f.readlines()
         required_re_compiled = re.compile(r"protobuf>=(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
         for line in lines:
@@ -76,7 +76,7 @@ def read_required_version():
             if match_req:
                 return match_req
 
-        raise Exception("Unable to find protobuf version in generator/pyproject.toml")
+        raise Exception("Unable to find protobuf version in pyproject.toml")
 
 
 def check_protoc_version(arguments):
@@ -202,7 +202,7 @@ def run(arguments):
             command.append("./venv/Scripts/pip")
         else:
             command.append("./venv/bin/pip")
-        command.extend(["install", "-e", "./generator"])
+        command.extend(["install", "-e", "."])
         result = subprocess.run(command, check=False, capture_output=True)
         if result.returncode:
             print(" [" + CRED + "Fail" + CEND + "]")

@@ -16,8 +16,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[tool.setuptools]
-py-modules = ["EmbeddedProto"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["EmbeddedProto*"]
 
 [project.scripts]
 protoc-gen-eams = "EmbeddedProto.main:main_plugin"
@@ -26,7 +27,7 @@ protoc-gen-eams = "EmbeddedProto.main:main_plugin"
 EmbeddedProto = ["templates/*"]
 
 [tool.setuptools_scm]
-root = ".."
+root = "."
 
 [build-system]
 requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]

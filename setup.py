@@ -41,7 +41,7 @@ def build_proto():
     command = [
         "protoc",
         "-I",
-        ".",
+        "./EmbeddedProto",
         "--python_out=EmbeddedProto",
         "embedded_proto_options.proto",
     ]
