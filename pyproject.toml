@@ -30,5 +30,5 @@ EmbeddedProto = ["templates/*"]
 root = "."
 
 [build-system]
-requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
