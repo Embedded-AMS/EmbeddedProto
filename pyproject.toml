@@ -18,7 +18,7 @@ dynamic = ["version"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["EmbeddedProto*"]
+include = ["EmbeddedProto*", "src*"]
 
 [project.scripts]
 protoc-gen-eams = "EmbeddedProto.main:main_plugin"
