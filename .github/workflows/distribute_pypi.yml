@@ -1,6 +1,9 @@
 name: Publish the Python Package to PyPi
 
-on: workflow_dispatch
+on: 
+  push:
+    branches:
+      - 'feature/PROTO-213-deploy-to-pipy-test'
 
 jobs:
   build:
