@@ -3,7 +3,7 @@ name: Publish the Python Package to PyPi
 on: 
   push:
     branches:
-      - 'feature/PROTO-213-deploy-to-pipy-test'
+      - 'develop-v4'
 
 jobs:
   build:
