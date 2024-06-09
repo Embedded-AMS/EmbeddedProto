@@ -15,7 +15,7 @@ dependencies = [
     "six>=1.16.0,<2",
     "toposort>=1.7,<2",
 ]
-dynamic = ["version"]
+version = "4.0.0"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -27,9 +27,7 @@ protoc-gen-eams = "EmbeddedProto.main:main_plugin"
 [tool.setuptools.package-data]
 EmbeddedProto = ["templates/*"]
 
-[tool.setuptools_scm]
-root = "."
-
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
+
