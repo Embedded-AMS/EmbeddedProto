@@ -51,13 +51,6 @@ def build_proto():
 
     subprocess.run(command, check=True)
 
-
-class Build(build):
-    def run(self):
-        build_proto()
-        super().run()
-
-
 class EditableWheel(editable_wheel):
     def run(self):
         build_proto()
@@ -72,7 +65,6 @@ class Sdist(sdist):
 
 setup(
     cmdclass={
-        "build": Build,
         "editable_wheel": EditableWheel,
         "sdist": Sdist,
     },
