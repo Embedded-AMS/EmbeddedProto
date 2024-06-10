@@ -27,6 +27,9 @@ This document details the following:
 
 To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
 
+## 3.5.2
+* Updated to Protobuf version 27.1.
+
 ## 3.5.1
 * Updated to Protobuf version 26.1.
 
