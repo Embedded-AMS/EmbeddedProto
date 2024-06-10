@@ -10,7 +10,7 @@ classifiers = [ ]
 dependencies = [
     "Jinja2>=3,<4",
     "MarkupSafe>=2.0,<3",
-    "protobuf>=4.25.1,<5",
+    "protobuf>=5.26.1,<6",
     "six>=1.16.0,<2",
     "toposort>=1.7,<2",
 ]
