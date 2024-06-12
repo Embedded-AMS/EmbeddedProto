@@ -45,7 +45,7 @@ import "repeated_fields.proto";
 import "subfolder/file_to_include_from_subfolder.proto";
 
 // Import something from the google folder.
-import "google/protobuf/descriptor.proto";
+import "google/protobuf/timestamp.proto";
 
 
 message IncludedMessages {
@@ -56,6 +56,6 @@ message IncludedMessages {
 }
 
 // Use a random message from the google file.
-message DummyMessage {
-  google.protobuf.GeneratedCodeInfo info = 1;
+message TimeMessage {
+  google.protobuf.Timestamp time = 1;
 }
