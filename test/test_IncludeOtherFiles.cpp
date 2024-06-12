@@ -72,6 +72,16 @@ TEST(IncludeOtherFiles, zero)
   EXPECT_EQ(0, msg.serialized_size());
 }
 
+TEST(IncludeOtherFiles, set_time) 
+{
+  TimeMessage msg;
+  msg.mutable_time().set_seconds(12345);
+  msg.mutable_time().set_nanos(9876);
+  
+  EXPECT_EQ(12345, msg.get_time().get_seconds());
+  EXPECT_EQ(9876, msg.get_time().get_nanos());
+}
+
 TEST(IncludeOtherFiles, set) 
 {
   InSequence s;
