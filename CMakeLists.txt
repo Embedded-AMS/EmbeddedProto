@@ -43,14 +43,14 @@ file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
 # Include the source code template files in the dependencies such that when the templates change 
 # the code is regenerated.
-file(GLOB_RECURSE TEMPLATE_FILES "${CMAKE_SOURCE_DIR}/generator/EmbeddedProto/templates/*.h.jinja2")
+file(GLOB_RECURSE TEMPLATE_FILES "${CMAKE_SOURCE_DIR}/EmbeddedProto/templates/*.h.jinja2")
 
 # Create a custom target for generating the protobuf files with the Embedded Proto plugin
 foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_FILE_NAME ${PROTO_FILE} NAME_WE)
     add_custom_command(
         OUTPUT ${PROTO_GEN_DIR}/${PROTO_FILE_NAME}.h
-        COMMAND protoc --plugin=protoc-gen-eams=${CMAKE_SOURCE_DIR}/protoc-gen-eams -I${CMAKE_SOURCE_DIR}/generator -I${CMAKE_SOURCE_DIR}/test/proto --eams_out=${PROTO_GEN_DIR} ${PROTO_FILE}
+        COMMAND protoc --plugin=protoc-gen-eams=${CMAKE_SOURCE_DIR}/protoc-gen-eams -I${CMAKE_SOURCE_DIR}/EmbeddedProto -I${CMAKE_SOURCE_DIR}/test/proto --eams_out=${PROTO_GEN_DIR} ${PROTO_FILE}
         DEPENDS ${PROTO_FILE} ${TEMPLATE_FILES}
         COMMENT "Running EAMS plugin on ${PROTO_FILE}"
         VERBATIM
@@ -73,7 +73,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_FILE_NAME ${PROTO_FILE} NAME_WE)
     add_custom_command(
         OUTPUT ${PROTO_GEN_PYTHON_DIR}/${PROTO_FILE_NAME}_pb2.py
-        COMMAND protoc -I${CMAKE_SOURCE_DIR}/test/proto -I${CMAKE_SOURCE_DIR}/generator --python_out=${PROTO_GEN_PYTHON_DIR} ${PROTO_FILE}
+        COMMAND protoc -I${CMAKE_SOURCE_DIR}/test/proto -I${CMAKE_SOURCE_DIR}/EmbeddedProto --python_out=${PROTO_GEN_PYTHON_DIR} ${PROTO_FILE}
         DEPENDS ${PROTO_FILE} ${TEMPLATE_FILES}
         COMMENT "Generating python code for ${PROTO_FILE}"
         VERBATIM
@@ -88,7 +88,7 @@ add_custom_target(generate_python_protobuf ALL DEPENDS ${GENERATED_PYTHON_FILES}
 ###############################################################################
 # Start building the unit tests
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall") #-fprofile-arcs -ftest-coverage")
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
 
 add_subdirectory(external/googletest)

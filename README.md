@@ -26,6 +26,15 @@ This document details the following:
 # What is new
 
 To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signup).
+ 
+## 3.5.3 
+* Fixed build problems in release 3.5.3.
+
+## 3.5.2
+* Updated to Protobuf version 27.1.
+
+## 3.5.1
+* Updated to Protobuf version 26.1.
 
 ## 3.5.0
 * Bub fix related to optional string or bytes fields. They where not check to be set or not.
@@ -83,7 +92,7 @@ You can request more information about a commercial license on our [website](htt
 What is required to be able to generate source files based on .proto files:
 1. Python 3.8 and up
 2. Pip
-3. Protobuf v21.5 and up (tested with v25.1)
+3. Protobuf v21.5 and up (tested with v26.1)
 4. Git
 
 After installing the requirements, continue by cloning the Embedded Proto repo. We advised using Embedded Proto as a submodule in your project. This way, you can track the version of Embedded Proto with the version of your project.

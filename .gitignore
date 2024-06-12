@@ -42,4 +42,8 @@ build-wrapper**
 code_coverage_report/**
 
 # Ignore the generated options file.
-generator/EmbeddedProto/embedded_proto_options_pb2.py
+EmbeddedProto/embedded_proto_options_pb2.py
+
+# Ignore generated files when building a python package.
+dist/
+EmbeddedProto.egg-info/
