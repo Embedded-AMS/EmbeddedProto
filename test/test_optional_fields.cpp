@@ -225,6 +225,8 @@ TEST(OptionalFields, cleared_serialization)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(OptionalFields, empty_deserialization) 
 {
   // Test is empty and default vvalues will set the precense flags.
@@ -248,6 +250,8 @@ TEST(OptionalFields, empty_deserialization)
   EXPECT_TRUE(msg.has_bytes_array());
   EXPECT_TRUE(msg.has_str());
 }
+
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(OptionalFields, cleared_deserialization) 
 {

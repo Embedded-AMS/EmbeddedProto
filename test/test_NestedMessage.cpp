@@ -303,6 +303,8 @@ TEST(NestedMessage, deserialize_one)
   EXPECT_EQ(1, msg.get_v());
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(NestedMessage, deserialize_one_partial_clean_tag) 
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
@@ -447,6 +449,8 @@ TEST(NestedMessage, deserialize_one_partial_clean_field)
   EXPECT_EQ(1, msg.get_nested_a().get_z());
   EXPECT_EQ(1, msg.get_v());
 }
+
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(NestedMessage, deserialize_nested_in_nested_max) 
 {

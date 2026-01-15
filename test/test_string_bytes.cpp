@@ -247,6 +247,7 @@ TEST(FieldString, deserialize)
   EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(FieldString, deserialize_partial_in_data) 
 {
@@ -295,6 +296,7 @@ TEST(FieldString, deserialize_partial_before_and_in_size)
   EXPECT_EQ(140, msg.get_txt().get_length());
 }
 
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(FieldString, deserialize_error_invalid_wiretype) 
 {
@@ -520,6 +522,8 @@ TEST(FieldBytes, deserialize)
   EXPECT_EQ(0, msg.get_b()[3]);
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(FieldBytes, deserialize_partial) 
 {
   raw_bytes<10> msg;
@@ -539,6 +543,8 @@ TEST(FieldBytes, deserialize_partial)
   EXPECT_EQ(3, msg.get_b()[2]);
   EXPECT_EQ(0, msg.get_b()[3]);
 }
+
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(FieldBytes, deserialize_error_invalid_wiretype) 
 {

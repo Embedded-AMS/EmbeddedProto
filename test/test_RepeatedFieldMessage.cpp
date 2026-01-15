@@ -234,8 +234,6 @@ TEST(RepeatedFieldMessage, serialize_array_one)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
-
-
 TEST(RepeatedFieldMessage, serialize_array_max)
 {
   InSequence s;
@@ -263,8 +261,6 @@ TEST(RepeatedFieldMessage, serialize_array_max)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
-
-
 
 TEST(RepeatedFieldMessage, serialize_one)
 {
@@ -371,6 +367,8 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
 
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(RepeatedFieldMessage, deserialize_empty_message_array) 
 {
   InSequence s;
@@ -384,6 +382,8 @@ TEST(RepeatedFieldMessage, deserialize_empty_message_array)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 }
+
+#endif 
 
 TEST(RepeatedFieldMessage, deserialize_one) 
 {
@@ -416,6 +416,8 @@ TEST(RepeatedFieldMessage, deserialize_one)
   EXPECT_EQ(1, msg.get_z());
 
 }
+
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_one_partial) 
 {
@@ -503,7 +505,6 @@ TEST(RepeatedFieldMessage, deserialize_split_after_tag)
 
 }
 
-
 TEST(RepeatedFieldMessage, deserialize_split_varint) 
 {
   repeated_fields<128> msg;
@@ -562,8 +563,6 @@ TEST(RepeatedFieldMessage, deserialize_split_between_elements)
   EXPECT_EQ(2147483647, msg.y(1));
   EXPECT_EQ(1, msg.get_z());
 }
-
-
 
 TEST(RepeatedFieldMessage, deserialize_one_message_array) 
 {
@@ -637,6 +636,8 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   EXPECT_EQ(0, msg.b(2).v());
   EXPECT_EQ(1, msg.get_c());
 }
+
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_max) 
 {
