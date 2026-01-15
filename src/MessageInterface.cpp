@@ -78,28 +78,12 @@ namespace EmbeddedProto
                          ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
     if(Error::NO_ERRORS == return_value)  
     {
-      if(0 == n_bytes_to_include_in_section_)
+      uint32_t size = 0;
+      return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+      ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
       {
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, n_bytes_to_include_in_section_);
-      }
-
-      if((::EmbeddedProto::Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
-      {
-        ::EmbeddedProto::ReadBufferSection bufferSection(buffer, n_bytes_to_include_in_section_);
-      
-        // See how many bytes we will now process from the buffer and thus how many bytes are left for the next iteration.
-        n_bytes_to_include_in_section_ -= bufferSection.get_size();
-
         return_value = deserialize(bufferSection);
-
-        n_bytes_to_include_in_section_ += bufferSection.get_size();
-
-        // In case we have bytes we still need to receive set the end of buffer return value. 
-        // The return value of deserialize has priority.
-        if((::EmbeddedProto::Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
-        {
-          return_value = ::EmbeddedProto::Error::END_OF_BUFFER;
-        }
       }
     }
     return return_value;

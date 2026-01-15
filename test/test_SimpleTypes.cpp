@@ -315,6 +315,8 @@ TEST(SimpleTypes, deserialize_one)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(SimpleTypes, deserialize_one_partial_clean) 
 {
   ::EmbeddedProto::ReadBufferFixedSize<75> buffer;
@@ -416,6 +418,7 @@ TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(SimpleTypes, deserialize_10_byte_int32)
 {
