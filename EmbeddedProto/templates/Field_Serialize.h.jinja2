@@ -27,11 +27,18 @@ Postal address:
   1627 LE, Hoorn
   the Netherlands
 #}
+{# Unified serialize template for all field types.
+   All field types (basic, enum, message, string/bytes, repeated) use serialize_with_id()
+   which handles the serialization logic including the optional parameter.
+#}
 {% if (field.optional or (field.oneof is not none)) %}
 if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
-{% else %}
-if(({{field.get_default_value()}} != {{field.get_variable_name()}}.get()) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
-{% endif %}
 {
-  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, {{ "true" if (field.optional or (field.oneof is not none)) else "false" }});
+  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, true);
 }
+{% else %}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, false);
+}
+{% endif %}

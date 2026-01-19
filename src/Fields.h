@@ -133,13 +133,20 @@ namespace EmbeddedProto
 
       ~FieldTemplate() = default;
 
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, [[maybe_unused]] const bool optional) const
+      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
       {
-        Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
-        if(Error::NO_ERRORS == return_value)
+        Error return_value = Error::NO_ERRORS;
+        
+        // For non-optional fields, skip serialization if value equals default (zero/false)
+        if(optional || (static_cast<VARIABLE_TYPE>(0) != value_))
         {
-          return_value = serialize(buffer);
+          return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = serialize(buffer);
+          }
         }
+        
         return return_value;
       }   
 

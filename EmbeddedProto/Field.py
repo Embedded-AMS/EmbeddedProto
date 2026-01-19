@@ -150,6 +150,9 @@ class Field:
         rendered_str = template.render(field=self, environment=jinja_environment)
         return rendered_str
 
+    def render_serialize(self, jinja_env):
+        return self.render("Field_Serialize.h.jinja2", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
@@ -236,9 +239,6 @@ class FieldBasic(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldBasic_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldBasic_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
@@ -290,9 +290,6 @@ class BaseStringBytes(Field):
         if not self.MaxLength:
             self.parent.register_child_with_template(self)
         return True
-
-    def render_serialize(self, jinja_env):
-        return self.render("FieldStringBytes_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
@@ -411,9 +408,6 @@ class FieldEnum(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldEnum_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldEnum_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         return self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
 
@@ -496,9 +490,6 @@ class FieldMessage(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldMsg_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldMsg_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         return self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
 
@@ -574,9 +565,6 @@ class FieldRepeated(Field):
 
     def render_get_set(self, jinja_env):
         return self.render("FieldRepeated_GetSet.h.jinja2", jinja_environment=jinja_env)
-
-    def render_serialize(self, jinja_env):
-        return self.render("FieldRepeated_Serialize.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
