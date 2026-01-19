@@ -102,6 +102,36 @@ namespace EmbeddedProto
       */
       uint32_t serialized_size() const;
 
+      //! Serialize this field with LENGTH_DELIMITED wire type.
+      /*!
+          Writes [tag][size][data] to the buffer.
+          \param field_number The field number for the tag.
+          \param size The size of the data to be written.
+          \param buffer The buffer to write to.
+          \param optional If true, serialize even if size is zero.
+          \return NO_ERRORS if successful.
+      */
+      Error serialize_len(const uint32_t field_number, 
+                          const uint32_t size,
+                          WriteBufferInterface& buffer, 
+                          const bool optional) const;
+
+      //! Serialize this field with VARINT, FIXED32, or FIXED64 wire type.
+      /*!
+          Writes [tag][data] to the buffer.
+          \param field_number The field number for the tag.
+          \param wire_type The wire type (VARINT, FIXED32, or FIXED64).
+          \param is_default True if the field has its default value.
+          \param buffer The buffer to write to.
+          \param optional If true, serialize even if value is default.
+          \return NO_ERRORS if successful.
+      */
+      Error serialize_scalar(const uint32_t field_number,
+                             const WireFormatter::WireType wire_type,
+                             const bool is_default,
+                             WriteBufferInterface& buffer, 
+                             const bool optional) const;
+
       //! Reset the field to it's initial value.
       virtual void clear() = 0;
 

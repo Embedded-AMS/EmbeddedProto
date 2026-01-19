@@ -39,35 +39,7 @@ namespace EmbeddedProto
                                                               ::EmbeddedProto::WriteBufferInterface& buffer,
                                                               const bool optional) const
   {
-    Error return_value = Error::NO_ERRORS;
-
-    // See if we have data which should be serialized.
-    const uint32_t size_x = this->serialized_size();
-    if((0 < size_x) || optional)
-    {
-      uint32_t tag = WireFormatter::MakeTag(field_number, 
-                              WireFormatter::WireType::LENGTH_DELIMITED);
-      return_value = WireFormatter::SerializeVarint(tag, buffer);
-      
-      if(Error::NO_ERRORS == return_value)
-      {
-        return_value = WireFormatter::SerializeVarint(size_x, buffer);
-        if(Error::NO_ERRORS == return_value)
-        {
-          // See if there is enough space left in the buffer for the data.
-          if(size_x <= buffer.get_available_size()) 
-          {
-            const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
-            return_value = base->serialize(buffer);
-          }
-          else
-          {
-            return_value = Error::BUFFER_FULL;
-          }
-        }
-      }
-    }
-    return return_value;
+    return serialize_len(field_number, this->serialized_size(), buffer, optional);
   }
 
 

@@ -30,6 +30,7 @@
 
 #include "Fields.h"
 #include "MessageSizeCalculator.h"
+#include "WireFormatter.h"
 
 namespace EmbeddedProto 
 {
@@ -39,4 +40,63 @@ namespace EmbeddedProto
     this->serialize(calcBuffer);
     return calcBuffer.get_size();
   }
+
+  Error Field::serialize_len(const uint32_t field_number, 
+                             const uint32_t size,
+                             WriteBufferInterface& buffer, 
+                             const bool optional) const
+  {
+    Error return_value = Error::NO_ERRORS;
+    
+    if((0 < size) || optional)
+    {
+      return_value = WireFormatter::SerializeVarint(
+          WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED), 
+          buffer);
+      
+      if(Error::NO_ERRORS == return_value)
+      {
+        return_value = WireFormatter::SerializeVarint(size, buffer);
+        
+        if(Error::NO_ERRORS == return_value)
+        {
+          // Check if there's enough space for the data after writing tag and size
+          if(size <= buffer.get_available_size())
+          {
+            return_value = serialize(buffer);
+          }
+          else
+          {
+            return_value = Error::BUFFER_FULL;
+          }
+        }
+      }
+    }
+    
+    return return_value;
+  }
+
+  Error Field::serialize_scalar(const uint32_t field_number,
+                                const WireFormatter::WireType wire_type,
+                                const bool is_default,
+                                WriteBufferInterface& buffer, 
+                                const bool optional) const
+  {
+    Error return_value = Error::NO_ERRORS;
+    
+    if(optional || !is_default)
+    {
+      return_value = WireFormatter::SerializeVarint(
+          WireFormatter::MakeTag(field_number, wire_type), 
+          buffer);
+      
+      if(Error::NO_ERRORS == return_value)
+      {
+        return_value = serialize(buffer);
+      }
+    }
+    
+    return return_value;
+  }
+
 } // End of namespace EmbeddedProto

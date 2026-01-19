@@ -178,6 +178,7 @@ namespace EmbeddedProto
 
           if((0 < current_length_) || optional) 
           {
+            // For strings/bytes, check available size BEFORE writing tag and size
             const auto n_bytes_available = buffer.get_available_size();
             if(current_length_ <= n_bytes_available)
             {
@@ -188,7 +189,7 @@ namespace EmbeddedProto
               {
                 return_value = WireFormatter::SerializeVarint(current_length_, buffer);
               }
-              // Check check the number of elements again for optional fields.
+              // Check the number of elements again for optional fields.
               if((Error::NO_ERRORS == return_value) && (0 < current_length_)) 
               {
                 return_value = serialize(buffer);

@@ -146,13 +146,16 @@ namespace EmbeddedProto
       //! Remove all data in the array and set it to the default value.
       virtual void clear() override = 0;
 
+      //! Serialize all elements in the array (used for packed serialization).
       Error serialize(WriteBufferInterface& buffer) const final
       {
-        // This function should not be called on a repeated field.
-        // Suppress the unused parameter warning.
-        (void)buffer;
-        return Error::BUFFER_FULL;
-      };
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
+        {
+          return_value = this->get_const(i).serialize(buffer);
+        }
+        return return_value;
+      }
 
       //! \see Field::serialize_with_id()
       Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
@@ -161,34 +164,13 @@ namespace EmbeddedProto
 
         if(REPEATED_FIELD_IS_PACKED)
         {
-          // Use the packed way of serialization for base fields.
-          // See if there is data to serialize.
-          const uint32_t size_x = this->serialized_size_packed();
-          if((0 < size_x) || optional)
-          {
-            uint32_t tag = WireFormatter::MakeTag(field_number, 
-                                          WireFormatter::WireType::LENGTH_DELIMITED);
-            return_value = WireFormatter::SerializeVarint(tag, buffer);
-            if(Error::NO_ERRORS == return_value) 
-            {
-              return_value = WireFormatter::SerializeVarint(size_x, buffer);
-
-              if(Error::NO_ERRORS == return_value)
-              {          
-                if(size_x <= buffer.get_available_size()) 
-                {
-                  return_value = serialize_packed(buffer);
-                }
-                else
-                {
-                  return_value = Error::BUFFER_FULL;
-                }
-              }
-            }
-          }
+          // Packed: use serialize_len() which writes [tag][size][data]
+          // serialize() will write all elements back-to-back
+          return_value = serialize_len(field_number, this->serialized_size_packed(), buffer, optional);
         }
         else 
         {
+          // Unpacked: each element gets its own [tag][size][data]
           const uint32_t size_x = this->serialized_size_unpacked(field_number);
           if(size_x <= buffer.get_available_size()) 
           {
@@ -244,7 +226,7 @@ namespace EmbeddedProto
       uint32_t serialized_size_packed() const 
       {
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
-        serialize_packed(calcBuffer);
+        serialize(calcBuffer);
         return calcBuffer.get_size();
       }
 
@@ -306,21 +288,14 @@ namespace EmbeddedProto
 
     private:
 
-      Error serialize_packed(WriteBufferInterface& buffer) const
-      {
-        Error return_value = Error::NO_ERRORS;
-        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
-        {
-          return_value = this->get_const(i).serialize(buffer);
-        }
-        return return_value;
-      }
-
       Error serialize_unpacked(uint32_t field_number, WriteBufferInterface& buffer) const
       {
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
+          // Each element gets its own [tag][size][data]
+          // Note: serialize_len() is only available on Field-derived types (messages, strings, bytes)
+          // which is exactly what unpacked mode is used for.
           const uint32_t size_x = this->get_const(i).serialized_size();
           uint32_t tag = WireFormatter::MakeTag(field_number, 
                                     WireFormatter::WireType::LENGTH_DELIMITED);
