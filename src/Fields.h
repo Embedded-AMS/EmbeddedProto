@@ -76,8 +76,6 @@ namespace EmbeddedProto
       Field() = default;
       virtual ~Field() = default;
 
-      virtual Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const = 0;
-
       virtual Error serialize(WriteBufferInterface& buffer) const = 0;
 
       //! Deserialize this field from the bytes in the given buffer.

@@ -117,7 +117,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_fields)
 TEST(RepeatedFieldMessage, serialize_array_zero_messages)
 { 
   InSequence s;
-  
+
   Mocks::WriteBufferMock buffer;
   repeated_message<Y_SIZE> msg;
 
@@ -129,16 +129,11 @@ TEST(RepeatedFieldMessage, serialize_array_zero_messages)
   msg.add_b(rnm);
   msg.add_b(rnm);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+  for(uint32_t i = 0; i < 3; ++i) 
+  {
+    EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+  }
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
@@ -177,7 +172,8 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   repeated_message<Y_SIZE> msg;
 
   repeated_nested_message rnm;
-  
+
+
   rnm.set_u(0);
   rnm.set_v(0);
   msg.add_b(rnm);
@@ -190,18 +186,23 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   rnm.set_v(0);
   msg.add_b(rnm);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
-
+  ON_CALL(buffer, get_available_size()).WillByDefault(Return(10));
+  
+  // Empty messages (size=0) 
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
+  // The non-empty message (second one)
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x04)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true)); 
-  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true)); 
-  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
 
+  // The nested message content
+  EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  
+  // Empty messages (size=0) 
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 

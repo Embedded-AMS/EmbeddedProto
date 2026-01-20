@@ -207,15 +207,16 @@ TEST(FieldString, serialize)
   char text[] = "Foo bar";
   msg.mutable_txt() = text;
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
-
   std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
-  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
+  // get_available_size() is called after writing tag and size
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+
+  EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
   EXPECT_EQ(10, msg.get_txt().get_max_length());
@@ -231,6 +232,13 @@ TEST(FieldString, serialize_buffer_full)
   char text[] = "Foo bar";
   msg.mutable_txt() = text;
 
+  std::array<uint8_t, 2> expected = {0x0a, 0x07};
+  for(auto e : expected)
+  {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  // get_available_size() is called after writing tag and size
   EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(5));
 
   EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, msg.serialize(buffer));
@@ -343,14 +351,15 @@ TEST(FieldString, oneof_serialize)
 
   msg.mutable_txt() = "Foo bar";
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(99));
-
   // The tag and number of characters.
   std::array<uint8_t, 2> expected = {0x0a, 0x07};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
+
+  // get_available_size() is called after writing tag and size
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(99));
 
   // The actual data but it does not matter what as long as there are seven characters.
   EXPECT_CALL(buffer, push(_, 7)).Times(1).WillOnce(Return(true));
@@ -495,13 +504,15 @@ TEST(FieldBytes, serialize)
   std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
   msg.mutable_b().set(bytes.data(), 4);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
-
   std::array<uint8_t, 2> expected = {0x0a, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
+
+  // get_available_size() is called after writing tag and size
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(17));
+
   EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
@@ -621,14 +632,15 @@ TEST(FieldBytes, oneof_serialize)
   std::array<uint8_t, 4> bytes = {1u, 2u, 3u, 0u};
   msg.mutable_b().set(bytes.data(), 4);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(17));
-
   // The tag and size
   std::array<uint8_t, 2> expected = {0x12, 0x04};
   for(auto e : expected) 
   {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
+
+  // get_available_size() is called after writing tag and size
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillRepeatedly(Return(17));
 
   // The actual data but it does not matter what as long as there are four bytes.
   EXPECT_CALL(buffer, push(_, 4)).Times(1).WillOnce(Return(true));
@@ -732,14 +744,15 @@ TEST(RepeatedStringBytes, serialize)
   msg.add_array_of_txt(str);
   msg.mutable_array_of_txt(2) = "Foo bar 3";
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(24));
-
   // The first string.
   // Id and size of array of txt.
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
 
-  // The string is pushed as an array, we do not know the pointer value so use _, but we do know 
+  // get_available_size() is called after writing tag and size for first string
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(24));
+
+  // The string is pushed as an array, we do not know the pointer value so use _, but we do know
   // the size.
   EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
   
@@ -747,14 +760,18 @@ TEST(RepeatedStringBytes, serialize)
   // The empty string
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-  
-  // The last string 
+
+  // get_available_size() is called after writing tag and size for empty string
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(15));
+
+  // The last string
   EXPECT_CALL(buffer, push(0x0a)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x09)).Times(1).WillOnce(Return(true));
 
-  EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
+  // get_available_size() is called after writing tag and size for last string
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(9));
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(buffer, push(_, 9)).Times(1).WillOnce(Return(true));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
@@ -835,11 +852,9 @@ TEST(RepeatedStringBytes, to_string)
   ::EmbeddedProto::string_view str_view = { str, N };
 
   ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
-  
-  //std::cout << std::endl << str << std::endl;
 
   constexpr uint32_t TXT_LEN = 1274;
-  const char expected_str[TXT_LEN + 1] = "{\n  \"array_of_txt\": [\n                    \"Foo bar 1\",\n                    \"\",\n                    \"Foo bar 3\"\n                  ],\n  \"array_of_bytes\": [\n                      [\n                        0,\n                        1,\n                        2,\n                        3,\n                        4,\n                        5,\n                        6,\n                        7,\n                        8,\n                        9\n                      ],\n                      [\n                        5,\n                        6,\n                        7,\n                        8,\n                        9,\n                        10,\n                        11,\n                        12,\n                        13,\n                        14\n                      ],\n                      [\n                        10,\n                        11,\n                        12,\n                        13,\n                        14,\n                        15,\n                        16,\n                        17,\n                        18,\n                        19\n                      ]\n                    ],\n  \"nested_text\": {\n    \"txt\": \"A.B\"\n  },\n  \"nested_bytes\": {\n    \"b\": [\n           1,\n           2,\n           3\n         ]\n  }\n}"; 
+  const char expected_str[TXT_LEN + 1] = "{\n  \"array_of_txt\": [\n                    \"Foo bar 1\",\n                    \"\",\n                    \"Foo bar 3\"\n                  ],\n  \"array_of_bytes\": [\n                      [\n                        0,\n                        1,\n                        2,\n                        3,\n                        4,\n                        5,\n                        6,\n                        7,\n                        8,\n                        9\n                      ],\n                      [\n                        5,\n                        6,\n                        7,\n                        8,\n                        9,\n                        10,\n                        11,\n                        12,\n                        13,\n                        14\n                      ],\n                      [\n                        10,\n                        11,\n                        12,\n                        13,\n                        14,\n                        15,\n                        16,\n                        17,\n                        18,\n                        19\n                      ]\n                    ],\n  \"nested_text\": {\n    \"txt\": \"A.B\"\n  },\n  \"nested_bytes\": {\n    \"b\": [\n           1,\n           2,\n           3\n         ]\n  }\n}";
   ASSERT_STREQ(expected_str, str);
   EXPECT_EQ(N - TXT_LEN, str_left.size);
   EXPECT_EQ(str + TXT_LEN, str_left.data);

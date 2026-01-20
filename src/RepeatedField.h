@@ -157,34 +157,6 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      //! \see Field::serialize_with_id()
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
-      {
-        Error return_value = Error::NO_ERRORS;
-
-        if(REPEATED_FIELD_IS_PACKED)
-        {
-          // Packed: use serialize_len() which writes [tag][size][data]
-          // serialize() will write all elements back-to-back
-          return_value = serialize_len(field_number, this->serialized_size_packed(), buffer, optional);
-        }
-        else 
-        {
-          // Unpacked: each element gets its own [tag][size][data]
-          const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          if(size_x <= buffer.get_available_size()) 
-          {
-            return_value = serialize_unpacked(field_number, buffer);
-          }
-          else 
-          {
-            return_value = Error::BUFFER_FULL;
-          }
-        }
-
-        return return_value;
-      }
-
       //! Function to deserialize this array.
       /*!
           From a buffer of data fill this array with data.

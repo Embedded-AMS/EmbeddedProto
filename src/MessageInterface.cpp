@@ -35,14 +35,6 @@
 namespace EmbeddedProto
 {
 
-  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
-                                                              ::EmbeddedProto::WriteBufferInterface& buffer,
-                                                              const bool optional) const
-  {
-    return serialize_len(field_number, this->serialized_size(), buffer, optional);
-  }
-
-
   Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                                  const ::EmbeddedProto::WireFormatter::WireType& wire_type)
   {

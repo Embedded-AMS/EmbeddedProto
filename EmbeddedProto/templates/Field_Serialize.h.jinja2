@@ -28,9 +28,35 @@ Postal address:
   the Netherlands
 #}
 {# Unified serialize template for all field types.
-   All field types (basic, enum, message, string/bytes, repeated) use serialize_with_id()
-   which handles the serialization logic including the optional parameter.
+   - Basic types and enums use serialize_with_id() (FieldTemplate)
+   - Messages, strings, bytes use serialize_len()
+   - Packed repeated fields use serialize_len()
+   - Unpacked repeated fields iterate and call serialize_len() on each element
 #}
+{% if field.uses_serialize_len() %}
+{# Field types that use serialize_len(): messages, strings, bytes, repeated #}
+{% if field.is_packed is defined and not field.is_packed() %}
+{# Unpacked repeated field - iterate over elements. Use true for optional so empty elements are still serialized. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  for(uint32_t i = 0; (i < {{field.get_variable_name()}}.get_length()) && (::EmbeddedProto::Error::NO_ERRORS == return_value); ++i)
+  {
+    return_value = {{field.get_variable_name()}}.get_const(i).serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_variable_name()}}.get_const(i).serialized_size(), buffer, true);
+  }
+}
+{% elif (field.optional or (field.oneof is not none)) %}
+if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
+{
+  return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, true);
+}
+{% else %}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, false);
+}
+{% endif %}
+{% else %}
+{# Basic types and enums use serialize_with_id() #}
 {% if (field.optional or (field.oneof is not none)) %}
 if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {
@@ -41,4 +67,5 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
   return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, false);
 }
+{% endif %}
 {% endif %}
