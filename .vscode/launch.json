@@ -6,7 +6,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/test/test_EmbeddedProto",
-      "args": [],
+      "args": ["--gtest_brief=1"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

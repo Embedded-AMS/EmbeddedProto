@@ -172,36 +172,7 @@ namespace EmbeddedProto
         }
 
 
-        Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const override 
-        {
-          Error return_value = Error::NO_ERRORS;
 
-          if((0 < current_length_) || optional) 
-          {
-            const auto n_bytes_available = buffer.get_available_size();
-            if(current_length_ <= n_bytes_available)
-            {
-              uint32_t tag = WireFormatter::MakeTag(field_number, 
-                                                    WireFormatter::WireType::LENGTH_DELIMITED);
-              return_value = WireFormatter::SerializeVarint(tag, buffer);
-              if(Error::NO_ERRORS == return_value) 
-              {
-                return_value = WireFormatter::SerializeVarint(current_length_, buffer);
-              }
-              // Check check the number of elements again for optional fields.
-              if((Error::NO_ERRORS == return_value) && (0 < current_length_)) 
-              {
-                return_value = serialize(buffer);
-              }
-            }
-            else 
-            {
-              return_value = Error::BUFFER_FULL;
-            }
-          }
-
-          return return_value;
-        }
 
         Error serialize(WriteBufferInterface& buffer) const override 
         { 

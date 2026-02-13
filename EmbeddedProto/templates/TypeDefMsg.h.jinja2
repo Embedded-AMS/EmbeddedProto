@@ -177,7 +177,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {% for field in typedef.fields %}
       {{ field.render_serialize(environment)|indent(6) }}
-
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       switch({{oneof.get_which_oneof()}})

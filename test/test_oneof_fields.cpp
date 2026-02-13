@@ -411,17 +411,23 @@ TEST(OneofField, sb_oneof_serialize_empty)
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
 
+  // get_available_size() is called after writing tag and size for empty string
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   msg.mutable_data().clear();
   EXPECT_TRUE(msg.has_data());
 
 
-  std::array<uint8_t, 2> expected2 = { 0x12, 0x00}; // name
+  std::array<uint8_t, 2> expected2 = { 0x12, 0x00}; // data
 
   for(auto e : expected2) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
+
+  // get_available_size() is called after writing tag and size for empty bytes
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 

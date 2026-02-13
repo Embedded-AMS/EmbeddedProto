@@ -30,6 +30,7 @@
 
 from sys import path
 path.append('./build/python/')
+path.append('./EmbeddedProto/')
 
 import simple_types_pb2 as st
 import nested_message_pb2 as nm
@@ -206,6 +207,28 @@ def test_repeated_fields():
 
 
 def test_repeated_message():
+    # Test data for C++ unit test: serialize_array_zero_messages
+    # This creates a repeated_message with three empty nested messages (u=0, v=0)
+    msg_zero = rf.repeated_message()
+    msg_zero.a = 0
+    for i in range(3):
+        nmsg = msg_zero.b.add()
+        nmsg.u = 0
+        nmsg.v = 0
+    msg_zero.c = 0
+
+    str = ""
+    msg_str = msg_zero.SerializeToString()
+    print("Test data for serialize_array_zero_messages:")
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+    # Test data for other repeated message tests (serialize_array_zero_one_zero_messages)
     msg = rf.repeated_message()
 
     msg.a = 0
@@ -220,6 +243,7 @@ def test_repeated_message():
 
     str = ""
     msg_str = msg.SerializeToString()
+    print("Test data for serialize_array_zero_one_zero_messages:")
     print(len(msg_str))
     print(msg_str)
     for x in msg_str:
@@ -371,8 +395,8 @@ def test_optional_empty():
 
 #test_simple_types()
 #test_repeated_fields()
-#test_repeated_message()
-test_string()
+test_repeated_message()
+#test_string()
 #test_bytes()
 #test_repeated_string_bytes()
 #test_nested_message()

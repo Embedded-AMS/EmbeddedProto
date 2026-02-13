@@ -150,6 +150,18 @@ class Field:
         rendered_str = template.render(field=self, environment=jinja_environment)
         return rendered_str
 
+    # Returns True if this field type uses serialize_len() instead of serialize_with_id()
+    def uses_serialize_len(self):
+        return False
+
+    # Returns the C++ expression for the size parameter of serialize_len()
+    # Only used when uses_serialize_len() returns True
+    def get_size_expression(self):
+        return ""
+
+    def render_serialize(self, jinja_env):
+        return self.render("Field_Serialize.h.jinja2", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
@@ -236,9 +248,6 @@ class FieldBasic(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldBasic_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldBasic_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
@@ -291,12 +300,15 @@ class BaseStringBytes(Field):
             self.parent.register_child_with_template(self)
         return True
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldStringBytes_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
+
+    def uses_serialize_len(self):
+        return True
+
+    def get_size_expression(self):
+        return self.get_variable_name() + ".get_length()"
 
 # -----------------------------------------------------------------------------
 
@@ -411,9 +423,6 @@ class FieldEnum(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldEnum_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldEnum_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         return self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
 
@@ -496,11 +505,14 @@ class FieldMessage(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldMsg_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldMsg_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         return self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+
+    def uses_serialize_len(self):
+        return True
+
+    def get_size_expression(self):
+        return self.get_variable_name() + ".serialized_size()"
 
 # -----------------------------------------------------------------------------
 
@@ -575,12 +587,23 @@ class FieldRepeated(Field):
     def render_get_set(self, jinja_env):
         return self.render("FieldRepeated_GetSet.h.jinja2", jinja_environment=jinja_env)
 
-    def render_serialize(self, jinja_env):
-        return self.render("FieldRepeated_Serialize.h.jinja2", jinja_environment=jinja_env)
-
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
+
+    def uses_serialize_len(self):
+        return True
+
+    def get_size_expression(self):
+        # Repeated fields use serialized_size_packed() for packed mode
+        # Unpacked mode is handled separately in the template
+        return self.get_variable_name() + ".serialized_size_packed()"
+
+    def is_packed(self):
+        # Packed if NOT a message or string/bytes type
+        return not (self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_MESSAGE or
+                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_STRING or
+                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_BYTES)
 
 # -----------------------------------------------------------------------------
 

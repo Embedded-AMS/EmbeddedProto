@@ -76,8 +76,6 @@ namespace EmbeddedProto
       Field() = default;
       virtual ~Field() = default;
 
-      virtual Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const = 0;
-
       virtual Error serialize(WriteBufferInterface& buffer) const = 0;
 
       //! Deserialize this field from the bytes in the given buffer.
@@ -101,6 +99,36 @@ namespace EmbeddedProto
           \return The number of bytes this message will require once serialized.
       */
       uint32_t serialized_size() const;
+
+      //! Serialize this field with LENGTH_DELIMITED wire type.
+      /*!
+          Writes [tag][size][data] to the buffer.
+          \param field_number The field number for the tag.
+          \param size The size of the data to be written.
+          \param buffer The buffer to write to.
+          \param optional If true, serialize even if size is zero.
+          \return NO_ERRORS if successful.
+      */
+      Error serialize_len(const uint32_t field_number, 
+                          const uint32_t size,
+                          WriteBufferInterface& buffer, 
+                          const bool optional) const;
+
+      //! Serialize this field with VARINT, FIXED32, or FIXED64 wire type.
+      /*!
+          Writes [tag][data] to the buffer.
+          \param field_number The field number for the tag.
+          \param wire_type The wire type (VARINT, FIXED32, or FIXED64).
+          \param is_default True if the field has its default value.
+          \param buffer The buffer to write to.
+          \param optional If true, serialize even if value is default.
+          \return NO_ERRORS if successful.
+      */
+      Error serialize_scalar(const uint32_t field_number,
+                             const WireFormatter::WireType wire_type,
+                             const bool is_default,
+                             WriteBufferInterface& buffer, 
+                             const bool optional) const;
 
       //! Reset the field to it's initial value.
       virtual void clear() = 0;
@@ -133,28 +161,35 @@ namespace EmbeddedProto
 
       ~FieldTemplate() = default;
 
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, [[maybe_unused]] const bool optional) const
+      inline Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
       {
-        Error return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
-        if(Error::NO_ERRORS == return_value)
+        Error return_value = Error::NO_ERRORS;
+        
+        // For non-optional fields, skip serialization if value equals default (zero/false)
+        if(optional || (static_cast<VARIABLE_TYPE>(0) != value_))
         {
-          return_value = serialize(buffer);
+          return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = serialize(buffer);
+          }
         }
+        
         return return_value;
       }   
 
-      Error serialize(WriteBufferInterface& buffer) const
+      inline Error serialize(WriteBufferInterface& buffer) const
       {
         return serialize_<FIELDTYPE>(buffer);
       }
 
-      Error deserialize(ReadBufferInterface& buffer)
+      inline Error deserialize(ReadBufferInterface& buffer)
       {
         return deserialize_<FIELDTYPE>(buffer);
       }
 
       //! \see Field::deserialize()
-      Error deserialize_check_type(ReadBufferInterface& buffer, 
+      inline Error deserialize_check_type(ReadBufferInterface& buffer, 
                                    const ::EmbeddedProto::WireFormatter::WireType& wire_type)
       {
         Error return_value = WIRETYPE == wire_type ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
@@ -165,66 +200,66 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      void set(const VARIABLE_TYPE& v) { value_ = v; }      
-      void set(const VARIABLE_TYPE&& v) { value_ = v; }
+      inline void set(const VARIABLE_TYPE& v) { value_ = v; }      
+      inline void set(const VARIABLE_TYPE&& v) { value_ = v; }
 
-      void set(const CLASS_TYPE& ft) { value_ = ft.value_; }
-      void set(const CLASS_TYPE&& ft) { value_ = ft.value_; }
+      inline void set(const CLASS_TYPE& ft) { value_ = ft.value_; }
+      inline void set(const CLASS_TYPE&& ft) { value_ = ft.value_; }
       
-      CLASS_TYPE& operator=(const VARIABLE_TYPE& v) 
+      inline CLASS_TYPE& operator=(const VARIABLE_TYPE& v) 
       { 
         value_ = v;
         return *this;
       }
-      CLASS_TYPE& operator=(const VARIABLE_TYPE&& v) 
+      inline CLASS_TYPE& operator=(const VARIABLE_TYPE&& v) 
       { 
         value_ = v;
         return *this;
       }
-      CLASS_TYPE& operator=(const CLASS_TYPE& ft)
+      inline CLASS_TYPE& operator=(const CLASS_TYPE& ft)
       { 
         value_ = ft.value_; 
         return *this; 
       }
-      CLASS_TYPE& operator=(const CLASS_TYPE&& ft) noexcept
+      inline CLASS_TYPE& operator=(const CLASS_TYPE&& ft) noexcept
       { 
         value_ = ft.value_;
         return *this;
       }
 
-      const VARIABLE_TYPE& get() const { return value_; }
-      VARIABLE_TYPE& get() { return value_; }
+      inline const VARIABLE_TYPE& get() const { return value_; }
+      inline VARIABLE_TYPE& get() { return value_; }
 
       //! This is the conversion operator. 
       /*! 
         Sonar would like this to be explicit but this is not practial in normal usage with other 
         integer and floating point types.
       */
-      operator VARIABLE_TYPE() const { return value_; } //NOSONAR
+      inline operator VARIABLE_TYPE() const { return value_; } //NOSONAR
 
-      bool operator==(const VARIABLE_TYPE& rhs) { return value_ == rhs; }
-      bool operator!=(const VARIABLE_TYPE& rhs) { return value_ != rhs; }
-      bool operator>(const VARIABLE_TYPE& rhs) { return value_ > rhs; }
-      bool operator<(const VARIABLE_TYPE& rhs) { return value_ < rhs; }
-      bool operator>=(const VARIABLE_TYPE& rhs) { return value_ >= rhs; }
-      bool operator<=(const VARIABLE_TYPE& rhs) { return value_ <= rhs; }
+      inline bool operator==(const VARIABLE_TYPE& rhs) { return value_ == rhs; }
+      inline bool operator!=(const VARIABLE_TYPE& rhs) { return value_ != rhs; }
+      inline bool operator>(const VARIABLE_TYPE& rhs) { return value_ > rhs; }
+      inline bool operator<(const VARIABLE_TYPE& rhs) { return value_ < rhs; }
+      inline bool operator>=(const VARIABLE_TYPE& rhs) { return value_ >= rhs; }
+      inline bool operator<=(const VARIABLE_TYPE& rhs) { return value_ <= rhs; }
 
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator==(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ == rhs.get(); }
+      inline bool operator==(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ == rhs.get(); }
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator!=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ != rhs.get(); }
+      inline bool operator!=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ != rhs.get(); }
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator>(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ > rhs.get(); }
+      inline bool operator>(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ > rhs.get(); }
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator<(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ < rhs.get(); }
+      inline bool operator<(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ < rhs.get(); }
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator>=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ >= rhs.get(); }
+      inline bool operator>=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ >= rhs.get(); }
       template<Field::FieldTypes FIELDTYPE_RHS, class TYPE_RHS, WireFormatter::WireType WIRETYPE_RHS, uint32_t SIZE_RHS>
-      bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ <= rhs.get(); }
+      inline bool operator<=(const FieldTemplate<FIELDTYPE_RHS, TYPE_RHS, WIRETYPE_RHS, SIZE_RHS>& rhs) { return value_ <= rhs.get(); }
 
-      void clear() { value_ = static_cast<VARIABLE_TYPE>(0); }
+      inline void clear() { value_ = static_cast<VARIABLE_TYPE>(0); }
 
-      uint32_t serialized_size() const
+      inline uint32_t serialized_size() const
       {
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
         this->serialize(calcBuffer);
@@ -237,12 +272,12 @@ namespace EmbeddedProto
         \param[in] field_number We need to include the field number. This because large field numbers require more bytes.
         \return The number of bytes required at most.
       */
-      static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+      static inline constexpr uint32_t max_serialized_size(const uint32_t field_number)
       {
         return MAX_SER_SIZE + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
       }
 
-      static constexpr uint32_t max_serialized_size()
+      static inline constexpr uint32_t max_serialized_size()
       {
         return MAX_SER_SIZE;
       }
@@ -353,76 +388,76 @@ namespace EmbeddedProto
 
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int32 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int64 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint64_t>(get()), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint32 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint64 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint32 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint64 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(WireFormatter::ZigZagEncode(get()), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const 
+      inline Error serialize_(WriteBufferInterface& buffer) const 
       { 
         const uint8_t byte = get() ? 0x01 : 0x00;
         return buffer.push(byte) ? Error::NO_ERRORS : Error::BUFFER_FULL; 
       }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeVarint(static_cast<uint32_t>(get()), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed32 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed64 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerializeFixedNoTag(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed32 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed64 == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieSFixedNoTag(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieFloatNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieFloatNoTag(get(), buffer); }
 
       template<Field::FieldTypes SER_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == SER_FIELDTYPE, bool>::type = true>
-      Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieDoubleNoTag(get(), buffer); }
+      inline Error serialize_(WriteBufferInterface& buffer) const { return WireFormatter::SerialzieDoubleNoTag(get(), buffer); }
 
 
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int32 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::int64 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint32 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::uint64 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeUInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint32 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sint64 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSInt(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::boolean == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeBool(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeBool(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::enumeration == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer)
+      inline Error deserialize_(ReadBufferInterface& buffer)
       { 
         uint32_t value = 0;
         const Error return_value = WireFormatter::DeserializeVarint(buffer, value);
@@ -434,22 +469,22 @@ namespace EmbeddedProto
       }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed32 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::fixed64 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFixed(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed32 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::sfixed64 == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeSFixed(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::floatfixed == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFloat(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeFloat(buffer, get()); }
 
       template<Field::FieldTypes DES_FIELDTYPE, typename std::enable_if<Field::FieldTypes::doublefixed == DES_FIELDTYPE, bool>::type = true>
-      Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeDouble(buffer, get()); }
+      inline Error deserialize_(ReadBufferInterface& buffer) { return WireFormatter::DeserializeDouble(buffer, get()); }
 
   };
 
