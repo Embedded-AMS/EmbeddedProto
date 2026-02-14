@@ -47,9 +47,11 @@ This document details the design for Partial (De)serialization in EmbeddedProto 
 The `Phase` enum tracks the current operation within a field's serialization/deserialization:
 
 ```cpp
-namespace EmbeddedProto {
+namespace EmbeddedProto 
+{
 
-enum class Phase : uint8_t {
+enum class Phase : uint8_t 
+{
     TAG = 0,       // Reading/writing field tag (field number + wire type)
     SIZE = 1,      // Reading/writing length prefix (for LENGTH_DELIMITED fields)
     DATA = 2,      // Reading/writing actual field data
@@ -64,45 +66,48 @@ enum class Phase : uint8_t {
 A single state structure is used for both serialization and deserialization:
 
 ```cpp
-namespace EmbeddedProto {
+namespace EmbeddedProto 
+{
 
-class MessageState {
-public:
-    // Current phase of field processing
+class MessageState 
+{
+  public:
+    //! Current phase of field processing
     Phase phase = Phase::TAG;
     
-    // Field number from protobuf definition (1-based, from tag or next to serialize)
+    //! Field number from protobuf definition (1-based, from tag or next to serialize)
     uint32_t field_id = 0;
     
-    // Wire type from tag (deserialization only, but stored here for simplicity)
+    //! Wire type from tag (deserialization only, but stored here for simplicity)
     WireFormatter::WireType wire_type = WireFormatter::WireType::VARINT;
     
-    // For repeated fields: index of current element (0-based)
+    //! For repeated fields: index of current element (0-based)
     uint32_t element_index = 0;
     
-    // For length-delimited fields: bytes remaining to read/write
+    //! For length-delimited fields: bytes remaining to read/write
     uint32_t bytes_remaining = 0;
     
-    // For length-delimited fields: size value once calculated/read
+    //! For length-delimited fields: size value once calculated/read
     uint32_t size_value = 0;
     
-    // Pointer to child state for nested messages (null if leaf)
+    //! Pointer to child state for nested messages (null if leaf)
     MessageState* child = nullptr;
     
     /**
      * \brief Reset state to initial values
      */
-    void reset() {
-        phase = Phase::TAG;
-        field_id = 0;
-        wire_type = WireFormatter::WireType::VARINT;
-        element_index = 0;
-        bytes_remaining = 0;
-        size_value = 0;
-        // Note: child pointer is not reset, it's set at construction
+    void reset() 
+    {
+      phase = Phase::TAG;
+      field_id = 0;
+      wire_type = WireFormatter::WireType::VARINT;
+      element_index = 0;
+      bytes_remaining = 0;
+      size_value = 0;
+      // Note: child pointer is not reset, it's set at construction
     }
     
-protected:
+  protected:
     MessageState() = default;
     ~MessageState() = default;
 };
@@ -115,21 +120,25 @@ protected:
 The user instantiates a state template with the required depth:
 
 ```cpp
-namespace EmbeddedProto {
+namespace EmbeddedProto 
+{
 
 template<uint32_t DEPTH>
-class MessageStateStack {
+class MessageStateStack 
+{
     static_assert(DEPTH >= 1, "Depth must be at least 1");
     
-public:
-    MessageStateStack() {
-        // Link states together: parent -> child
-        // states_[0] is the root (outermost message)
-        // states_[DEPTH-1] is the deepest possible nested message
-        for (uint32_t i = 0; i < DEPTH - 1; ++i) {
-            states_[i].child = &states_[i + 1];
-        }
-        // states_[DEPTH-1].child remains nullptr (leaf)
+  public:
+    MessageStateStack() 
+    {
+      // Link states together: parent -> child
+      // states_[0] is the root (outermost message)
+      // states_[DEPTH-1] is the deepest possible nested message
+      for(uint32_t i = 0; i < DEPTH - 1; ++i) 
+      {
+        states_[i].child = &states_[i + 1];
+      }
+      // states_[DEPTH-1].child remains nullptr (leaf)
     }
     
     /**
@@ -141,18 +150,21 @@ public:
      * \brief Get the state at a specific depth
      * \param depth 0 = root, 1 = first nested level, etc.
      */
-    MessageState& at(uint32_t depth) { 
-        assert(depth < DEPTH);
-        return states_[depth]; 
+    MessageState& at(uint32_t depth) 
+    { 
+      assert(depth < DEPTH);
+      return states_[depth]; 
     }
     
     /**
      * \brief Reset all states to initial values
      */
-    void reset() {
-        for (uint32_t i = 0; i < DEPTH; ++i) {
-            states_[i].reset();
-        }
+    void reset() 
+    {
+      for (uint32_t i = 0; i < DEPTH; ++i)
+      {
+        states_[i].reset();
+      }
     }
     
     /**
@@ -160,7 +172,7 @@ public:
      */
     static constexpr uint32_t max_depth() { return DEPTH; }
     
-private:
+  private:
     MessageState states_[DEPTH];
 };
 
@@ -233,7 +245,7 @@ Serialization follows a state machine per field:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         TAG Phase                                │
+│                         TAG Phase                               │
 │  - Write tag: (field_id << 3) | wire_type                       │
 │  - If LENGTH_DELIMITED: → SIZE phase                            │
 │  - Else: → DATA phase                                           │
@@ -242,16 +254,16 @@ Serialization follows a state machine per field:
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                         SIZE Phase                               │
+│                         SIZE Phase                              │
 │  - Calculate/write size varint (for strings, bytes, messages)   │
 │  - For packed repeated: calculate total packed size             │
 │  - If buffer full: return BUFFER_FULL                           │
-│  - → DATA phase                                                  │
+│  - → DATA phase                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                         DATA Phase                               │
+│                         DATA Phase                              │
 │  - For scalars: write value (varint or fixed)                   │
 │  - For strings/bytes: write bytes, track bytes_remaining        │
 │  - For messages: recurse with child state                       │
@@ -305,18 +317,60 @@ Serialization follows a state machine per field:
 
 **State Machine**:
 1. **TAG phase**: Write tag, transition to SIZE
-2. **SIZE phase**: Calculate nested message size, write size varint, transition to DATA
+2. **SIZE phase**: Calculate nested message size, write size varint, store in `size_value`, transition to DATA
 3. **DATA phase**: Delegate to nested message's `serialize_partial` with `child` state
 
 **State Fields Used**:
 - `phase`: TAG → SIZE → DATA → COMPLETE
 - `field_id`: Field number
-- `size_value`: Nested message size
+- `size_value`: Nested message size (calculated once in SIZE phase)
+- `bytes_remaining`: Bytes left to write (tracks progress in DATA phase)
 - `child`: Pointer to nested message's state
 
 **Partial Behavior**:
 - Nested message serialization uses child state
-- When child returns COMPLETE, parent transitions to COMPLETE
+- Parent tracks `bytes_remaining` as the number of bytes still to be written for the nested message
+- On first entry to DATA phase: `bytes_remaining = size_value`
+- Each call to child's `serialize_partial` may write partial data
+- After child returns:
+  - Calculate bytes written: `buffer.get_size() - initial_buffer_size`
+  - Decrement `bytes_remaining` by bytes written
+  - If `bytes_remaining > 0` and child returned `BUFFER_FULL`: return `BUFFER_FULL`
+  - If `bytes_remaining == 0`: nested message complete, transition to next field
+- When child's `phase == COMPLETE`: parent transitions to next field (TAG phase)
+
+**Pseudocode for DATA phase**:
+```cpp
+case Phase::DATA:
+{
+  if(state.bytes_remaining == 0)
+  {
+    // First time entering DATA phase for this nested message
+    state.bytes_remaining = state.size_value;
+  }
+  
+  const uint32_t initial_buffer_size = buffer.get_size();
+  
+  // Delegate to nested message
+  Error err = nested_message.serialize_partial(buffer, *state.child);
+  
+  if(Error::BUFFER_FULL == err)
+  {
+    // Calculate how many bytes were actually written
+    const uint32_t bytes_written = buffer.get_size() - initial_buffer_size;
+    state.bytes_remaining -= bytes_written;
+    return Error::BUFFER_FULL;
+  }
+  else if(Error::NO_ERRORS == err)
+  {
+    // Nested message fully serialized
+    state.bytes_remaining = 0;
+    state.phase = Phase::COMPLETE;  // Or transition to next field
+  }
+  
+  return err;
+}
+```
 
 #### 5.2.4 Repeated Fields (Non-Packed)
 
@@ -334,7 +388,7 @@ Serialization follows a state machine per field:
 
 **Partial Behavior**:
 - Each element is a separate tag+value pair
-- Can stop between any two elements
+- Can stop at any point that is normal for the repeated field type, for example repeated messages.
 
 #### 5.2.5 Repeated Fields (Packed)
 
@@ -356,7 +410,7 @@ Serialization follows a state machine per field:
 - All elements must be contiguous after size
 - Can split between elements
 
-#### 5.2.6 Repeated Message Fields
+#### 5.2.6 Repeated Message Fields (specific case of Non-Packed)
 
 **Wire Format**: `[tag1][size1][msg1][tag2][size2][msg2]...`
 
@@ -382,25 +436,25 @@ Deserialization follows a similar but input-driven state machine:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         TAG Phase                                │
+│                         TAG Phase                               │
 │  - Read tag from buffer                                         │
 │  - Extract field_id and wire_type                               │
-│  - If LENGTH_DELIMITED: → SIZE phase                           │
+│  - If LENGTH_DELIMITED: → SIZE phase                            │
 │  - Else: → DATA phase                                           │
 │  - If buffer empty: return END_OF_BUFFER                        │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                         SIZE Phase                               │
+│                         SIZE Phase                              │
 │  - Read size varint                                             │
 │  - Store in size_value and bytes_remaining                      │
-│  - → DATA phase                                                  │
+│  - → DATA phase                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                         DATA Phase                               │
+│                         DATA Phase                              │
 │  - For scalars: read value                                      │
 │  - For strings/bytes: read bytes, decrement bytes_remaining     │
 │  - For messages: recurse with child state                       │
@@ -448,14 +502,62 @@ Deserialization follows a similar but input-driven state machine:
 
 **State Machine**:
 1. **TAG phase**: Read tag, transition to SIZE
-2. **SIZE phase**: Read size, store in `bytes_remaining`, transition to DATA
-3. **DATA phase**: Delegate to nested message with child state
+2. **SIZE phase**: Read size varint, store in `size_value` and `bytes_remaining`, transition to DATA
+3. **DATA phase**: Use `ReadBufferSection` to limit child's view, delegate to nested message with `child` state
 
 **State Fields Used**:
 - `phase`: TAG → SIZE → DATA → COMPLETE
 - `field_id`: From tag
-- `bytes_remaining`: Bytes left in nested message
+- `wire_type`: LENGTH_DELIMITED
+- `size_value`: Total size of nested message (read from wire)
+- `bytes_remaining`: Bytes left to read in nested message
 - `child`: Nested message state
+
+**Partial Behavior using ReadBufferSection**:
+
+The key insight from the previous implementation (commit `92481a5`) is to use `ReadBufferSection` to limit the child's view of the buffer:
+
+```cpp
+case Phase::DATA:
+{
+  // Create a section that limits how many bytes the child can read
+  ReadBufferSection bufferSection(buffer, state.bytes_remaining);
+  
+  // Delegate to nested message
+  Error err = nested_message.deserialize_partial(bufferSection, *state.child);
+  
+  // After child returns, check how many bytes were consumed
+  // ReadBufferSection tracks how many bytes are left in get_size()
+  state.bytes_remaining = bufferSection.get_size();  // Bytes remaining in section
+  
+  if(Error::END_OF_BUFFER == err) 
+  {
+    // Child needs more data - the section ran out
+    // state.bytes_remaining tells us how many more bytes the child needs
+    return Error::END_OF_BUFFER;
+  }
+  else if(Error::NO_ERRORS == err && state.bytes_remaining == 0)
+  {
+    // Nested message fully deserialized
+    state.phase = Phase::COMPLETE;  // Or transition to next field
+  }
+  else if(Error::NO_ERRORS == err && state.bytes_remaining > 0)
+  {
+    // Child completed but there are remaining bytes in the section
+    // This shouldn't happen for well-formed messages
+    return Error::INVALID_DATA;
+  }
+  
+  return err;
+}
+```
+
+**Key Points**:
+- `ReadBufferSection` wraps the parent buffer and limits how many bytes the child can access
+- The section's `get_size()` returns how many bytes are left in the section
+- When the section runs out, `ReadBufferSection::pop()` returns false, causing `END_OF_BUFFER`
+- Parent tracks `bytes_remaining` to know when nested message is complete
+- If parent buffer runs out before the section, `END_OF_BUFFER` propagates up
 
 #### 6.2.4 Unknown Fields
 
@@ -477,8 +579,9 @@ When a field_id is not recognized:
 ### 7.1 Message Interface Extensions
 
 ```cpp
-class MessageInterface : public Field {
-public:
+class MessageInterface : public Field 
+{
+  public:
     // ... existing methods ...
     
     /**
@@ -521,17 +624,19 @@ public:
 
 For a message like:
 ```protobuf
-message MyMessage {
-    int32 id = 1;
-    string name = 2;
-    repeated int32 values = 3;
+message MyMessage 
+{
+  int32 id = 1;
+  string name = 2;
+  repeated int32 values = 3;
 }
 ```
 
 Generated code:
 ```cpp
-class MyMessage final : public ::EmbeddedProto::MessageInterface {
-public:
+class MyMessage final : public ::EmbeddedProto::MessageInterface 
+{
+  public:
     // State depth for this message (no nested messages)
     static constexpr uint32_t STATE_DEPTH = 1;
     
@@ -546,7 +651,7 @@ public:
     Error deserialize_partial(ReadBufferInterface& buffer,
                              MessageState& state) override;
     
-private:
+  private:
     // Internal helpers for each phase
     Error serialize_tag_phase(WriteBufferInterface& buffer, MessageState& state) const;
     Error serialize_size_phase(WriteBufferInterface& buffer, MessageState& state) const;
@@ -573,20 +678,22 @@ MyMessage::StateStack state;
 
 // Serialize in chunks
 Error err = msg.serialize_partial(buffer, state.root());
-while (Error::BUFFER_FULL == err) {
-    // Send buffer contents
-    can_send(buffer.data(), buffer.get_size());
-    
-    // Clear buffer for next chunk
-    buffer.clear();
-    
-    // Continue serialization
-    err = msg.serialize_partial(buffer, state.root());
+while (Error::BUFFER_FULL == err) 
+{
+  // Send buffer contents
+  can_send(buffer.data(), buffer.get_size());
+  
+  // Clear buffer for next chunk
+  buffer.clear();
+  
+  // Continue serialization
+  err = msg.serialize_partial(buffer, state.root());
 }
 
-if (Error::NO_ERRORS == err) {
-    // Send final chunk
-    can_send(buffer.data(), buffer.get_size());
+if (Error::NO_ERRORS == err) 
+{
+  // Send final chunk
+  can_send(buffer.data(), buffer.get_size());
 }
 
 // Reset state for next message
@@ -623,28 +730,33 @@ This works because:
 ### 8.3 Implementation Pattern
 
 ```cpp
-Error serialize_partial(WriteBufferInterface& buffer, MessageState& state) const {
-    // Get initial buffer size to detect partial writes
-    const uint32_t initial_size = buffer.get_size();
-    
-    while (state.field_id <= MAX_FIELD_ID) {
-        switch (state.phase) {
-            case Phase::TAG: {
-                // Try to write tag
-                const uint32_t tag = WireFormatter::MakeTag(state.field_id, wire_type);
-                Error err = WireFormatter::SerializeVarint(tag, buffer);
-                if (Error::NO_ERRORS != err) {
-                    return err;  // Buffer full, nothing written
-                }
-                state.phase = Phase::DATA;  // or SIZE for length-delimited
-                break;
-            }
-            // ... other phases ...
+Error serialize_partial(WriteBufferInterface& buffer, MessageState& state) const 
+{
+  // Get initial buffer size to detect partial writes
+  const uint32_t initial_size = buffer.get_size();
+  
+  while (state.field_id <= MAX_FIELD_ID) 
+  {
+    switch (state.phase) 
+    {
+      case Phase::TAG: 
+      {
+        // Try to write tag
+        const uint32_t tag = WireFormatter::MakeTag(state.field_id, wire_type);
+        Error err = WireFormatter::SerializeVarint(tag, buffer);
+        if (Error::NO_ERRORS != err) 
+        {
+          return err;  // Buffer full, nothing written
         }
+        state.phase = Phase::DATA;  // or SIZE for length-delimited
+        break;
+      }
+      // ... other phases ...
     }
-    
-    state.phase = Phase::COMPLETE;
-    return Error::NO_ERRORS;
+  }
+  
+  state.phase = Phase::COMPLETE;
+  return Error::NO_ERRORS;
 }
 ```
 
@@ -657,22 +769,24 @@ Error serialize_partial(WriteBufferInterface& buffer, MessageState& state) const
 To avoid code duplication and reduce flash usage, `serialize()` can call `serialize_partial()` internally:
 
 ```cpp
-Error serialize(WriteBufferInterface& buffer) const override {
-    // Create temporary state on stack
-    MessageStateStack<STATE_DEPTH> state;
-    
-    // Call partial serialization
-    Error err = serialize_partial(buffer, state.root());
-    
-    // serialize() expects complete serialization in one call
-    // If BUFFER_FULL, that's an error for serialize()
-    if (Error::BUFFER_FULL == err) {
-        // Buffer was too small for complete message
-        // This is a usage error - buffer should be large enough
-        return Error::BUFFER_FULL;
-    }
-    
-    return err;
+Error serialize(WriteBufferInterface& buffer) const override 
+{
+  // Create temporary state on stack
+  MessageStateStack<STATE_DEPTH> state;
+  
+  // Call partial serialization
+  Error err = serialize_partial(buffer, state.root());
+  
+  // serialize() expects complete serialization in one call
+  // If BUFFER_FULL, that's an error for serialize()
+  if(Error::BUFFER_FULL == err)
+  {
+    // Buffer was too small for complete message
+    // This is a usage error - buffer should be large enough
+    return Error::BUFFER_FULL;
+  }
+  
+  return err;
 }
 ```
 
@@ -686,16 +800,17 @@ Error serialize(WriteBufferInterface& buffer) const override {
 Similarly for deserialization:
 
 ```cpp
-Error deserialize(ReadBufferInterface& buffer) override {
-    // Create temporary state on stack
-    MessageStateStack<STATE_DEPTH> state;
-    
-    // Call partial deserialization
-    Error err = deserialize_partial(buffer, state.root());
-    
-    // deserialize() expects complete message in buffer
-    // If END_OF_BUFFER, that's an error for deserialize()
-    return err;
+Error deserialize(ReadBufferInterface& buffer) override 
+{
+  // Create temporary state on stack
+  MessageStateStack<STATE_DEPTH> state;
+  
+  // Call partial deserialization
+  Error err = deserialize_partial(buffer, state.root());
+  
+  // deserialize() expects complete message in buffer
+  // If END_OF_BUFFER, that's an error for deserialize()
+  return err;
 }
 ```
 
@@ -710,19 +825,20 @@ Error deserialize(ReadBufferInterface& buffer) override {
 Add new error codes to `Errors.h`:
 
 ```cpp
-enum class Error {
-    NO_ERRORS = 0,
-    END_OF_BUFFER = 1,
-    BUFFER_FULL = 2,
-    INVALID_WIRETYPE = 3,
-    ARRAY_FULL = 4,
-    INVALID_FIELD_ID = 5,
-    OVERLONG_VARINT = 6,
-    INDEX_OUT_OF_BOUND = 7,
-    // New errors for partial serialization:
-    STATE_MISMATCH = 10,       // State doesn't match message type
-    NESTING_TOO_DEEP = 11,     // Message nesting exceeds state depth
-    // ... existing errors ...
+enum class Error 
+{
+  NO_ERRORS = 0,
+  END_OF_BUFFER = 1,
+  BUFFER_FULL = 2,
+  INVALID_WIRETYPE = 3,
+  ARRAY_FULL = 4,
+  INVALID_FIELD_ID = 5,
+  OVERLONG_VARINT = 6,
+  INDEX_OUT_OF_BOUND = 7,
+  // New errors for partial serialization:
+  STATE_MISMATCH = 10,       // State doesn't match message type
+  NESTING_TOO_DEEP = 11,     // Message nesting exceeds state depth
+  // ... existing errors ...
 };
 ```
 
@@ -745,16 +861,18 @@ enum class Error {
 ```cpp
 // Example error handling
 Error err = msg.serialize_partial(buffer, state);
-if (Error::BUFFER_FULL == err) {
-    // Recoverable - send buffer and continue
-    send(buffer);
-    buffer.clear();
-    err = msg.serialize_partial(buffer, state);
+if (Error::BUFFER_FULL == err) 
+{
+  // Recoverable - send buffer and continue
+  send(buffer);
+  buffer.clear();
+  err = msg.serialize_partial(buffer, state);
 }
-else if (Error::NO_ERRORS != err) {
-    // Fatal error - reset state
-    state.reset();
-    // Handle error...
+else if(Error::NO_ERRORS != err)
+{
+  // Fatal error - reset state
+  state.reset();
+  // Handle error...
 }
 ```
 
@@ -790,9 +908,10 @@ For the provided `WriteBufferFixedSize` and `ReadBufferFixedSize`, a static asse
 
 ```cpp
 template<uint32_t SIZE>
-class WriteBufferFixedSize {
-    static_assert(SIZE >= 10, "Buffer size should be at least 10 bytes for partial serialization");
-    // ...
+class WriteBufferFixedSize 
+{
+  static_assert(SIZE >= 10, "Buffer size should be at least 10 bytes for partial serialization");
+  // ...
 };
 ```
 
@@ -800,13 +919,14 @@ class WriteBufferFixedSize {
 
 ## 12. Implementation Plan
 
-### Phase 1: Core State Classes (1 week)
+### Phase 1: Core State Classes
 - [ ] Add `Phase` enum to `Fields.h` or new header
 - [ ] Implement `MessageState` class
 - [ ] Implement `MessageStateStack<DEPTH>` template
 - [ ] Add unit tests for state management
+- [ ] Run unit tests
 
-### Phase 2: Partial Serialization (2-3 weeks)
+### Phase 2: Partial Serialization
 - [ ] Add `serialize_partial` to `MessageInterface`
 - [ ] Implement scalar field serialization
 - [ ] Implement string/bytes serialization
@@ -814,8 +934,9 @@ class WriteBufferFixedSize {
 - [ ] Implement repeated field serialization (packed and unpacked)
 - [ ] Update Python code generator
 - [ ] Add unit tests
+- [ ] Run unit tests
 
-### Phase 3: Partial Deserialization (2-3 weeks)
+### Phase 3: Partial Deserialization
 - [ ] Add `deserialize_partial` to `MessageInterface`
 - [ ] Implement scalar field deserialization
 - [ ] Implement string/bytes deserialization
@@ -824,15 +945,16 @@ class WriteBufferFixedSize {
 - [ ] Implement repeated field deserialization
 - [ ] Update Python code generator
 - [ ] Add unit tests
+- [ ] Run unit tests
 
-### Phase 4: Integration (1 week)
+### Phase 4: Integration
 - [ ] Modify `serialize()` to call `serialize_partial()`
 - [ ] Modify `deserialize()` to call `deserialize_partial()`
 - [ ] Remove internal state variables from `MessageInterface`
 - [ ] Update existing tests
-- [ ] Performance benchmarks
+- [ ] Performance benchmarks (Ask user how to do this)
 
-### Phase 5: Documentation (1 week)
+### Phase 5: Documentation
 - [ ] Update API documentation
 - [ ] Add usage examples
 - [ ] Update README
@@ -843,6 +965,8 @@ class WriteBufferFixedSize {
 ## 13. Testing Strategy
 
 ### 13.1 Unit Tests
+
+Integrate new unit tests in the excesting framework.
 
 Test each field type with various buffer sizes:
 - Large buffer (complete in one call)
@@ -936,3 +1060,8 @@ MessageState* child;      // 4 bytes (pointer)
 - [Protobuf Wire Format](https://protobuf.dev/programming-guides/encoding/)
 - [EmbeddedProto v4 High-Level Specification](v4_high_level_specification.md)
 - Git commit `cdc66b81` - Initial draft of MessageDeserializationStateTemplate
+- Git commit `92481a5` - Previous partial deserialization implementation (removed), contains valuable unit tests for:
+  - Partial nested message deserialization (`test_NestedMessage.cpp`)
+  - Partial repeated field deserialization (`test_RepeatedFieldMessage.cpp`)
+  - Partial scalar deserialization (`test_SimpleTypes.cpp`)
+  - Partial string/bytes deserialization (`test_string_bytes.cpp`)
