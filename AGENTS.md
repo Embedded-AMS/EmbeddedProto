@@ -1,7 +1,7 @@
 
 # Building and running unit tests
 To build the unit tests use: `./build_test.sh`
-To run the unit tests use: `./run_test.sh` 
+To run the unit tests use: `./run_tests.sh` 
 
 # Buildin the python package
 Activate the virtual env if not already active: `source ./venv/bin/activate`

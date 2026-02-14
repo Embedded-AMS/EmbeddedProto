@@ -964,6 +964,8 @@ class WriteBufferFixedSize
 
 ## 13. Testing Strategy
 
+For example unit tests see what was removed in git commit 92481a5d46203553a6d672d47e322ac3847b0e7e. Please note this is only about deserialization but should give an good impression of what needs to be done for serialization aswell.
+
 ### 13.1 Unit Tests
 
 Integrate new unit tests in the excesting framework.
