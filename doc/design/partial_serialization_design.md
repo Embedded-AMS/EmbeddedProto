@@ -968,7 +968,7 @@ For example unit tests see what was removed in git commit 92481a5d46203553a6d672
 
 ### 13.1 Unit Tests
 
-Integrate new unit tests in the excesting framework.
+Integrate new unit tests in the existing framework.
 
 Test each field type with various buffer sizes:
 - Large buffer (complete in one call)
@@ -994,16 +994,11 @@ Test each field type with various buffer sizes:
 
 ---
 
-## 14. Open Questions
+## 14. Phase 2 Unit Test Design: test_SimpleTypes.cpp
+See Phase_2_Unit_Test_Design-test_SimpleTypes.md
 
-| # | Question | Status |
-|---|----------|--------|
-| 1 | Should `serialize()` call `serialize_partial()` internally? | **Decided**: Yes, to reduce code duplication |
-| 2 | Minimum buffer size enforcement? | **Decided**: Document only, static_assert for provided classes |
-| 3 | State after fatal errors? | **Decided**: Reset required |
-| 4 | Remove existing `deserialize_id_number_`? | **Decided**: Yes, replaced by external state |
-
----
+## 15. Phase 2 Unit Test Design: test_string_bytes.cpp
+See Phase_2_Unit_Test_Design-test_string_bytes.md
 
 ## Appendix A: Wire Format Reference
 

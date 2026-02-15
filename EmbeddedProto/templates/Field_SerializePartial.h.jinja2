@@ -1,0 +1,456 @@
+{#
+Copyright (C) 2020-2025 Embedded AMS B.V. - All Rights Reserved
+
+This file is part of Embedded Proto.
+
+Embedded Proto is open source software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, version 3 of the license.
+
+Embedded Proto  is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial and closed source application please visit:
+<https://embeddedproto.com/pricing/>.
+
+Embedded AMS B.V.
+Info:
+  info at EmbeddedProto dot com
+
+Postal address:
+  Atoomweg 2
+  1627 LE, Hoorn
+  the Netherlands
+#}
+{# Template for partial field serialization. 
+   This template handles the state machine for each field type according to
+   the design in doc/design/partial_serialization_design.md Section 5.2
+#}
+
+{% if field.uses_serialize_len() %}
+{# ======================================================================= #}
+{# Field types that use LENGTH_DELIMITED: messages, strings, bytes, repeated #}
+{# ======================================================================= #}
+
+{% if field.is_packed is defined and not field.is_packed() %}
+{# ------------------------------------------------------------------------- #}
+{# Unpacked repeated field - each element gets its own tag #}
+{# Design 5.2.4 and 5.2.6: Wire Format: [tag1][size1][value1][tag2][size2][value2]... #}
+{# ------------------------------------------------------------------------- #}
+if(::EmbeddedProto::Phase::TAG == state.phase)
+{
+  {# Check if we have more elements to serialize #}
+  if(state.element_index < {{field.get_variable_name()}}.get_length())
+  {
+    const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+      ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+    return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      state.phase = ::EmbeddedProto::Phase::SIZE;
+    }
+  }
+  else
+  {
+    {# All elements serialized #}
+    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  }
+}
+else if(::EmbeddedProto::Phase::SIZE == state.phase)
+{
+  {# Calculate size of current element #}
+  const uint32_t size = {{field.get_variable_name()}}.get_const(state.element_index).serialized_size();
+  state.size_value = size;
+  return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(size, buffer);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    state.bytes_remaining = size;
+    state.phase = ::EmbeddedProto::Phase::DATA;
+  }
+}
+else if(::EmbeddedProto::Phase::DATA == state.phase)
+{
+  if(state.bytes_remaining > 0)
+  {
+    const uint32_t initial_size = buffer.get_size();
+    
+{% if field.actual_type.is_message_type() %}
+    {# Nested message - delegate to child state #}
+    if(nullptr != state.child)
+    {
+      return_value = {{field.get_variable_name()}}.get_const(state.element_index).serialize_partial(buffer, *state.child);
+    }
+    else
+    {
+      return_value = {{field.get_variable_name()}}.get_const(state.element_index).serialize(buffer);
+    }
+{% else %}
+    {# Non-message type - serialize directly #}
+    return_value = {{field.get_variable_name()}}.get_const(state.element_index).serialize(buffer);
+{% endif %}
+    
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      
+      if(0 == state.bytes_remaining)
+      {
+        {# Element complete, move to next #}
+        ++state.element_index;
+{% if field.actual_type.is_message_type() %}
+        {# Reset child state for next element #}
+        if(nullptr != state.child)
+        {
+          state.child->reset();
+        }
+{% endif %}
+        state.phase = ::EmbeddedProto::Phase::TAG;
+      }
+    }
+    else if(::EmbeddedProto::Error::BUFFER_FULL == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      
+      if(0 == state.bytes_remaining)
+      {
+        {# Element completed exactly at buffer boundary #}
+        ++state.element_index;
+{% if field.actual_type.is_message_type() %}
+        if(nullptr != state.child)
+        {
+          state.child->reset();
+        }
+{% endif %}
+        state.phase = ::EmbeddedProto::Phase::TAG;
+        return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      }
+    }
+  }
+  else
+  {
+    {# Element complete #}
+    ++state.element_index;
+    state.phase = ::EmbeddedProto::Phase::TAG;
+  }
+}
+
+{% elif field.is_packed is defined and field.is_packed() %}
+{# ------------------------------------------------------------------------- #}
+{# Packed repeated field - single tag with all elements #}
+{# Design 5.2.5: Wire Format: [tag][total_size][value1][value2]... #}
+{# ------------------------------------------------------------------------- #}
+if(::EmbeddedProto::Phase::TAG == state.phase)
+{
+  const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+    ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+  return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    state.phase = ::EmbeddedProto::Phase::SIZE;
+  }
+}
+else if(::EmbeddedProto::Phase::SIZE == state.phase)
+{
+  {# Calculate total packed size #}
+  const uint32_t size = {{field.get_variable_name()}}.serialized_size_packed();
+  state.size_value = size;
+  return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(size, buffer);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    state.bytes_remaining = size;
+    state.element_index = 0;
+    state.phase = ::EmbeddedProto::Phase::DATA;
+  }
+}
+else if(::EmbeddedProto::Phase::DATA == state.phase)
+{
+  if(state.element_index < {{field.get_variable_name()}}.get_length())
+  {
+    const uint32_t initial_size = buffer.get_size();
+    
+    {# Serialize current element #}
+    return_value = {{field.get_variable_name()}}.get_const(state.element_index).serialize(buffer);
+    
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      ++state.element_index;
+      
+      if(0 == state.bytes_remaining)
+      {
+        {# All elements written #}
+        state.phase = ::EmbeddedProto::Phase::COMPLETE;
+      }
+    }
+    else if(::EmbeddedProto::Error::BUFFER_FULL == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      
+      if(bytes_written > 0)
+      {
+        ++state.element_index;
+      }
+    }
+  }
+  else
+  {
+    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  }
+}
+
+{% elif (field.optional or (field.oneof is not none)) %}
+{# ------------------------------------------------------------------------- #}
+{# Optional or oneof LENGTH_DELIMITED field (string, bytes, or message) #}
+{# ------------------------------------------------------------------------- #}
+if(has_{{field.get_name()}}())
+{
+  if(::EmbeddedProto::Phase::TAG == state.phase)
+  {
+    const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+      ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+    return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      state.phase = ::EmbeddedProto::Phase::SIZE;
+    }
+  }
+  else if(::EmbeddedProto::Phase::SIZE == state.phase)
+  {
+    const uint32_t size = {{field.get_size_expression()}};
+    state.size_value = size;
+    return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(size, buffer);
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      state.bytes_remaining = size;
+      state.phase = ::EmbeddedProto::Phase::DATA;
+    }
+  }
+  else if(::EmbeddedProto::Phase::DATA == state.phase)
+  {
+    if(state.bytes_remaining > 0)
+    {
+      const uint32_t initial_size = buffer.get_size();
+      
+{% if field.is_message_type() %}
+      {# Nested message - delegate to child state #}
+      if(nullptr != state.child)
+      {
+        return_value = {{field.get_variable_name()}}.serialize_partial(buffer, *state.child);
+      }
+      else
+      {
+        return_value = {{field.get_variable_name()}}.serialize(buffer);
+      }
+{% else %}
+      {# String/bytes - serialize directly #}
+      return_value = {{field.get_variable_name()}}.serialize(buffer);
+{% endif %}
+      
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+      {
+        const uint32_t bytes_written = buffer.get_size() - initial_size;
+        state.bytes_remaining -= bytes_written;
+        
+        if(0 == state.bytes_remaining)
+        {
+          state.phase = ::EmbeddedProto::Phase::COMPLETE;
+        }
+      }
+      else if(::EmbeddedProto::Error::BUFFER_FULL == return_value)
+      {
+        const uint32_t bytes_written = buffer.get_size() - initial_size;
+        state.bytes_remaining -= bytes_written;
+        
+        if(0 == state.bytes_remaining)
+        {
+          state.phase = ::EmbeddedProto::Phase::COMPLETE;
+          return_value = ::EmbeddedProto::Error::NO_ERRORS;
+        }
+      }
+    }
+    else
+    {
+      state.phase = ::EmbeddedProto::Phase::COMPLETE;
+    }
+  }
+}
+else
+{
+  {# Field not set - skip to complete #}
+  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+}
+
+{% else %}
+{# ------------------------------------------------------------------------- #}
+{# Required LENGTH_DELIMITED field (string, bytes, or message) #}
+{# Design 5.2.2 and 5.2.3 #}
+{# ------------------------------------------------------------------------- #}
+if(::EmbeddedProto::Phase::TAG == state.phase)
+{
+  const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+    ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED);
+  return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    state.phase = ::EmbeddedProto::Phase::SIZE;
+  }
+}
+else if(::EmbeddedProto::Phase::SIZE == state.phase)
+{
+  const uint32_t size = {{field.get_size_expression()}};
+  state.size_value = size;
+  return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(size, buffer);
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    state.bytes_remaining = size;
+    state.phase = ::EmbeddedProto::Phase::DATA;
+  }
+}
+else if(::EmbeddedProto::Phase::DATA == state.phase)
+{
+  if(state.bytes_remaining > 0)
+  {
+    const uint32_t initial_size = buffer.get_size();
+    
+{% if field.is_message_type() %}
+    {# Nested message - delegate to child state #}
+    if(nullptr != state.child)
+    {
+      return_value = {{field.get_variable_name()}}.serialize_partial(buffer, *state.child);
+    }
+    else
+    {
+      return_value = {{field.get_variable_name()}}.serialize(buffer);
+    }
+{% else %}
+    {# String/bytes - serialize directly #}
+    return_value = {{field.get_variable_name()}}.serialize(buffer);
+{% endif %}
+    
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      
+      if(0 == state.bytes_remaining)
+      {
+        state.phase = ::EmbeddedProto::Phase::COMPLETE;
+      }
+    }
+    else if(::EmbeddedProto::Error::BUFFER_FULL == return_value)
+    {
+      const uint32_t bytes_written = buffer.get_size() - initial_size;
+      state.bytes_remaining -= bytes_written;
+      
+      if(0 == state.bytes_remaining)
+      {
+        state.phase = ::EmbeddedProto::Phase::COMPLETE;
+        return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      }
+    }
+  }
+  else
+  {
+    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  }
+}
+{% endif %}
+
+{% else %}
+{# ======================================================================= #}
+{# Basic scalar types and enums #}
+{# Design 5.2.1: Wire Format: [tag][value] #}
+{# State Machine: TAG -> DATA -> COMPLETE #}
+{# ======================================================================= #}
+
+{% if (field.optional or (field.oneof is not none)) %}
+{# ------------------------------------------------------------------------- #}
+{# Optional or oneof scalar field #}
+{# ------------------------------------------------------------------------- #}
+if(has_{{field.get_name()}}())
+{
+  if(::EmbeddedProto::Phase::TAG == state.phase)
+  {
+    const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+      ::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}});
+    return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      state.phase = ::EmbeddedProto::Phase::DATA;
+    }
+  }
+  else if(::EmbeddedProto::Phase::DATA == state.phase)
+  {
+    return_value = {{field.get_variable_name()}}.serialize(buffer);
+    if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+    {
+      state.phase = ::EmbeddedProto::Phase::COMPLETE;
+    }
+  }
+}
+else
+{
+  {# Field not set - skip to complete #}
+  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+}
+
+{% else %}
+{# ------------------------------------------------------------------------- #}
+{# Required scalar field #}
+{# For proto3 semantics: skip fields with default values (0/false) #}
+{# Scalar fields use atomic write: tag+value must fit or nothing is written #}
+{# ------------------------------------------------------------------------- #}
+if(::EmbeddedProto::Phase::TAG == state.phase)
+{
+  {# Check if field has non-default value before serializing #}
+  if({{field.get_default_value()}} != {{field.get_variable_name()}}.get())
+  {
+    {# Calculate total size needed for atomic write (tag + value) #}
+    const uint32_t tag = ::EmbeddedProto::WireFormatter::MakeTag(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}),
+      ::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}});
+    const uint32_t tag_size = ::EmbeddedProto::WireFormatter::VarintSize(tag);
+    const uint32_t data_size = {{field.get_variable_name()}}.serialized_size();
+    
+    {# Check if buffer has enough space for atomic write #}
+    if(buffer.get_available_size() >= (tag_size + data_size))
+    {
+      return_value = ::EmbeddedProto::WireFormatter::SerializeVarint(tag, buffer);
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+      {
+        {# Write data immediately since we verified space #}
+        return_value = {{field.get_variable_name()}}.serialize(buffer);
+        if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+        {
+          state.phase = ::EmbeddedProto::Phase::COMPLETE;
+        }
+      }
+    }
+    else
+    {
+      {# Not enough space for atomic write - return BUFFER_FULL #}
+      return_value = ::EmbeddedProto::Error::BUFFER_FULL;
+    }
+  }
+  else
+  {
+    {# Field has default value - skip to complete #}
+    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  }
+}
+{% endif %}
+{% endif %}

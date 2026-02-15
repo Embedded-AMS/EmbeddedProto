@@ -159,8 +159,15 @@ class Field:
     def get_size_expression(self):
         return ""
 
+    # Returns True if this field is a nested message type (not string/bytes)
+    def is_message_type(self):
+        return False
+
     def render_serialize(self, jinja_env):
         return self.render("Field_Serialize.h.jinja2", jinja_environment=jinja_env)
+
+    def render_serialize_partial(self, jinja_env):
+        return self.render("Field_SerializePartial.h.jinja2", jinja_environment=jinja_env)
 
 # -----------------------------------------------------------------------------
 
@@ -404,6 +411,10 @@ class FieldEnum(Field):
     def get_short_type(self):
         return "EmbeddedProto::enumeration<" + self.get_type_as_defined().split("::")[-1] + ", EmbeddedProto::WireFormatter::VarintSize(" + self.get_max_enum_value() + ")>"
 
+    def get_cstdint_type(self):
+        # For enums, use the underlying type (uint32_t for the serialized form)
+        return "uint32_t"
+
     def get_default_value(self):
         return "static_cast<" + self.get_type_as_defined() + ">(0)"
 
@@ -513,6 +524,10 @@ class FieldMessage(Field):
 
     def get_size_expression(self):
         return self.get_variable_name() + ".serialized_size()"
+
+    def is_message_type(self):
+        """Returns True if this field is a nested message type (not string/bytes)."""
+        return True
 
 # -----------------------------------------------------------------------------
 

@@ -34,6 +34,7 @@
 #include "WireFormatter.h"
 #include "Fields.h"
 #include "Errors.h"
+#include "MessageState.h"
 
 #include <cstdint>
 
@@ -62,6 +63,19 @@ class MessageInterface : public ::EmbeddedProto::Field
     */
     void clear() override = 0;
     
+    //! Serialize message with partial state support.
+    /*!
+        This method serializes the message in chunks, allowing serialization to be paused
+        when the buffer becomes full and resumed with a fresh buffer.
+        
+        \param buffer Write buffer (may be small).
+        \param state External state object (must persist between calls).
+        \return Error::NO_ERRORS when complete.
+        \return Error::BUFFER_FULL when buffer full, call again with fresh buffer.
+        \return Other errors on failure (state should be reset).
+    */
+    virtual Error serialize_partial(WriteBufferInterface& buffer, 
+                                   MessageState& state) const = 0;
 
   protected:
     //! When deserializing skip the bytes in the buffer of an unknown field.

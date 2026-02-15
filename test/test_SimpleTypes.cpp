@@ -34,6 +34,8 @@
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 #include <ReadBufferFixedSize.h>
+#include <WriteBufferFixedSize.h>
+#include <MessageState.h>
 
 #include <cstdint>    
 #include <limits>
@@ -645,5 +647,535 @@ TEST(SimpleTypes, to_string)
 }
 
 #endif // MSG_TO_STRING
+
+//==============================================================================
+// Partial Serialization Tests
+//==============================================================================
+
+TEST(SimpleTypes, PartialSerialize_SingleVarintField_SufficientBuffer)
+{
+  // Test 14.3.1: Single varint field with sufficient buffer
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);
+
+  ::EmbeddedProto::WriteBufferFixedSize<10> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer.get_size());
+  EXPECT_EQ(0x08, buffer.get_data()[0]);
+  EXPECT_EQ(0x01, buffer.get_data()[1]);
+}
+
+TEST(SimpleTypes, PartialSerialize_SingleFixed64Field_SufficientBuffer)
+{
+  // Test 14.3.2: Single fixed64 field (9 bytes: 1 tag + 8 data)
+  ::Test_Simple_Types msg;
+  msg.set_a_fixed64(1);
+
+  ::EmbeddedProto::WriteBufferFixedSize<10> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(9U, buffer.get_size());
+  
+  std::array<uint8_t, 9> expected = {0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_AllFieldsOne_LargeBuffer)
+{
+  // Test 14.3.3: Verify serialize_partial() produces identical output to serialize()
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);   
+  msg.set_a_int64(1);     
+  msg.set_a_uint32(1);    
+  msg.set_a_uint64(1);
+  msg.set_a_sint32(1);
+  msg.set_a_sint64(1);
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
+  msg.set_a_fixed64(1);
+  msg.set_a_sfixed64(1);
+  msg.set_a_double(1.0);
+  msg.set_a_fixed32(1);
+  msg.set_a_sfixed32(1); 
+  msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B);
+
+  ::EmbeddedProto::WriteBufferFixedSize<100> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(60U, buffer.get_size());
+
+  std::array<uint8_t, 60> expected = {0x08, 0x01, 
+                                      0x10, 0x01, 
+                                      0x18, 0x01, 
+                                      0x20, 0x01, 
+                                      0x28, 0x02, 
+                                      0x30, 0x02, 
+                                      0x38, 0x01, 
+                                      0x40, 0x01, 
+                                      0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                      0x51, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                      0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 
+                                      0x65, 0x01, 0x00, 0x00, 0x00, 
+                                      0x6d, 0x01, 0x00, 0x00, 0x00, 
+                                      0x75, 0x00, 0x00, 0x80, 0x3f,
+                                      0x78, 0x01};
+
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_AllFieldsOne_TwoBuffers_CleanSplit)
+{
+  // Test 14.3.4: Split across two buffers at clean field boundary
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);   
+  msg.set_a_int64(1);     
+  msg.set_a_uint32(1);    
+  msg.set_a_uint64(1);
+  msg.set_a_sint32(1);
+  msg.set_a_sint64(1);
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
+  msg.set_a_fixed64(1);
+  msg.set_a_sfixed64(1);
+  msg.set_a_double(1.0);
+  msg.set_a_fixed32(1);
+  msg.set_a_sfixed32(1); 
+  msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B);
+
+  ::Test_Simple_Types::StateStack state;
+  
+  // First buffer - fits first 8 varint fields (16 bytes)
+  ::EmbeddedProto::WriteBufferFixedSize<16> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(16U, bufferA.get_size());
+
+  std::array<uint8_t, 16> expectedA = {0x08, 0x01, 0x10, 0x01, 0x18, 0x01, 0x20, 0x01, 
+                                       0x28, 0x02, 0x30, 0x02, 0x38, 0x01, 0x40, 0x01};
+  for(uint32_t i = 0; i < expectedA.size(); ++i)
+  {
+    EXPECT_EQ(expectedA[i], bufferA.get_data()[i]) << "Buffer A mismatch at byte " << i;
+  }
+
+  // Second buffer - fits remaining fields
+  ::EmbeddedProto::WriteBufferFixedSize<50> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(44U, bufferB.get_size());
+}
+
+TEST(SimpleTypes, PartialSerialize_Fixed64_BufferTooSmall_Rollback)
+{
+  // Test 14.3.5: Fixed64 field requires 9 bytes - buffer too small triggers rollback
+  ::Test_Simple_Types msg;
+  msg.set_a_fixed64(1);
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer too small for 9 bytes (tag + data)
+  ::EmbeddedProto::WriteBufferFixedSize<5> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  // Nothing should be written if tag+value cannot fit atomically
+  EXPECT_EQ(0U, bufferA.get_size());
+
+  // Second buffer should succeed with sufficient space
+  ::EmbeddedProto::WriteBufferFixedSize<10> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(9U, bufferB.get_size());
+}
+
+TEST(SimpleTypes, PartialSerialize_LargeVarint_BufferTooSmall_Rollback)
+{
+  // Test 14.3.6: Large varint (UINT64_MAX requires 11 bytes) with buffer too small
+  ::Test_Simple_Types msg;
+  msg.set_a_uint64(std::numeric_limits<uint64_t>::max());
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer too small for 11 bytes
+  ::EmbeddedProto::WriteBufferFixedSize<6> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(0U, bufferA.get_size());
+
+  // Second buffer with sufficient space
+  ::EmbeddedProto::WriteBufferFixedSize<15> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  // Field 4 (a_uint64): tag 0x20 + 10 byte varint = 11 bytes
+  EXPECT_EQ(11U, bufferB.get_size());
+}
+
+TEST(SimpleTypes, PartialSerialize_TwoVarintFields_SplitBetweenFields)
+{
+  // Test 14.3.7: Split happens cleanly between two varint fields
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);  // 2 bytes
+  msg.set_a_int64(1);  // 2 bytes
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer exactly fits first field
+  ::EmbeddedProto::WriteBufferFixedSize<2> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, bufferA.get_size());
+  EXPECT_EQ(0x08, bufferA.get_data()[0]);
+  EXPECT_EQ(0x01, bufferA.get_data()[1]);
+
+  // Second buffer for second field
+  ::EmbeddedProto::WriteBufferFixedSize<5> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, bufferB.get_size());
+  EXPECT_EQ(0x10, bufferB.get_data()[0]);
+  EXPECT_EQ(0x01, bufferB.get_data()[1]);
+}
+
+TEST(SimpleTypes, PartialSerialize_TwoVarintFields_SecondDoesNotFit)
+{
+  // Test 14.3.8: First field fits but second does not (rollback second)
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);  // 2 bytes
+  msg.set_a_int64(1);  // 2 bytes
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer has 3 bytes: first field fits (2), but 1 byte left is not enough for second
+  ::EmbeddedProto::WriteBufferFixedSize<3> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, bufferA.get_size());  // Only first field written
+  EXPECT_EQ(0x08, bufferA.get_data()[0]);
+  EXPECT_EQ(0x01, bufferA.get_data()[1]);
+
+  // Second buffer for second field
+  ::EmbeddedProto::WriteBufferFixedSize<5> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, bufferB.get_size());
+  EXPECT_EQ(0x10, bufferB.get_data()[0]);
+  EXPECT_EQ(0x01, bufferB.get_data()[1]);
+}
+
+TEST(SimpleTypes, PartialSerialize_LoopSmallBuffers)
+{
+  // Test 14.3.9: Serialize using many small buffers in a loop
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);   
+  msg.set_a_int64(1);     
+  msg.set_a_uint32(1);    
+  msg.set_a_uint64(1);
+  msg.set_a_sint32(1);
+  msg.set_a_sint64(1);
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
+  msg.set_a_fixed64(1);
+  msg.set_a_sfixed64(1);
+  msg.set_a_double(1.0);
+  msg.set_a_fixed32(1);
+  msg.set_a_sfixed32(1); 
+  msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B);
+
+  std::array<uint8_t, 100> collected_data = {0};
+  uint32_t total_bytes = 0;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = ::EmbeddedProto::Error::BUFFER_FULL;
+  uint32_t iterations = 0;
+  constexpr uint32_t MAX_ITERATIONS = 20;
+
+  while((::EmbeddedProto::Error::BUFFER_FULL == result) && (iterations < MAX_ITERATIONS))
+  {
+    ::EmbeddedProto::WriteBufferFixedSize<12> small_buffer;
+    result = msg.serialize_partial(small_buffer, state.root());
+    
+    // Copy to collected buffer
+    memcpy(&collected_data[total_bytes], small_buffer.get_data(), small_buffer.get_size());
+    total_bytes += small_buffer.get_size();
+    ++iterations;
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(60U, total_bytes);
+  EXPECT_LT(iterations, MAX_ITERATIONS);
+
+  // Verify collected data matches expected
+  std::array<uint8_t, 60> expected = {0x08, 0x01, 
+                                      0x10, 0x01, 
+                                      0x18, 0x01, 
+                                      0x20, 0x01, 
+                                      0x28, 0x02, 
+                                      0x30, 0x02, 
+                                      0x38, 0x01, 
+                                      0x40, 0x01, 
+                                      0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                      0x51, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                                      0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, 
+                                      0x65, 0x01, 0x00, 0x00, 0x00, 
+                                      0x6d, 0x01, 0x00, 0x00, 0x00, 
+                                      0x75, 0x00, 0x00, 0x80, 0x3f,
+                                      0x78, 0x01};
+
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], collected_data[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_AllFieldsMax_LoopSmallBuffers)
+{
+  // Test 14.3.10: Maximum field values with small buffers
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(std::numeric_limits<int32_t>::max());   
+  msg.set_a_int64(std::numeric_limits<int64_t>::max());     
+  msg.set_a_uint32(std::numeric_limits<uint32_t>::max());    
+  msg.set_a_uint64(std::numeric_limits<uint64_t>::max());
+  msg.set_a_sint32(std::numeric_limits<int32_t>::max());
+  msg.set_a_sint64(std::numeric_limits<int64_t>::max());
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::TWOBILLION);
+  msg.set_a_fixed64(std::numeric_limits<uint64_t>::max());
+  msg.set_a_sfixed64(std::numeric_limits<int64_t>::max());
+  msg.set_a_double(std::numeric_limits<double>::max());
+  msg.set_a_fixed32(std::numeric_limits<uint32_t>::max());
+  msg.set_a_sfixed32(std::numeric_limits<int32_t>::max()); 
+  msg.set_a_float(std::numeric_limits<float>::max());
+
+  std::array<uint8_t, 150> collected_data = {0};
+  uint32_t total_bytes = 0;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = ::EmbeddedProto::Error::BUFFER_FULL;
+  uint32_t iterations = 0;
+  constexpr uint32_t MAX_ITERATIONS = 20;
+
+  while((::EmbeddedProto::Error::BUFFER_FULL == result) && (iterations < MAX_ITERATIONS))
+  {
+    ::EmbeddedProto::WriteBufferFixedSize<20> small_buffer;
+    result = msg.serialize_partial(small_buffer, state.root());
+    
+    memcpy(&collected_data[total_bytes], small_buffer.get_data(), small_buffer.get_size());
+    total_bytes += small_buffer.get_size();
+    ++iterations;
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(100U, total_bytes);
+  EXPECT_LT(iterations, MAX_ITERATIONS);
+}
+
+TEST(SimpleTypes, PartialSerialize_SingleBool_MinimumBuffer)
+{
+  // Test 14.3.12: Minimum buffer size (2 bytes) for bool field
+  ::Test_Simple_Types msg;
+  msg.set_a_bool(true);
+
+  ::EmbeddedProto::WriteBufferFixedSize<2> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer.get_size());
+  EXPECT_EQ(0x38, buffer.get_data()[0]);
+  EXPECT_EQ(0x01, buffer.get_data()[1]);
+}
+
+TEST(SimpleTypes, PartialSerialize_Fixed32_ExactFit)
+{
+  // Test 14.3.13: fixed32 field (5 bytes) with exactly fitting buffer
+  ::Test_Simple_Types msg;
+  msg.set_a_fixed32(1);
+
+  ::EmbeddedProto::WriteBufferFixedSize<5> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(5U, buffer.get_size());
+
+  std::array<uint8_t, 5> expected = {0x65, 0x01, 0x00, 0x00, 0x00};
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_Fixed32_BufferOneByteTooSmall)
+{
+  // Test 14.3.14: fixed32 field with buffer one byte too small
+  ::Test_Simple_Types msg;
+  msg.set_a_fixed32(1);
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer 4 bytes - 1 byte too small for 5-byte field
+  ::EmbeddedProto::WriteBufferFixedSize<4> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(0U, bufferA.get_size());  // Rollback
+
+  // Second buffer succeeds
+  ::EmbeddedProto::WriteBufferFixedSize<10> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(5U, bufferB.get_size());
+}
+
+TEST(SimpleTypes, PartialSerialize_StateReset_SerializeTwice)
+{
+  // Test 14.3.15: State can be reset and reused
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(42);
+
+  ::EmbeddedProto::WriteBufferFixedSize<10> buffer1;
+  ::Test_Simple_Types::StateStack state;
+
+  // First serialization
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer1, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  uint32_t size1 = buffer1.get_size();
+
+  // Reset state and buffer
+  state.reset();
+  ::EmbeddedProto::WriteBufferFixedSize<10> buffer2;
+
+  // Second serialization should produce identical output
+  result = msg.serialize_partial(buffer2, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(size1, buffer2.get_size());
+
+  for(uint32_t i = 0; i < size1; ++i)
+  {
+    EXPECT_EQ(buffer1.get_data()[i], buffer2.get_data()[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_MixedFields_VarintThenFixed)
+{
+  // Test 14.3.17: Transition from varint to fixed field across buffer boundary
+  ::Test_Simple_Types msg;
+  msg.set_a_bool(true);    // Field 7, 2 bytes
+  msg.set_a_fixed64(1);    // Field 9, 9 bytes
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Buffer fits bool only
+  ::EmbeddedProto::WriteBufferFixedSize<2> bufferA;
+  ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, bufferA.get_size());
+  EXPECT_EQ(0x38, bufferA.get_data()[0]);
+  EXPECT_EQ(0x01, bufferA.get_data()[1]);
+
+  // Second buffer fits fixed64
+  ::EmbeddedProto::WriteBufferFixedSize<15> bufferB;
+  result = msg.serialize_partial(bufferB, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(9U, bufferB.get_size());
+  EXPECT_EQ(0x49, bufferB.get_data()[0]);  // Tag for field 9 with FIXED64 wire type
+}
+
+TEST(SimpleTypes, PartialSerialize_EnumField_LargeValue)
+{
+  // Test 14.3.18: Enum with large value (multi-byte varint)
+  ::Test_Simple_Types msg;
+  msg.set_a_enum(Test_Enum::TWOBILLION);
+
+  ::EmbeddedProto::WriteBufferFixedSize<10> buffer;
+  ::Test_Simple_Types::StateStack state;
+
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(6U, buffer.get_size());
+
+  std::array<uint8_t, 6> expected = {0x40, 0x80, 0xA8, 0xD6, 0xB9, 0x07};
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]) << "Mismatch at byte " << i;
+  }
+}
+
+TEST(SimpleTypes, PartialSerialize_ConsecutiveSmallBuffers_VerifyProgress)
+{
+  // Test 14.3.20: State correctly tracks progress through multiple fields
+  ::Test_Simple_Types msg;
+  msg.set_a_int32(1);   // 2 bytes
+  msg.set_a_int64(1);   // 2 bytes
+  msg.set_a_uint32(1);  // 2 bytes
+  msg.set_a_uint64(1);  // 2 bytes
+
+  ::Test_Simple_Types::StateStack state;
+
+  // Call 1: First field
+  ::EmbeddedProto::WriteBufferFixedSize<2> buffer1;
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer1, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, buffer1.get_size());
+  EXPECT_EQ(0x08, buffer1.get_data()[0]);
+  EXPECT_EQ(0x01, buffer1.get_data()[1]);
+
+  // Call 2: Second field
+  ::EmbeddedProto::WriteBufferFixedSize<2> buffer2;
+  result = msg.serialize_partial(buffer2, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, buffer2.get_size());
+  EXPECT_EQ(0x10, buffer2.get_data()[0]);
+  EXPECT_EQ(0x01, buffer2.get_data()[1]);
+
+  // Call 3: Third field
+  ::EmbeddedProto::WriteBufferFixedSize<2> buffer3;
+  result = msg.serialize_partial(buffer3, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(2U, buffer3.get_size());
+  EXPECT_EQ(0x18, buffer3.get_data()[0]);
+  EXPECT_EQ(0x01, buffer3.get_data()[1]);
+
+  // Call 4: Fourth field (last set)
+  ::EmbeddedProto::WriteBufferFixedSize<2> buffer4;
+  result = msg.serialize_partial(buffer4, state.root());
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer4.get_size());
+  EXPECT_EQ(0x20, buffer4.get_data()[0]);
+  EXPECT_EQ(0x01, buffer4.get_data()[1]);
+}
 
 } // End of namespace test_EmbeddedAMS_SimpleTypes
