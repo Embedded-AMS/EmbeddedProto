@@ -1,14 +1,16 @@
 
 # Building and running unit tests
 To build the unit tests use: `./build_test.sh`
-To run the unit tests use: `./run_tests.sh` 
+To run all unit tests use short output: `./run_tests.sh`
+To run just one unit test to specifically test the code you are working on use: `./build/test/test_EmbeddedProto --gtest_filter="DESIRED_TEST_CASE_NAME"`
 
 # Buildin the python package
 Activate the virtual env if not already active: `source ./venv/bin/activate`
 Build the package: `build_package.sh`
 
 # Standarts
-C++ code should comply with MISRA C++ 2023.
+* C++ code should comply with MISRA C++ 2023.
+* One important rull is to use just one return statement in C++ functions.
 
 # C++ code formatting example
 * Note the two spaces as indentation.

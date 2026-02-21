@@ -32,6 +32,16 @@
 
 syntax = "proto3";
 
+message basic_oneof
+{
+  oneof abc
+  {
+    int32 varA = 1;
+    int32 varB = 2;
+    int32 varC = 3;
+  }
+}
+
 message some_ABC
 {
   int32 varA = 1;

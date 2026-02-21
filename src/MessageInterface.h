@@ -74,16 +74,53 @@ class MessageInterface : public ::EmbeddedProto::Field
         \return Error::BUFFER_FULL when buffer full, call again with fresh buffer.
         \return Other errors on failure (state should be reset).
     */
-    virtual Error serialize_partial(WriteBufferInterface& buffer, 
+    virtual Error serialize_partial(WriteBufferInterface& buffer,
                                    MessageState& state) const = 0;
+
+    Error serialize_partial_as_field(uint32_t field_number,
+                                   WriteBufferInterface& buffer,
+                                   MessageState& state,
+                                   bool optional) const override
+    {
+      Error return_value = Error::NO_ERRORS;
+
+      // Handle TAG and SIZE phases using helper method
+      if((Phase::TAG == state.phase) || (Phase::SIZE == state.phase))
+      {
+        return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
+      }
+
+      if(Phase::DATA == state.phase)
+      {
+        // Delegate to child state for nested message content
+        const uint32_t initial_size = buffer.get_size();
+        if(nullptr != state.child)
+        {
+          return_value = this->serialize_partial(buffer, *state.child);
+        }
+        else
+        {
+          return_value = this->serialize(buffer);
+        }
+        const uint32_t bytes_written = buffer.get_size() - initial_size;
+        state.bytes_remaining -= bytes_written;
+        if(0 == state.bytes_remaining)
+        {
+          state.phase = Phase::COMPLETE;
+          return_value = Error::NO_ERRORS; // May have been BUFFER_FULL but all bytes written
+        }
+      }
+
+      return return_value;
+    }
 
   protected:
     //! When deserializing skip the bytes in the buffer of an unknown field.
-    /*! 
-        This function is used when a field with an unknown id is encountered to move through the 
+    /*!
+        This function is used when a field with an unknown id is encountered to move through the
         buffer to the next tag.
     */
-    Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer, 
+    Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer,
                              const ::EmbeddedProto::WireFormatter::WireType& wire_type) const;
 
     Error skip_varint(::EmbeddedProto::ReadBufferInterface& buffer) const;

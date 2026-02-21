@@ -31,6 +31,7 @@
 #include "Fields.h"
 #include "MessageSizeCalculator.h"
 #include "WireFormatter.h"
+#include "MessageState.h"
 
 namespace EmbeddedProto 
 {
@@ -39,6 +40,47 @@ namespace EmbeddedProto
     ::EmbeddedProto::MessageSizeCalculator calcBuffer;
     this->serialize(calcBuffer);
     return calcBuffer.get_size();
+  }
+
+  Error Field::serialize_partial_tag_and_size(uint32_t field_number,
+                                             uint32_t size,
+                                             WriteBufferInterface& buffer,
+                                             MessageState& state,
+                                             bool optional) const
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    if(Phase::TAG == state.phase)
+    {
+      // Write tag
+      const uint32_t tag = WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED);
+      return_value = WireFormatter::SerializeVarint(tag, buffer);
+      if(Error::NO_ERRORS == return_value)
+      {
+        state.phase = Phase::SIZE;
+      }
+    }
+
+    if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+    {
+      // Write size
+      return_value = WireFormatter::SerializeVarint(size, buffer);
+      if(Error::NO_ERRORS == return_value)
+      {
+        state.bytes_remaining = size;
+        // For empty fields, skip DATA phase and go directly to COMPLETE
+        if(0 == size)
+        {
+          state.phase = Phase::COMPLETE;
+        }
+        else
+        {
+          state.phase = Phase::DATA;
+        }
+      }
+    }
+
+    return return_value;
   }
 
   Error Field::serialize_len(const uint32_t field_number,

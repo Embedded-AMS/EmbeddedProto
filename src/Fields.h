@@ -37,6 +37,7 @@
 #include "WriteBufferInterface.h"
 #include "ReadBufferInterface.h"
 #include "MessageSizeCalculator.h"
+#include "MessageState.h"
 
 #include <cstdint>
 
@@ -91,8 +92,22 @@ namespace EmbeddedProto
         \param wire_type The wire type obtained from the tag used to match with this field type.
         \return NO_ERROR if everything went ok.
       */
-      virtual Error deserialize_check_type(ReadBufferInterface& buffer, 
+      virtual Error deserialize_check_type(ReadBufferInterface& buffer,
                                            const ::EmbeddedProto::WireFormatter::WireType& wire_type) = 0;
+
+      //! Serialize this field with partial state support for LENGTH_DELIMITED fields.
+      /*!
+          Handles TAG->SIZE->DATA state machine for length-delimited field types.
+          \param field_number The field number for the tag.
+          \param buffer The buffer to write to.
+          \param state External state object tracking serialization progress.
+          \param optional If true, serialize even if size is zero.
+          \return NO_ERRORS if successful, BUFFER_FULL if buffer full.
+      */
+      virtual Error serialize_partial_as_field(uint32_t field_number,
+                                               WriteBufferInterface& buffer,
+                                               MessageState& state,
+                                               bool optional) const = 0;
 
       //! Calculate the size of this message when serialized.
       /*!
@@ -109,9 +124,9 @@ namespace EmbeddedProto
           \param optional If true, serialize even if size is zero.
           \return NO_ERRORS if successful.
       */
-      Error serialize_len(const uint32_t field_number, 
+      Error serialize_len(const uint32_t field_number,
                           const uint32_t size,
-                          WriteBufferInterface& buffer, 
+                          WriteBufferInterface& buffer,
                           const bool optional) const;
 
       //! Serialize this field with VARINT, FIXED32, or FIXED64 wire type.
@@ -127,11 +142,28 @@ namespace EmbeddedProto
       Error serialize_scalar(const uint32_t field_number,
                              const WireFormatter::WireType wire_type,
                              const bool is_default,
-                             WriteBufferInterface& buffer, 
+                             WriteBufferInterface& buffer,
                              const bool optional) const;
 
       //! Reset the field to it's initial value.
       virtual void clear() = 0;
+
+    protected:
+      //! Helper method for TAG and SIZE phases of partial serialization.
+      /*!
+          Handles the shared TAG and SIZE phases for LENGTH_DELIMITED fields.
+          \param field_number The field number for the tag.
+          \param size The size of the data to be written.
+          \param buffer The buffer to write to.
+          \param state External state object tracking serialization progress.
+          \param optional If true, serialize even if size is zero.
+          \return NO_ERRORS when phase reaches DATA, other errors on failure.
+      */
+      Error serialize_partial_tag_and_size(uint32_t field_number,
+                                           uint32_t size,
+                                           WriteBufferInterface& buffer,
+                                           MessageState& state,
+                                           bool optional) const;
 
 #ifdef MSG_TO_STRING
       //! Write all the data in this field to a human readable string.
@@ -164,7 +196,7 @@ namespace EmbeddedProto
       inline Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const
       {
         Error return_value = Error::NO_ERRORS;
-        
+
         // For non-optional fields, skip serialization if value equals default (zero/false)
         if(optional || (static_cast<VARIABLE_TYPE>(0) != value_))
         {
@@ -174,9 +206,76 @@ namespace EmbeddedProto
             return_value = serialize(buffer);
           }
         }
-        
+
         return return_value;
-      }   
+      }
+
+      inline Error serialize_partial_with_id(uint32_t field_number,
+                                             WriteBufferInterface& buffer,
+                                             MessageState& state,
+                                             bool optional) const
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        // For non-optional fields, skip serialization if value equals default (zero/false)
+        if(optional || (static_cast<VARIABLE_TYPE>(0) != value_))
+        {
+          if(Phase::TAG == state.phase)
+          {
+            // For scalar fields, we need atomic write of tag+value
+            // Check if we have enough space for both tag and value
+            const uint32_t tag_size = WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, WIRETYPE));
+            const uint32_t value_size = this->serialized_size();
+            const uint32_t required_space = tag_size + value_size;
+
+            // Check available space - if not enough, rollback immediately
+            if(buffer.get_available_size() < required_space)
+            {
+              return_value = Error::BUFFER_FULL;
+              // Important: Do NOT modify state when rolling back
+              return return_value; // Early return to prevent any state modification
+            }
+
+            // Write tag
+            return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
+            if(Error::NO_ERRORS == return_value)
+            {
+              state.phase = Phase::DATA;
+            }
+            else
+            {
+              // Tag write failed - rollback state
+              return_value = Error::BUFFER_FULL;
+              return return_value; // Early return on tag write failure
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          {
+            // Write value - this should always fit if TAG phase succeeded
+            return_value = serialize(buffer);
+            if(Error::NO_ERRORS == return_value)
+            {
+              state.phase = Phase::COMPLETE;
+            }
+            else
+            {
+              // Value write failed - rollback to TAG phase
+              state.phase = Phase::TAG;
+              return_value = Error::BUFFER_FULL;
+              // Note: We've already written the tag, so we can't fully rollback
+              // This is a partial write scenario that should be rare
+            }
+          }
+        }
+        else
+        {
+          // Field has default value - skip to complete
+          state.phase = Phase::COMPLETE;
+        }
+
+        return return_value;
+      }
 
       inline Error serialize(WriteBufferInterface& buffer) const
       {

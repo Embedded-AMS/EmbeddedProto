@@ -177,15 +177,100 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                    const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
       {
-        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
                              ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-        if(Error::NO_ERRORS == return_value)  
+        if(Error::NO_ERRORS == return_value)
         {
           return_value = this->deserialize(buffer);
         }
+        return return_value;
+      }
+
+      Error serialize_partial_as_field(uint32_t field_number,
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state,
+                                     bool optional) const override
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(REPEATED_FIELD_IS_PACKED)
+        {
+          // Packed repeated field: TAG->SIZE->DATA state machine
+          if(Phase::DATA != state.phase)
+          {
+            // Calculate total packed size
+            const uint32_t total_size = serialized_size_packed();
+            return_value = serialize_partial_tag_and_size(field_number, total_size, buffer, state, optional);
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          {
+            // Serialize elements sequentially
+            if(state.element_index < this->get_length())
+            {
+              const uint32_t initial_size = buffer.get_size();
+              return_value = this->get_const(state.element_index).serialize(buffer);
+              const uint32_t bytes_written = buffer.get_size() - initial_size;
+              state.bytes_remaining -= bytes_written;
+
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++state.element_index;
+              }
+
+              if(0 == state.bytes_remaining)
+              {
+                state.phase = Phase::COMPLETE;
+              }
+            }
+            else
+            {
+              state.phase = Phase::COMPLETE;
+            }
+          }
+        }
+        else
+        {
+          // Unpacked repeated field: Each element gets its own TAG->SIZE->DATA
+          if(state.phase == Phase::COMPLETE)
+          {
+            // All elements serialized
+            return return_value;
+          }
+
+          // Handle current element
+          if(state.element_index < this->get_length())
+          {
+            const auto& element = this->get_const(state.element_index);
+
+            // Check if element is a Field-derived type (messages, strings, bytes) or scalar type
+            if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+            {
+              // Field-derived types (messages, strings, bytes) use serialize_partial_as_field
+              return_value = element.serialize_partial_as_field(field_number, buffer, state, true);
+            }
+            else
+            {
+              // Scalar types use serialize_partial_with_id
+              return_value = element.serialize_partial_with_id(field_number, buffer, state, true);
+            }
+
+            if((Error::NO_ERRORS == return_value) && (state.phase == Phase::COMPLETE))
+            {
+              // Element complete, move to next
+              ++state.element_index;
+              state.phase = Phase::TAG; // Reset for next element
+            }
+          }
+          else
+          {
+            state.phase = Phase::COMPLETE;
+          }
+        }
+
         return return_value;
       }
 

@@ -1,7 +1,5 @@
 ## 15. Phase 2 Unit Test Design: test_string_bytes.cpp
 
-## 15. Phase 2 Unit Test Design: test_string_bytes.cpp
-
 This section details the unit tests for partial serialization of string and bytes fields using messages from `test/proto/string_bytes.proto`.
 
 ### 15.1 Test Messages Reference

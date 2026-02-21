@@ -218,23 +218,133 @@ namespace EmbeddedProto
           return return_value;
         }
         
-        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                      const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
         {
-          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
                                ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-          if(Error::NO_ERRORS == return_value)  
+          if(Error::NO_ERRORS == return_value)
           {
             return_value = this->deserialize(buffer);
           }
           return return_value;
         }
 
+        Error serialize_partial_as_field(uint32_t field_number,
+                                         WriteBufferInterface& buffer,
+                                         MessageState& state,
+                                         bool optional) const override
+        {
+          Error return_value = Error::NO_ERRORS;
+
+          // Handle TAG and SIZE phases using helper method
+          if(Phase::DATA != state.phase)
+          {
+            return_value = serialize_partial_tag_and_size(field_number, get_length(), buffer, state, optional);
+          }
+
+          // Handle DATA phase
+          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          {
+            // Calculate how many bytes we can write (limited by buffer space and remaining data)
+            const uint32_t bytes_to_write = std::min(state.bytes_remaining, buffer.get_available_size());
+
+            if(bytes_to_write > 0)
+            {
+              // Calculate starting position in data array
+              const uint32_t start_offset = get_length() - state.bytes_remaining;
+              const auto* void_pointer = static_cast<const void*>(&(data_[start_offset]));
+              const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+
+              // Try to write all bytes at once first
+              if(buffer.push(byte_pointer, bytes_to_write))
+              {
+                state.bytes_remaining -= bytes_to_write;
+                if(0 == state.bytes_remaining)
+                {
+                  state.phase = Phase::COMPLETE;
+                  return_value = Error::NO_ERRORS;
+                }
+                else
+                {
+                  return_value = Error::BUFFER_FULL;
+                }
+              }
+              else
+              {
+                // Buffer push failed - this can happen when the buffer's push method
+                // uses > instead of >=, so we can't fill the buffer completely.
+                // In this case, try to write bytes one at a time.
+                uint32_t bytes_written = 0;
+                for(uint32_t i = 0; i < bytes_to_write; ++i)
+                {
+                    if(buffer.push(byte_pointer[i]))
+                    {
+                        bytes_written++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                if(bytes_written > 0)
+                {
+                    state.bytes_remaining -= bytes_written;
+                    if(0 == state.bytes_remaining)
+                    {
+                        state.phase = Phase::COMPLETE;
+                        return_value = Error::NO_ERRORS;
+                    }
+                    else
+                    {
+                        return_value = Error::BUFFER_FULL;
+                    }
+                }
+                else
+                {
+                    // Couldn't write any bytes - this should not happen unless buffer is completely full
+                    // To prevent infinite loops, we need to ensure progress is made
+                    // If we can't write any bytes and there are still bytes remaining, we have a problem
+                    if(state.bytes_remaining > 0)
+                    {
+                        // This is the infinite loop scenario - buffer is full but we can't write any bytes
+                        // We need to return BUFFER_FULL to indicate we need a new buffer
+                        return_value = Error::BUFFER_FULL;
+                    }
+                    else
+                    {
+                        state.phase = Phase::COMPLETE;
+                        return_value = Error::NO_ERRORS;
+                    }
+                }
+              }
+            }
+            else
+            {
+              // No space available in buffer - this can happen if buffer is completely full
+              // In this case, we need to ensure we don't get stuck in an infinite loop
+              // by checking if we've made any progress
+              if(state.bytes_remaining > 0)
+              {
+                return_value = Error::BUFFER_FULL;
+              }
+              else
+              {
+                state.phase = Phase::COMPLETE;
+                return_value = Error::NO_ERRORS;
+              }
+            }
+          }
+
+          return return_value;
+        }
+
         //! Reset the field to it's initial value.
-        void clear() override 
-        { 
+        void clear() override
+        {
           data_.fill(0);
-          current_length_ = 0; 
+          current_length_ = 0;
         }
 
         //! When serialized with the all elements set, how much bytes are then required.
