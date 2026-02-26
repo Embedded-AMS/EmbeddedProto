@@ -1083,7 +1083,7 @@ TEST(FieldString, PartialSerialize_String_BufferTooSmallForTag)
 
 TEST(FieldString, PartialSerialize_String_BufferOnlyFitsTag)
 {
-  // Test 15.3.5: Current implementation behavior - tag is written even if size doesn't fit
+  // Test 15.3.5: Tag+size are written atomically for length-delimited fields.
   text<10> msg;
   msg.mutable_txt() = "Foo bar";  // 7 chars, size fits in 1 byte
 
@@ -1094,16 +1094,14 @@ TEST(FieldString, PartialSerialize_String_BufferOnlyFitsTag)
   ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
 
   EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
-  EXPECT_EQ(1U, bufferA.get_size());  // Current behavior: tag is written
-  EXPECT_EQ(0x0a, bufferA.get_data()[0]);  // Tag byte
+  EXPECT_EQ(0U, bufferA.get_size());  // No partial tag write
 
   // Second buffer with sufficient space should complete the field
-  // Note: This will write size + data, but the tag is already in bufferA
   ::EmbeddedProto::WriteBufferFixedSize<20> bufferB;
   result = msg.serialize_partial(bufferB, state.root());
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(8U, bufferB.get_size());  // size (1) + data (7)
+  EXPECT_EQ(9U, bufferB.get_size());  // tag (1) + size (1) + data (7)
 }
 
 TEST(FieldString, PartialSerialize_String_SplitInData)

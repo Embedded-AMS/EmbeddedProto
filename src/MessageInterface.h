@@ -84,6 +84,14 @@ class MessageInterface : public ::EmbeddedProto::Field
     {
       Error return_value = Error::NO_ERRORS;
 
+      // Skip serializing empty fields for non-optional fields (proto3 default behavior)
+      // This matches the behavior of serialize_len() method
+      if(!optional && (0 == serialized_size()))
+      {
+        state.phase = Phase::COMPLETE;
+        return return_value;
+      }
+
       // Handle TAG and SIZE phases using helper method
       if((Phase::TAG == state.phase) || (Phase::SIZE == state.phase))
       {

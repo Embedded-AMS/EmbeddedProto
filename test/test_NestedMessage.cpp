@@ -611,7 +611,7 @@ TEST(NestedMessage, PartialSerialize_NestedMessage_SplitAtTag)
 
 TEST(NestedMessage, PartialSerialize_NestedMessage_SplitAtSize)
 {
-  // Test 3.3: Verify that serialization can be split between nested message tag and size.
+  // Test 3.3: Verify atomic tag+size for nested message field.
   constexpr uint32_t SIZE_MSG_A = 3;
   ::demo::space::message_b<SIZE_MSG_A> msg;
   
@@ -622,17 +622,17 @@ TEST(NestedMessage, PartialSerialize_NestedMessage_SplitAtSize)
   msg.mutable_nested_a().set_z(1);
   msg.set_v(1);
 
-  // Buffer A: fits u + nested_a tag only (10 bytes)
+  // Buffer A: cannot fit nested_a tag+size atomically after u field.
   ::EmbeddedProto::WriteBufferFixedSize<10> bufferA;
   ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
 
   ::EmbeddedProto::Error result = msg.serialize_partial(bufferA, state.root());
 
   EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
-  EXPECT_EQ(10U, bufferA.get_size());
+  EXPECT_EQ(9U, bufferA.get_size());
   
-  // Verify Buffer A contains u + nested_a tag
-  std::array<uint8_t, 10> expectedA = {0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, 0x12};
+  // Verify Buffer A contains only u field
+  std::array<uint8_t, 9> expectedA = {0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F};
   for(uint32_t i = 0; i < expectedA.size(); ++i)
   {
     EXPECT_EQ(expectedA[i], bufferA.get_data()[i]) << "Mismatch in buffer A at byte " << i;
@@ -643,11 +643,11 @@ TEST(NestedMessage, PartialSerialize_NestedMessage_SplitAtSize)
   result = msg.serialize_partial(bufferB, state.root());
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(13U, bufferB.get_size());
+  EXPECT_EQ(14U, bufferB.get_size());
   
-  // Verify Buffer B contains remaining message starting with nested_a size
-  std::array<uint8_t, 13> expectedB = {
-    0x0A, // size of nested_a
+  // Verify Buffer B contains remaining message starting with nested_a tag+size
+  std::array<uint8_t, 14> expectedB = {
+    0x12, 0x0A, // tag and size of nested_a
     0x0A, 0x01, 0x01, // x
     0x15, 0x00, 0x00, 0x80, 0x3F, // y
     0x18, 0x02, // z
@@ -966,7 +966,7 @@ TEST(NestedMessage, PartialSerialize_EmptyNestedMessage)
   
   // Set up message with empty nested message
   msg.set_u(1.0);
-  // nested_a is not set (empty) - but it will still serialize tag+size=0
+  // nested_a is empty and non-optional, so it is skipped.
   msg.set_v(1);
 
   ::EmbeddedProto::WriteBufferFixedSize<20> buffer;
@@ -975,12 +975,11 @@ TEST(NestedMessage, PartialSerialize_EmptyNestedMessage)
   ::EmbeddedProto::Error result = msg.serialize_partial(buffer, state.root());
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(13U, buffer.get_size()); // u field + nested_a tag+size(0) + v field
+  EXPECT_EQ(11U, buffer.get_size()); // u field + v field
   
-  // Verify expected bytes (u field + empty nested_a + v field)
-  std::array<uint8_t, 13> expected = {
+  // Verify expected bytes (u field + v field)
+  std::array<uint8_t, 11> expected = {
     0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
-    0x12, 0x00, // nested_a tag + size (0)
     0x18, 0x01  // v
   };
   

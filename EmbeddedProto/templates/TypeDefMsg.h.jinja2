@@ -223,32 +223,39 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           case 0:
             // Start of serialization - initialize state
             {% if typedef.fields|length > 0 %}
-            // Start with first regular field
+            // Start with first regular field.
+            // Keep this order aligned with serialize().
             state.field_id = static_cast<uint32_t>(FieldNumber::{{ typedef.fields[0].get_variable_id_name() }});
             state.phase = ::EmbeddedProto::Phase::TAG;
+            field_id = state.field_id;
             {% elif typedef.oneofs|length > 0 %}
-            // For oneof-only messages, find the first oneof field that is set
+            // No regular fields available, start with first set oneof field.
             {% for oneof in typedef.oneofs %}
-            {% for field in oneof.get_fields() %}
-            if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
+            switch({{oneof.get_which_oneof()}})
             {
-                state.field_id = static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}});
-                state.phase = ::EmbeddedProto::Phase::TAG;
-                field_id = state.field_id;
-                break;
+                {% for field in oneof.get_fields() %}
+                case FieldNumber::{{field.get_variable_id_name()}}:
+                    state.field_id = static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}});
+                    state.phase = ::EmbeddedProto::Phase::TAG;
+                    field_id = state.field_id;
+                    break;
+                {% endfor %}
+                default:
+                    // This oneof is not set, try next oneof or regular fields
+                    {% if loop.last %}
+                    // No fields to serialize
+                    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                    {% endif %}
+                    break;
             }
+            {% if loop.last %}
+            break;
+            {% endif %}
             {% endfor %}
-            {% endfor %}
-            // If no oneof field is set, we're done
-            if(0 == state.field_id)
-            {
-                state.phase = ::EmbeddedProto::Phase::COMPLETE;
-            }
             {% else %}
-            state.field_id = 0;
+            // No fields to serialize
             state.phase = ::EmbeddedProto::Phase::COMPLETE;
             {% endif %}
-            field_id = state.field_id;
             break;
             
           {% for field in typedef.fields %}

@@ -52,8 +52,20 @@ namespace EmbeddedProto
 
     if(Phase::TAG == state.phase)
     {
-      // Write tag
+      // Check if we have enough space for both tag and size atomically
       const uint32_t tag = WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED);
+      const uint32_t tag_size = WireFormatter::VarintSize(tag);
+      const uint32_t size_size = WireFormatter::VarintSize(size);
+      const uint32_t required_space = tag_size + size_size;
+
+      if(buffer.get_available_size() < required_space)
+      {
+        // Not enough space for atomic tag+size operation - rollback
+        return_value = Error::BUFFER_FULL;
+        return return_value;
+      }
+
+      // Write tag
       return_value = WireFormatter::SerializeVarint(tag, buffer);
       if(Error::NO_ERRORS == return_value)
       {
