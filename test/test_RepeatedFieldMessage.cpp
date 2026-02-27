@@ -33,6 +33,7 @@
 #include <WireFormatter.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
+#include <WriteBufferFixedSize.h>
 
 #include <ReadBufferFixedSize.h>
 
@@ -759,6 +760,50 @@ TEST(RepeatedFieldMessage, deserialize_repeated_enum)
   EXPECT_EQ(SomeEnum::SE_A, enum_msg.get_enum_values()[0]);
   EXPECT_EQ(SomeEnum::SE_B, enum_msg.get_enum_values()[1]);
   EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
+}
+
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_FreshChildState_MakesProgress)
+{
+  repeated_message<Y_SIZE> msg;
+  repeated_nested_message e0;
+  e0.set_u(1);
+  e0.set_v(1);
+  repeated_nested_message e1;
+  e1.set_u(2);
+  e1.set_v(2);
+  msg.add_b(e0);
+  msg.add_b(e1);
+
+  repeated_message<Y_SIZE>::StateStack state;
+  ASSERT_NE(nullptr, state.root().child);
+
+  // Emulate we are in the DATA phase of element 1 (second element), with a clean child state.
+  state.root().field_id = static_cast<uint32_t>(repeated_message<Y_SIZE>::FieldNumber::B);
+  state.root().phase = ::EmbeddedProto::Phase::DATA;
+  state.root().element_index = 1;
+  state.root().bytes_remaining = msg.b(1).serialized_size();
+
+  ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
+
+  const uint32_t size_before = buffer.get_size();
+  const uint32_t remaining_before = state.root().bytes_remaining;
+  const uint32_t index_before = state.root().element_index;
+
+  const ::EmbeddedProto::Error result = msg.mutable_b().serialize_partial_as_field(
+      static_cast<uint32_t>(repeated_message<Y_SIZE>::FieldNumber::B),
+      buffer,
+      state.root(),
+      false);
+
+  const bool made_progress =
+      (buffer.get_size() != size_before) ||
+      (state.root().bytes_remaining != remaining_before) ||
+      (state.root().element_index != index_before) ||
+      (state.root().phase != ::EmbeddedProto::Phase::DATA) ||
+      (result != ::EmbeddedProto::Error::NO_ERRORS);
+
+  EXPECT_TRUE(made_progress)
+      << "Expected progress with clean child state, but serializer made no progress.";
 }
 
 #ifdef MSG_TO_STRING

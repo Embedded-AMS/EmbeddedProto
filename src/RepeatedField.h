@@ -262,6 +262,12 @@ namespace EmbeddedProto
             {
               // Element complete, move to next
               ++state.element_index;
+              // Reset child state for next element to avoid stale COMPLETE phase
+              // in nested message serialization.
+              if(nullptr != state.child)
+              {
+                state.child->reset();
+              }
               state.phase = Phase::TAG; // Reset for next element
             }
           }
