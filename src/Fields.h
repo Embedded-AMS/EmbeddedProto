@@ -104,10 +104,30 @@ namespace EmbeddedProto
           \param optional If true, serialize even if size is zero.
           \return NO_ERRORS if successful, BUFFER_FULL if buffer full.
       */
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       virtual Error serialize_partial_as_field(uint32_t field_number,
                                                WriteBufferInterface& buffer,
                                                MessageState& state,
                                                bool optional) const = 0;
+#else
+      virtual Error serialize_partial_as_field(uint32_t field_number,
+                                               WriteBufferInterface& buffer,
+                                               MessageState& state,
+                                               bool optional) const
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(!optional && (0U == serialized_size()))
+        {
+          state.phase = Phase::COMPLETE;
+          return return_value;
+        }
+
+        (void)state;
+        return_value = serialize_len(field_number, serialized_size(), buffer, optional);
+        return return_value;
+      }
+#endif
 
       //! Calculate the size of this message when serialized.
       /*!
@@ -159,11 +179,13 @@ namespace EmbeddedProto
           \param optional If true, serialize even if size is zero.
           \return NO_ERRORS when phase reaches DATA, other errors on failure.
       */
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       Error serialize_partial_tag_and_size(uint32_t field_number,
                                            uint32_t size,
                                            WriteBufferInterface& buffer,
                                            MessageState& state,
                                            bool optional) const;
+#endif
 
 #ifdef MSG_TO_STRING
       //! Write all the data in this field to a human readable string.
@@ -210,6 +232,7 @@ namespace EmbeddedProto
         return return_value;
       }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       inline Error serialize_partial_with_id(uint32_t field_number,
                                              WriteBufferInterface& buffer,
                                              MessageState& state,
@@ -276,6 +299,7 @@ namespace EmbeddedProto
 
         return return_value;
       }
+#endif
 
       inline Error serialize(WriteBufferInterface& buffer) const
       {

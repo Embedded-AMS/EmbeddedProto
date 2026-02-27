@@ -189,12 +189,20 @@ namespace EmbeddedProto
         return return_value;
       }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       Error serialize_partial_as_field(uint32_t field_number,
                                      WriteBufferInterface& buffer,
                                      MessageState& state,
                                      bool optional) const override
       {
         Error return_value = Error::NO_ERRORS;
+
+        // Skip serializing empty non-optional repeated fields (proto3 default behavior).
+        if((!optional) && (0U == this->get_length()))
+        {
+          state.phase = Phase::COMPLETE;
+          return return_value;
+        }
 
         if(REPEATED_FIELD_IS_PACKED)
         {
@@ -279,6 +287,7 @@ namespace EmbeddedProto
 
         return return_value;
       }
+#endif
 
 
       //! Calculate the size of this field when serialized.

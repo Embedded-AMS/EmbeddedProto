@@ -39,9 +39,11 @@ namespace EmbeddedProto
   {
     ::EmbeddedProto::MessageSizeCalculator calcBuffer;
     this->serialize(calcBuffer);
+
     return calcBuffer.get_size();
   }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
   Error Field::serialize_partial_tag_and_size(uint32_t field_number,
                                              uint32_t size,
                                              WriteBufferInterface& buffer,
@@ -94,6 +96,7 @@ namespace EmbeddedProto
 
     return return_value;
   }
+#endif
 
   Error Field::serialize_len(const uint32_t field_number,
                              const uint32_t size,

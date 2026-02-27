@@ -230,6 +230,7 @@ namespace EmbeddedProto
           return return_value;
         }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
         Error serialize_partial_as_field(uint32_t field_number,
                                          WriteBufferInterface& buffer,
                                          MessageState& state,
@@ -339,6 +340,7 @@ namespace EmbeddedProto
 
           return return_value;
         }
+#endif
 
         //! Reset the field to it's initial value.
         void clear() override

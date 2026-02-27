@@ -63,6 +63,7 @@ class MessageInterface : public ::EmbeddedProto::Field
     */
     void clear() override = 0;
     
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
     //! Serialize message with partial state support.
     /*!
         This method serializes the message in chunks, allowing serialization to be paused
@@ -75,12 +76,12 @@ class MessageInterface : public ::EmbeddedProto::Field
         \return Other errors on failure (state should be reset).
     */
     virtual Error serialize_partial(WriteBufferInterface& buffer,
-                                   MessageState& state) const = 0;
+                                    MessageState& state) const = 0;
 
     Error serialize_partial_as_field(uint32_t field_number,
-                                   WriteBufferInterface& buffer,
-                                   MessageState& state,
-                                   bool optional) const override
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state,
+                                     bool optional) const override
     {
       Error return_value = Error::NO_ERRORS;
 
@@ -100,27 +101,38 @@ class MessageInterface : public ::EmbeddedProto::Field
 
       if(Phase::DATA == state.phase)
       {
-        // Delegate to child state for nested message content
-        const uint32_t initial_size = buffer.get_size();
         if(nullptr != state.child)
         {
           return_value = this->serialize_partial(buffer, *state.child);
+          if((Error::NO_ERRORS == return_value) && (Phase::COMPLETE == state.child->phase))
+          {
+            state.bytes_remaining = 0U;
+            state.phase = Phase::COMPLETE;
+          }
         }
         else
         {
-          return_value = this->serialize(buffer);
-        }
-        const uint32_t bytes_written = buffer.get_size() - initial_size;
-        state.bytes_remaining -= bytes_written;
-        if(0 == state.bytes_remaining)
-        {
-          state.phase = Phase::COMPLETE;
-          return_value = Error::NO_ERRORS; // May have been BUFFER_FULL but all bytes written
+          return_value = Error::NESTING_TOO_DEEP;
         }
       }
 
       return return_value;
     }
+#else
+    //! Fallback partial-serialization API for full serialization mode.
+    /*!
+        This function preserves API compatibility when EP_SERIALIZATION_MODE is set to
+        EP_SERIALIZATION_MODE_FULL. It performs a regular serialize() call and marks
+        the provided state as complete.
+    */
+    virtual Error serialize_partial(WriteBufferInterface& buffer,
+                                    MessageState& state) const
+    {
+      Error return_value = serialize(buffer);
+      state.phase = Phase::COMPLETE;
+      return return_value;
+    }
+#endif
 
   protected:
     //! When deserializing skip the bytes in the buffer of an unknown field.

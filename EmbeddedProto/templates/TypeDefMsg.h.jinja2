@@ -201,6 +201,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
     ::EmbeddedProto::Error serialize_partial(::EmbeddedProto::WriteBufferInterface& buffer, 
                                             ::EmbeddedProto::MessageState& state) const override
     {
@@ -212,10 +213,29 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       
       // Get the field id to serialize (from state or start from first field)
       uint32_t field_id = state.field_id;
+
+      {% set ns = namespace(oneof_field_count=0) %}
+      {% for oneof in typedef.oneofs %}
+      {% set ns.oneof_field_count = ns.oneof_field_count + (oneof.get_fields()|length) %}
+      {% endfor %}
+      static constexpr uint32_t STATIC_PARTIAL_ITERATION_BUDGET = {{ (typedef.fields|length) + ns.oneof_field_count + 1 }}U;
+      const uint32_t serialized_size_value = max_serialized_size();
+      uint32_t max_partial_iterations = STATIC_PARTIAL_ITERATION_BUDGET;
+      if((std::numeric_limits<uint32_t>::max() - max_partial_iterations) > serialized_size_value)
+      {
+        max_partial_iterations += serialized_size_value;
+      }
+      else
+      {
+        max_partial_iterations = std::numeric_limits<uint32_t>::max();
+      }
       
       // Iterate through fields based on state
-      while((::EmbeddedProto::Error::NO_ERRORS == return_value) && 
-            (::EmbeddedProto::Phase::COMPLETE != state.phase))
+      for(uint32_t iteration = 0;
+          (iteration < max_partial_iterations)
+          && (::EmbeddedProto::Error::NO_ERRORS == return_value)
+          && (::EmbeddedProto::Phase::COMPLETE != state.phase);
+          ++iteration)
       {
         // Determine which field to serialize based on field_id
         switch(field_id)
@@ -439,9 +459,16 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           }
         }
       }
+
+      if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+         && (::EmbeddedProto::Phase::COMPLETE != state.phase))
+      {
+        return_value = ::EmbeddedProto::Error::STATE_MISMATCH;
+      }
       
       return return_value;
     }
+#endif
 
     ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
     {

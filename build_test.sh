@@ -32,6 +32,14 @@
 # Fail on first non-zero return code
 set -exuo pipefail
 
+SERIALIZATION_MODE="${1:-1}"
+
+if [[ ("${SERIALIZATION_MODE}" != "0") && ("${SERIALIZATION_MODE}" != "1") ]]; then
+  echo "Usage: $0 [EP_SERIALIZATION_MODE]"
+  echo "  EP_SERIALIZATION_MODE: 0 (full, default in code) or 1 (partial)"
+  exit 1
+fi
+
 # Build the tests
-cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-DEP_SERIALIZATION_MODE=${SERIALIZATION_MODE}" -B./build/test
 make -j16 -C ./build/test
