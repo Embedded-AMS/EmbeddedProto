@@ -991,6 +991,8 @@ TEST(RepeatedBytesNestedOnly, test_nested_only) {
 // Partial Serialization Tests for String and Bytes Fields
 //==============================================================================
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
 TEST(FieldString, PartialSerialize_String_ShortText_SufficientBuffer)
 {
   // Test 15.3.1: Partial serialization of a short string field with sufficient buffer
@@ -1776,3 +1778,5 @@ TEST(RepeatedStringBytes, PartialSerialize_RepeatedBytes_ThreeArrays_LargeBuffer
     EXPECT_EQ(expected[i], buffer.get_data()[i]);
   }
 }
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL

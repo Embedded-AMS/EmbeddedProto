@@ -487,6 +487,8 @@ TEST(OneofField, to_string)
 // Partial Serialization Tests
 //==============================================================================
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
 TEST(OneofField, PartialSerialize_ScalarOneof_SufficientBuffer)
 {
   // Test 3.1: Single scalar oneof field with sufficient buffer
@@ -1277,3 +1279,5 @@ TEST(OneofField, PartialSerialize_BasicOneof_SetToZero)
   EXPECT_EQ(0x18, buffer.get_data()[0]);
   EXPECT_EQ(0x00, buffer.get_data()[1]);
 }
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL

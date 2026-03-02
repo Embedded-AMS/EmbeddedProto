@@ -762,6 +762,8 @@ TEST(RepeatedFieldMessage, deserialize_repeated_enum)
   EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
 }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
 TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_FreshChildState_MakesProgress)
 {
   repeated_message<Y_SIZE> msg;
@@ -805,6 +807,8 @@ TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_FreshChildState_Make
   EXPECT_TRUE(made_progress)
       << "Expected progress with clean child state, but serializer made no progress.";
 }
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL
 
 #ifdef MSG_TO_STRING
 

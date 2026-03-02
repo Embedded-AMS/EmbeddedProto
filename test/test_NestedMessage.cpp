@@ -522,6 +522,8 @@ TEST(NestedMessage, to_string)
 
 #endif // MSG_TO_STRING
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
 TEST(NestedMessage, PartialSerialize_SingleNestedMessage_SufficientBuffer)
 {
   // Test 3.1: Partial serialization of a message with a single nested message works when buffer is sufficient.
@@ -1137,5 +1139,7 @@ TEST(NestedMessage, PartialSerialize_MaximumValues)
   }
   EXPECT_TRUE(found_nested_a_tag);
 }
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL
 
 } // End of namespace test_EmbeddedAMS_NestedMessage

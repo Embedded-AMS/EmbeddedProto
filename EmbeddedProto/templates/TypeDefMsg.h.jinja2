@@ -103,11 +103,13 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     };
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
     //! State depth for partial serialization.
     static constexpr uint32_t STATE_DEPTH = {{ typedef.get_state_depth() }};
     
     //! Convenience typedef for the state stack.
     using StateStack = ::EmbeddedProto::MessageStateStack<STATE_DEPTH>;
+#endif
 
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
     {

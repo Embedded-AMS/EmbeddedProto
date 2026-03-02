@@ -109,24 +109,6 @@ namespace EmbeddedProto
                                                WriteBufferInterface& buffer,
                                                MessageState& state,
                                                bool optional) const = 0;
-#else
-      virtual Error serialize_partial_as_field(uint32_t field_number,
-                                               WriteBufferInterface& buffer,
-                                               MessageState& state,
-                                               bool optional) const
-      {
-        Error return_value = Error::NO_ERRORS;
-
-        if(!optional && (0U == serialized_size()))
-        {
-          state.phase = Phase::COMPLETE;
-          return return_value;
-        }
-
-        (void)state;
-        return_value = serialize_len(field_number, serialized_size(), buffer, optional);
-        return return_value;
-      }
 #endif
 
       //! Calculate the size of this message when serialized.

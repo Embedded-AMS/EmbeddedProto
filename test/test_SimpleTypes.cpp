@@ -652,6 +652,8 @@ TEST(SimpleTypes, to_string)
 // Partial Serialization Tests
 //==============================================================================
 
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
 TEST(SimpleTypes, PartialSerialize_SingleVarintField_SufficientBuffer)
 {
   // Test 14.3.1: Single varint field with sufficient buffer
@@ -1178,4 +1180,6 @@ TEST(SimpleTypes, PartialSerialize_ConsecutiveSmallBuffers_VerifyProgress)
   EXPECT_EQ(0x01, buffer4.get_data()[1]);
 }
 
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL
 } // End of namespace test_EmbeddedAMS_SimpleTypes

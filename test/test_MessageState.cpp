@@ -30,7 +30,10 @@
 
 #include "gtest/gtest.h"
 
+#include <Defines.h>
 #include <MessageState.h>
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
 
 namespace test_EmbeddedAMS_MessageState 
 {
@@ -268,3 +271,5 @@ TEST(MessageStateStack, TypicalUsagePattern)
 }
 
 } // namespace test_EmbeddedAMS_MessageState
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL

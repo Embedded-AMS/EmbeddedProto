@@ -118,20 +118,6 @@ class MessageInterface : public ::EmbeddedProto::Field
 
       return return_value;
     }
-#else
-    //! Fallback partial-serialization API for full serialization mode.
-    /*!
-        This function preserves API compatibility when EP_SERIALIZATION_MODE is set to
-        EP_SERIALIZATION_MODE_FULL. It performs a regular serialize() call and marks
-        the provided state as complete.
-    */
-    virtual Error serialize_partial(WriteBufferInterface& buffer,
-                                    MessageState& state) const
-    {
-      Error return_value = serialize(buffer);
-      state.phase = Phase::COMPLETE;
-      return return_value;
-    }
 #endif
 
   protected:
