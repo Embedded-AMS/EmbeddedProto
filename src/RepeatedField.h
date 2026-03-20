@@ -40,6 +40,7 @@
 #include "Errors.h"
 
 #include <cstdint>
+#include <type_traits>
 
 
 namespace EmbeddedProto
@@ -193,9 +194,128 @@ namespace EmbeddedProto
       Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                          MessageState& state) override
       {
-        (void)buffer;
-        (void)state;
-        return Error::STATE_MISMATCH;
+        Error return_value = Error::NO_ERRORS;
+
+        if(REPEATED_FIELD_IS_PACKED)
+        {
+          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+          {
+            return_value = deserialize_partial_size_phase(buffer, state);
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          {
+            ReadBufferSection section(buffer, state.bytes_remaining);
+            const uint32_t section_size_before = section.get_size();
+            DATA_TYPE element;
+            Error element_result = element.deserialize(section);
+
+            while(Error::NO_ERRORS == element_result)
+            {
+              return_value = this->add(element);
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++state.element_index;
+                element_result = element.deserialize(section);
+              }
+              else
+              {
+                return_value = Error::ARRAY_FULL;
+                element_result = Error::ARRAY_FULL;
+              }
+            }
+
+            const uint32_t section_size_after = section.get_size();
+            const uint32_t bytes_consumed = section_size_before - section_size_after;
+            state.bytes_remaining -= bytes_consumed;
+
+            if(Error::NO_ERRORS == return_value)
+            {
+              if(0U == state.bytes_remaining)
+              {
+                state.phase = Phase::COMPLETE;
+                return_value = Error::NO_ERRORS;
+              }
+              else if(Error::END_OF_BUFFER == element_result)
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+              else
+              {
+                return_value = element_result;
+              }
+            }
+          }
+        }
+        else
+        {
+          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if(Error::NO_ERRORS == return_value)
+          {
+            uint32_t index = state.element_index;
+            if(index > this->get_length())
+            {
+              return_value = Error::STATE_MISMATCH;
+            }
+            else
+            {
+              const bool is_new_element = (index == this->get_length());
+              if(is_new_element && (this->get_max_length() <= index))
+              {
+                return_value = Error::ARRAY_FULL;
+              }
+              else
+              {
+                if(is_new_element)
+                {
+                  // Reserve a slot for this element.
+                  (void)this->get(index);
+                }
+
+                if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+                {
+                  return_value = this->get(index).deserialize_partial_as_field(buffer, state);
+                }
+                else
+                {
+                  if(Phase::DATA != state.phase)
+                  {
+                    return_value = Error::STATE_MISMATCH;
+                  }
+                  else
+                  {
+                    DATA_TYPE value;
+                    return_value = value.deserialize_partial_check_type(buffer, state, state.wire_type);
+                    if(Error::NO_ERRORS == return_value)
+                    {
+                      return_value = this->add(value);
+                      if(Error::NO_ERRORS != return_value)
+                      {
+                        return_value = Error::ARRAY_FULL;
+                      }
+                    }
+                  }
+                }
+
+                if((Error::NO_ERRORS == return_value) && (Phase::COMPLETE == state.phase))
+                {
+                  state.element_index = index + 1U;
+                }
+              }
+            }
+          }
+        }
+
+        return return_value;
       }
 
       Error serialize_partial_as_field(uint32_t field_number,
