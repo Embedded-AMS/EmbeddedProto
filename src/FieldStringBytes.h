@@ -234,9 +234,64 @@ namespace EmbeddedProto
         Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                            MessageState& state) override
         {
-          (void)buffer;
-          (void)state;
-          return Error::STATE_MISMATCH;
+          Error return_value = Error::NO_ERRORS;
+          bool size_phase_processed = false;
+
+          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+          {
+            return_value = deserialize_partial_size_phase(buffer, state);
+            if(Error::NO_ERRORS == return_value)
+            {
+              size_phase_processed = true;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && size_phase_processed)
+          {
+            clear();
+            if(MAX_LENGTH < state.bytes_remaining)
+            {
+              return_value = Error::ARRAY_FULL;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          {
+            const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
+            for(uint32_t i = 0U; i < bytes_to_read; ++i)
+            {
+              uint8_t byte = 0U;
+              if(buffer.pop(byte))
+              {
+                data_[current_length_] = static_cast<DATA_TYPE>(byte);
+                ++current_length_;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+
+            if(Error::NO_ERRORS == return_value)
+            {
+              state.bytes_remaining -= bytes_to_read;
+              if(0U == state.bytes_remaining)
+              {
+                state.phase = Phase::COMPLETE;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+          }
+
+          return return_value;
         }
 
         Error serialize_partial_as_field(uint32_t field_number,

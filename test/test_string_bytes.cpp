@@ -1437,6 +1437,121 @@ TEST(FieldBytes, PartialSerialize_Bytes_WithZeroBytes)
   }
 }
 
+TEST(FieldString, PartialDeserializeAsField_SizeSplit)
+{
+  ::EmbeddedProto::FieldString<140> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::Phase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<200> buffer(
+    {
+      0x8C
+    });
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::SIZE, state.phase);
+  EXPECT_EQ(0U, field.get_length());
+
+  buffer.push(0x01);
+  for(uint32_t i = 0U; i < 20U; ++i)
+  {
+    buffer.push('A');
+  }
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(120U, state.bytes_remaining);
+  EXPECT_EQ(20U, field.get_length());
+
+  for(uint32_t i = 0U; i < 120U; ++i)
+  {
+    buffer.push('A');
+  }
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(0U, state.bytes_remaining);
+  EXPECT_EQ(140U, field.get_length());
+}
+
+TEST(FieldBytes, PartialDeserializeAsField_DataSplit)
+{
+  ::EmbeddedProto::FieldBytes<10> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::Phase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
+    {
+      0x04, 0x01, 0x02
+    });
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(2U, state.bytes_remaining);
+  EXPECT_EQ(2U, field.get_length());
+  EXPECT_EQ(0x01, field.get_const(0));
+  EXPECT_EQ(0x02, field.get_const(1));
+
+  buffer.push(0x03);
+  buffer.push(0x04);
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(0U, state.bytes_remaining);
+  EXPECT_EQ(4U, field.get_length());
+  EXPECT_EQ(0x03, field.get_const(2));
+  EXPECT_EQ(0x04, field.get_const(3));
+}
+
+TEST(FieldBytes, PartialDeserializeAsField_SizeSplit)
+{
+  ::EmbeddedProto::FieldBytes<140> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::Phase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<200> buffer(
+    {
+      0x8C
+    });
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::SIZE, state.phase);
+  EXPECT_EQ(0U, field.get_length());
+
+  buffer.push(0x01);
+  for(uint32_t i = 0U; i < 30U; ++i)
+  {
+    buffer.push(static_cast<uint8_t>(i));
+  }
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(110U, state.bytes_remaining);
+  EXPECT_EQ(30U, field.get_length());
+
+  for(uint32_t i = 30U; i < 140U; ++i)
+  {
+    buffer.push(static_cast<uint8_t>(i));
+  }
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(0U, state.bytes_remaining);
+  EXPECT_EQ(140U, field.get_length());
+  EXPECT_EQ(0x00, field.get_const(0));
+  EXPECT_EQ(0x1D, field.get_const(29));
+  EXPECT_EQ(0x1E, field.get_const(30));
+  EXPECT_EQ(0x8B, field.get_const(139));
+}
+
 // Oneof field tests
 TEST(FieldString, PartialSerialize_Oneof_String_SufficientBuffer)
 {
