@@ -59,6 +59,16 @@ namespace EmbeddedProto
     template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
     struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W,S>> : std::true_type {};
 
+    //! Helper trait to extract wire type from a FieldTemplate specialization.
+    template<typename>
+    struct fieldtemplate_wire_type;
+
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
+    struct fieldtemplate_wire_type<::EmbeddedProto::FieldTemplate<F, V, W, S>>
+    {
+      static constexpr ::EmbeddedProto::WireFormatter::WireType value = W;
+    };
+
     //! This class only supports Field and FieldTemplate classes as template parameter.
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
                   "A Field can only be used as template paramter.");
@@ -294,7 +304,10 @@ namespace EmbeddedProto
                   else
                   {
                     DATA_TYPE value;
-                    return_value = value.deserialize_partial_check_type(buffer, state, state.wire_type);
+                    return_value = value.deserialize_partial_check_type(
+                      buffer,
+                      state,
+                      fieldtemplate_wire_type<DATA_TYPE>::value);
                     if(Error::NO_ERRORS == return_value)
                     {
                       return_value = this->add(value);

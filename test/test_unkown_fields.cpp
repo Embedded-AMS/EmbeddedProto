@@ -280,6 +280,39 @@ TEST(UnknownFieldsPartialSkip, length_delimited_split_in_data)
   EXPECT_EQ(0U, state.bytes_remaining);
 }
 
+TEST(UnknownFieldsPartialSkip, varint_overlong_is_fatal)
+{
+  TestUnknownFieldPartialMessage msg;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::Phase::DATA;
+  state.wire_type = ::EmbeddedProto::WireFormatter::WireType::VARINT;
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
+    {
+      0x80, 0x80, 0x80, 0x80, 0x80,
+      0x80, 0x80, 0x80, 0x80, 0x80
+    });
+
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.skip_unknown_field_partial(buffer, state));
+  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+}
+
+TEST(UnknownFieldsPartialSkip, length_delimited_size_overlong_is_fatal)
+{
+  TestUnknownFieldPartialMessage msg;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.wire_type = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED;
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
+    {
+      0x80, 0x80, 0x80, 0x80, 0x80
+    });
+
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.skip_unknown_field_partial(buffer, state));
+  EXPECT_EQ(::EmbeddedProto::Phase::SIZE, state.phase);
+}
+
 #endif // (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
 
 } // End of namespace test_EmbeddedAMS_UnknownFields
