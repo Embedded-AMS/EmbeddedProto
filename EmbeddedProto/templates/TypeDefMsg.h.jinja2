@@ -207,9 +207,77 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     ::EmbeddedProto::Error deserialize_partial(::EmbeddedProto::ReadBufferInterface& buffer,
                                                ::EmbeddedProto::MessageState& state) override
     {
-      (void)buffer;
-      (void)state;
-      return ::EmbeddedProto::Error::STATE_MISMATCH;
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      bool continue_deserializing = true;
+
+      while(continue_deserializing)
+      {
+        if(::EmbeddedProto::Phase::TAG == state.phase)
+        {
+          state.field_id = 0U;
+          return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, state.wire_type, state.field_id);
+          if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+          {
+            state.phase = (::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
+              ? ::EmbeddedProto::Phase::SIZE
+              : ::EmbeddedProto::Phase::DATA;
+          }
+        }
+
+        if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+           && ((::EmbeddedProto::Phase::SIZE == state.phase)
+               || (::EmbeddedProto::Phase::DATA == state.phase)))
+        {
+          switch(static_cast<FieldNumber>(state.field_id))
+          {
+            {% for field in typedef.fields %}
+            case FieldNumber::{{field.get_variable_id_name()}}:
+              {{ field.render_deserialize_partial(environment)|indent(14) }}
+              break;
+
+            {% endfor %}
+            {% for oneof in typedef.oneofs %}
+            {% for field in oneof.get_fields() %}
+            case FieldNumber::{{field.get_variable_id_name()}}:
+              if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+              {
+                init_{{oneof.get_name()}}(FieldNumber::{{field.get_variable_id_name()}});
+              }
+              {{ field.render_deserialize_partial(environment)|indent(14) }}
+              break;
+
+            {% endfor %}
+            {% endfor %}
+            case FieldNumber::NOT_SET:
+              return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
+              break;
+
+            default:
+              return_value = skip_unknown_field_partial(buffer, state);
+              break;
+          }
+        }
+
+        if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+           && (::EmbeddedProto::Phase::COMPLETE == state.phase))
+        {
+          state.phase = ::EmbeddedProto::Phase::TAG;
+          state.field_id = 0U;
+          state.size_value = 0U;
+          state.bytes_remaining = 0U;
+          state.element_index = 0U;
+          if(nullptr != state.child)
+          {
+            state.child->reset();
+          }
+        }
+        else
+        {
+          continue_deserializing = false;
+        }
+      }
+
+      return return_value;
     }
 
     ::EmbeddedProto::Error serialize_partial(::EmbeddedProto::WriteBufferInterface& buffer, 

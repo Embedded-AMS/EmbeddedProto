@@ -169,6 +169,9 @@ class Field:
     def render_serialize_partial(self, jinja_env):
         return self.render("Field_SerializePartial.h.jinja2", jinja_environment=jinja_env)
 
+    def render_deserialize_partial(self, jinja_env):
+        return self.render("Field_DeserializePartial.h.jinja2", jinja_environment=jinja_env)
+
 # -----------------------------------------------------------------------------
 
 
