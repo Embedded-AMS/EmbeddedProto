@@ -64,6 +64,20 @@ class MessageInterface : public ::EmbeddedProto::Field
     void clear() override = 0;
     
 #if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+    //! Deserialize message with partial state support.
+    /*!
+        This method deserializes the message in chunks, allowing deserialization to be paused
+        when the buffer ends and resumed with a fresh buffer.
+
+        \param buffer Read buffer (may be small).
+        \param state External state object (must persist between calls).
+        \return Error::NO_ERRORS when complete.
+        \return Error::END_OF_BUFFER when buffer ended, call again with fresh buffer.
+        \return Other errors on failure (state should be reset).
+    */
+    virtual Error deserialize_partial(ReadBufferInterface& buffer,
+                                      MessageState& state) = 0;
+
     //! Serialize message with partial state support.
     /*!
         This method serializes the message in chunks, allowing serialization to be paused
@@ -118,6 +132,14 @@ class MessageInterface : public ::EmbeddedProto::Field
 
       return return_value;
     }
+
+    //! \see Field::deserialize_partial_as_field()
+    Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                       MessageState& state) override;
+
+    //! When partially deserializing skip bytes in the buffer of an unknown field.
+    Error skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                     MessageState& state) const;
 #endif
 
   protected:

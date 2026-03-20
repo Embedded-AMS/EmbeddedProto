@@ -109,6 +109,16 @@ namespace EmbeddedProto
                                                WriteBufferInterface& buffer,
                                                MessageState& state,
                                                bool optional) const = 0;
+
+      //! Deserialize this field with partial state support for LENGTH_DELIMITED fields.
+      /*! 
+          Handles SIZE->DATA state machine for length-delimited field types.
+          \param buffer The buffer to read from.
+          \param state External state object tracking deserialization progress.
+          \return NO_ERRORS when field reaches COMPLETE.
+      */
+      virtual Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                                 MessageState& state) = 0;
 #endif
 
       //! Calculate the size of this message when serialized.
@@ -167,6 +177,16 @@ namespace EmbeddedProto
                                            WriteBufferInterface& buffer,
                                            MessageState& state,
                                            bool optional) const;
+
+      //! Helper method for SIZE phase of partial deserialization.
+      /*! 
+          Handles the shared SIZE phase for LENGTH_DELIMITED fields.
+          \param buffer The buffer to read from.
+          \param state External state object tracking deserialization progress.
+          \return NO_ERRORS when phase reaches DATA, other errors on failure.
+      */
+      Error deserialize_partial_size_phase(ReadBufferInterface& buffer,
+                                           MessageState& state) const;
 #endif
 
 #ifdef MSG_TO_STRING
@@ -277,6 +297,35 @@ namespace EmbeddedProto
         {
           // Field has default value - skip to complete
           state.phase = Phase::COMPLETE;
+        }
+
+        return return_value;
+      }
+#endif
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+      //! Deserialize scalar/enum with expected wire type in partial mode.
+      inline Error deserialize_partial_check_type(ReadBufferInterface& buffer,
+                                                  MessageState& state,
+                                                  const ::EmbeddedProto::WireFormatter::WireType expected_wire_type)
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(Phase::DATA != state.phase)
+        {
+          return_value = Error::STATE_MISMATCH;
+        }
+        else if(expected_wire_type != state.wire_type)
+        {
+          return_value = Error::INVALID_WIRETYPE;
+        }
+        else
+        {
+          return_value = deserialize(buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            state.phase = Phase::COMPLETE;
+          }
         }
 
         return return_value;

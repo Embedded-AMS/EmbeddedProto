@@ -204,6 +204,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
     };
 
 #if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+    ::EmbeddedProto::Error deserialize_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                               ::EmbeddedProto::MessageState& state) override
+    {
+      (void)buffer;
+      (void)state;
+      return ::EmbeddedProto::Error::STATE_MISMATCH;
+    }
+
     ::EmbeddedProto::Error serialize_partial(::EmbeddedProto::WriteBufferInterface& buffer, 
                                             ::EmbeddedProto::MessageState& state) const override
     {

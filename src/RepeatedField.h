@@ -190,6 +190,14 @@ namespace EmbeddedProto
       }
 
 #if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+      Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                         MessageState& state) override
+      {
+        (void)buffer;
+        (void)state;
+        return Error::STATE_MISMATCH;
+      }
+
       Error serialize_partial_as_field(uint32_t field_number,
                                      WriteBufferInterface& buffer,
                                      MessageState& state,

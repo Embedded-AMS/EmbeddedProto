@@ -53,6 +53,56 @@ namespace EmbeddedProto
     return return_value;
   }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+  Error MessageInterface::deserialize_partial_as_field(::EmbeddedProto::ReadBufferInterface& buffer,
+                                                       MessageState& state)
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    if(Phase::SIZE == state.phase)
+    {
+      return_value = deserialize_partial_size_phase(buffer, state);
+    }
+
+    if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+    {
+      if(nullptr != state.child)
+      {
+        ::EmbeddedProto::ReadBufferSection section(buffer, state.bytes_remaining);
+        return_value = this->deserialize_partial(section, *state.child);
+        state.bytes_remaining = section.get_size();
+        if((Error::NO_ERRORS == return_value) && (0U == state.bytes_remaining))
+        {
+          state.phase = Phase::COMPLETE;
+        }
+      }
+      else
+      {
+        return_value = Error::NESTING_TOO_DEEP;
+      }
+    }
+
+    return return_value;
+  }
+
+  Error MessageInterface::skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                                     MessageState& state) const
+  {
+    Error return_value = Error::STATE_MISMATCH;
+
+    if(Phase::DATA == state.phase)
+    {
+      return_value = skip_unknown_field(buffer, state.wire_type);
+      if(Error::NO_ERRORS == return_value)
+      {
+        state.phase = Phase::COMPLETE;
+      }
+    }
+
+    return return_value;
+  }
+#endif
+
 
   Error MessageInterface::skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer,
                                              const ::EmbeddedProto::WireFormatter::WireType& wire_type) const

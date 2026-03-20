@@ -96,6 +96,30 @@ namespace EmbeddedProto
 
     return return_value;
   }
+
+  Error Field::deserialize_partial_size_phase(ReadBufferInterface& buffer,
+                                              MessageState& state) const
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    if(Phase::SIZE == state.phase)
+    {
+      uint32_t size = 0;
+      return_value = WireFormatter::DeserializeVarint(buffer, size);
+      if(Error::NO_ERRORS == return_value)
+      {
+        state.size_value = size;
+        state.bytes_remaining = size;
+        state.phase = Phase::DATA;
+      }
+    }
+    else
+    {
+      return_value = Error::STATE_MISMATCH;
+    }
+
+    return return_value;
+  }
 #endif
 
   Error Field::serialize_len(const uint32_t field_number,
