@@ -112,6 +112,10 @@ namespace EmbeddedProto
         state.bytes_remaining = size;
         state.phase = Phase::DATA;
       }
+      else
+      {
+        // Keep state unchanged on incomplete/failed size decode.
+      }
     }
     else
     {

@@ -90,12 +90,98 @@ namespace EmbeddedProto
   {
     Error return_value = Error::STATE_MISMATCH;
 
-    if(Phase::DATA == state.phase)
+    if(::EmbeddedProto::WireFormatter::WireType::VARINT == state.wire_type)
     {
-      return_value = skip_unknown_field(buffer, state.wire_type);
-      if(Error::NO_ERRORS == return_value)
+      if(Phase::DATA == state.phase)
       {
-        state.phase = Phase::COMPLETE;
+        return_value = skip_varint(buffer);
+        if(Error::NO_ERRORS == return_value)
+        {
+          state.phase = Phase::COMPLETE;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::FIXED32 == state.wire_type)
+    {
+      if(Phase::DATA == state.phase)
+      {
+        if(0U == state.bytes_remaining)
+        {
+          state.bytes_remaining = 4U;
+        }
+
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = Phase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::FIXED64 == state.wire_type)
+    {
+      if(Phase::DATA == state.phase)
+      {
+        if(0U == state.bytes_remaining)
+        {
+          state.bytes_remaining = 8U;
+        }
+
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = Phase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
+    {
+      return_value = Error::NO_ERRORS;
+
+      if(Phase::SIZE == state.phase)
+      {
+        return_value = deserialize_partial_size_phase(buffer, state);
+      }
+
+      if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+      {
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = Phase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
       }
     }
 
