@@ -933,6 +933,65 @@ TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_FreshChildState_Make
       << "Expected progress with clean child state, but serializer made no progress.";
 }
 
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedPacked_SplitInData)
+{
+  repeated_fields<Y_SIZE> msg;
+  msg.add_y(1);
+  msg.add_y(2);
+  msg.add_y(3);
+
+  repeated_fields<Y_SIZE>::StateStack state;
+
+  ::EmbeddedProto::WriteBufferFixedSize<3> buffer_a;
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer_a, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(3U, buffer_a.get_size());
+  EXPECT_EQ(0x12, buffer_a.get_data()[0]);
+  EXPECT_EQ(0x03, buffer_a.get_data()[1]);
+  EXPECT_EQ(0x01, buffer_a.get_data()[2]);
+
+  ::EmbeddedProto::WriteBufferFixedSize<3> buffer_b;
+  result = msg.serialize_partial(buffer_b, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer_b.get_size());
+  EXPECT_EQ(0x02, buffer_b.get_data()[0]);
+  EXPECT_EQ(0x03, buffer_b.get_data()[1]);
+}
+
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_SplitBetweenElements)
+{
+  repeated_message<Y_SIZE> msg;
+
+  repeated_nested_message rnm;
+  rnm.set_u(0);
+  rnm.set_v(0);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
+
+  repeated_message<Y_SIZE>::StateStack state;
+
+  ::EmbeddedProto::WriteBufferFixedSize<4> buffer_a;
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer_a, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(4U, buffer_a.get_size());
+  EXPECT_EQ(0x12, buffer_a.get_data()[0]);
+  EXPECT_EQ(0x00, buffer_a.get_data()[1]);
+  EXPECT_EQ(0x12, buffer_a.get_data()[2]);
+  EXPECT_EQ(0x00, buffer_a.get_data()[3]);
+
+  ::EmbeddedProto::WriteBufferFixedSize<4> buffer_b;
+  result = msg.serialize_partial(buffer_b, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer_b.get_size());
+  EXPECT_EQ(0x12, buffer_b.get_data()[0]);
+  EXPECT_EQ(0x00, buffer_b.get_data()[1]);
+}
+
 #endif // EP_SERIALIZATION_MODE_PARTIAL
 
 #ifdef MSG_TO_STRING

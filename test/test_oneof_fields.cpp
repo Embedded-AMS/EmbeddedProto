@@ -435,6 +435,138 @@ TEST(OneofField, sb_oneof_serialize_empty)
 
 }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
+TEST(OneofField, PartialDeserialize_ScalarOneof_SplitTagAndData)
+{
+  message_oneof msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer({
+    0x08, 0x01, // a = 1
+    0x30        // y tag only
+  });
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(1, msg.get_a());
+  EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
+
+  buffer.push(0x02); // y = 2
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(1, msg.get_a());
+  EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
+  EXPECT_EQ(2, msg.get_y());
+}
+
+TEST(OneofField, PartialDeserialize_OverwriteLastFieldWins_AcrossChunks)
+{
+  message_oneof msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer({
+    0x30, 0x01, // y = 1
+    0x28        // x tag only
+  });
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
+
+  buffer.push(0x02); // x = 2
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
+  EXPECT_EQ(2, msg.get_x());
+}
+
+TEST(OneofField, PartialDeserialize_NestedOneofMessage_SplitTagSizeAndData)
+{
+  message_oneof msg;
+
+  // msg_ABC tag split over two bytes.
+  ::EmbeddedProto::ReadBufferFixedSize<20> buffer({0xA2});
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_message());
+
+  buffer.push(0x01);
+  buffer.push(0x07);
+  buffer.push(0x08);
+  buffer.push(0x01);
+  buffer.push(0x10);
+  buffer.push(0x16);
+  buffer.push(0x18);
+  buffer.push(0xCD);
+  buffer.push(0x02);
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(message_oneof::FieldNumber::MSG_ABC, msg.get_which_message());
+  EXPECT_EQ(1, msg.get_msg_ABC().get_varA());
+  EXPECT_EQ(22, msg.get_msg_ABC().get_varB());
+  EXPECT_EQ(333, msg.get_msg_ABC().get_varC());
+}
+
+TEST(OneofField, PartialDeserialize_StringBytesOneof_StringAndBytesSplit)
+{
+  string_bytes_oneof<20, 20> msg_string;
+
+  // name tag only first.
+  ::EmbeddedProto::ReadBufferFixedSize<20> buffer_string({0x0A});
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_string.deserialize(buffer_string));
+  EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::NAME), msg_string.get_which_sb());
+
+  buffer_string.push(0x02);
+  buffer_string.push('J');
+  buffer_string.push('o');
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg_string.deserialize(buffer_string));
+  EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::NAME), msg_string.get_which_sb());
+  EXPECT_STREQ("Jo", msg_string.name());
+
+  string_bytes_oneof<20, 20> msg_bytes;
+  std::array<uint8_t, 2> expected = {0x01, 0x02};
+  ::EmbeddedProto::ReadBufferFixedSize<20> buffer_bytes({0x12});
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_bytes.deserialize(buffer_bytes));
+  EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::DATA), msg_bytes.get_which_sb());
+
+  buffer_bytes.push(0x02);
+  buffer_bytes.push(0x01);
+  buffer_bytes.push(0x02);
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg_bytes.deserialize(buffer_bytes));
+  EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::DATA), msg_bytes.get_which_sb());
+  EXPECT_EQ(2U, msg_bytes.get_data().get_length());
+  for(uint32_t i = 0U; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], msg_bytes.get_data().get_const(i));
+  }
+}
+
+TEST(OneofField, PartialDeserialize_StateResetReuse_BetweenMessages)
+{
+  message_oneof msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer_x({0x28});
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer_x));
+
+  buffer_x.push(0x01);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_x));
+  EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
+  EXPECT_EQ(1, msg.get_x());
+
+  msg.clear();
+
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer_y({0x30});
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer_y));
+
+  buffer_y.push(0x02);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_y));
+  EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
+  EXPECT_EQ(2, msg.get_y());
+}
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL
+
 
 #ifndef DISABLE_FIELD_NUMBER_TO_NAME 
 

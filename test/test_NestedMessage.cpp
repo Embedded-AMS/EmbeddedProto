@@ -1140,6 +1140,103 @@ TEST(NestedMessage, PartialSerialize_MaximumValues)
   EXPECT_TRUE(found_nested_a_tag);
 }
 
+
+
+TEST(NestedMessage, PartialDeserialize_NestedMessage_MultiFieldProgress)
+{
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+  ::EmbeddedProto::ReadBufferFixedSize<32> buffer;
+
+  const std::array<uint8_t, 22> part_a = {
+    0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F,
+    0x12, 0x0A,
+    0x0A, 0x01, 0x01,
+    0x15, 0x00, 0x00, 0x80, 0x3F,
+    0x18, 0x02,
+    0x18
+  };
+  for(const auto& byte : part_a)
+  {
+    buffer.push(byte);
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  buffer.push(0x01);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1.0F, msg.get_u());
+  EXPECT_EQ(1U, msg.get_nested_a().get_x().get_length());
+  EXPECT_EQ(1, msg.get_nested_a().x(0));
+  EXPECT_EQ(1.0F, msg.get_nested_a().get_y());
+  EXPECT_EQ(1, msg.get_nested_a().get_z());
+  EXPECT_EQ(1, msg.get_v());
+}
+
+TEST(NestedMessage, PartialDeserialize_NestedMessage_LargeSizeVarintSplit)
+{
+  ::demo::space::message_b<127> msg;
+  ::EmbeddedProto::ReadBufferFixedSize<170> buffer;
+
+  // Start with split in multi-byte size varint for nested_a.
+  const std::array<uint8_t, 13> part_a = {
+    0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F,
+    0x18, 0x01,
+    0x12, 0x88
+  };
+  for(const auto& byte : part_a)
+  {
+    buffer.push(byte);
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  const std::array<uint8_t, 10> part_b = {
+    0x01,
+    0x15, 0x00, 0x00, 0x80, 0x3F,
+    0x18, 0x02,
+    0x0A, 0x7F
+  };
+  for(const auto& byte : part_b)
+  {
+    buffer.push(byte);
+  }
+
+  for(uint32_t i = 0; i < 127; ++i)
+  {
+    buffer.push(0x01);
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1.0F, msg.get_u());
+  EXPECT_EQ(127U, msg.get_nested_a().get_x().get_length());
+  EXPECT_EQ(1.0F, msg.get_nested_a().get_y());
+  EXPECT_EQ(1, msg.get_nested_a().get_z());
+  EXPECT_EQ(1, msg.get_v());
+}
+
+TEST(NestedMessage, PartialDeserialize_NestedMessage_FatalOverlongVarint)
+{
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+  ::EmbeddedProto::ReadBufferFixedSize<32> buffer;
+
+  const std::array<uint8_t, 22> data = {
+    0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F,
+    0x12, 0x0B,
+    0x18,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+  };
+
+  for(const auto& byte : data)
+  {
+    buffer.push(byte);
+  }
+
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+}
+
 #endif // EP_SERIALIZATION_MODE_PARTIAL
 
 } // End of namespace test_EmbeddedAMS_NestedMessage

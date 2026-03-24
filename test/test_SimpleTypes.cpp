@@ -1255,6 +1255,97 @@ TEST(SimpleTypes, PartialSerialize_ConsecutiveSmallBuffers_VerifyProgress)
   EXPECT_EQ(0x01, buffer4.get_data()[1]);
 }
 
+TEST(SimpleTypes, PartialDeserialize_Fixed64SplitInData)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
+  ::Test_Simple_Types msg;
+
+  buffer.push(0x49);
+  buffer.push(0x01);
+  buffer.push(0x00);
+  buffer.push(0x00);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x00);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1U, msg.get_a_fixed64());
+}
+
+TEST(SimpleTypes, PartialDeserialize_DoubleSplitInData)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
+  ::Test_Simple_Types msg;
+
+  buffer.push(0x59);
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x00);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0xF0);
+  buffer.push(0x3F);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1.0, msg.get_a_double());
+}
+
+TEST(SimpleTypes, PartialDeserialize_SFixed32AndFloat_MultiFieldProgress)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<20> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_sfixed32 = 1 and a_float = 1.0F
+  buffer.push(0x6D);
+  buffer.push(0x01);
+  buffer.push(0x00);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  buffer.push(0x00);
+  buffer.push(0x00);
+  buffer.push(0x75);
+  buffer.push(0x00);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  buffer.push(0x00);
+  buffer.push(0x80);
+  buffer.push(0x3F);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1, msg.get_a_sfixed32());
+  EXPECT_EQ(1.0F, msg.get_a_float());
+}
+
+TEST(SimpleTypes, PartialDeserialize_FatalOverlongVarint)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_int64 tag + overlong varint payload
+  buffer.push(0x10);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+  buffer.push(0xFF);
+
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+}
 
 #endif // EP_SERIALIZATION_MODE_PARTIAL
 } // End of namespace test_EmbeddedAMS_SimpleTypes
