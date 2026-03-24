@@ -168,6 +168,59 @@ Each phase includes targeted validation before moving to the next phase.
 
 ---
 
+## Step 8 — Remaining partial-deserialization unit test parity backlog
+
+### Scope
+Append and track the remaining unit tests needed to improve parity between partial serialization and partial deserialization coverage.
+
+### Current coverage snapshot (updated)
+- `OneofField`: **29 partial serialization**, **0 partial deserialization**
+- `RepeatedStringBytes`: **4 serialization**, **0 deserialization**
+- `SimpleTypes`: **17 serialization**, **6 deserialization** *(updated; +4 added)*
+- `NestedMessage`: **12 serialization**, **4 deserialization**
+- `FieldString`: **18 serialization**, **3 deserialization**
+- `FieldBytes`: **5 serialization**, **3 deserialization**
+- `RepeatedFieldMessage`: **1 serialization**, **6 deserialization**
+
+### Implement
+- Add missing **OneofField** partial-deserialization tests first (highest gap):
+  - scalar oneof split at tag/data boundaries
+  - oneof overwrite semantics (last field wins) across chunks
+  - nested oneof message splits (tag/size/data)
+  - string/bytes oneof split behavior
+  - oneof state reset/reuse behavior between messages
+- Add **RepeatedStringBytes** partial-deserialization tests:
+  - repeated string split in SIZE and DATA
+  - repeated bytes split in SIZE and DATA
+  - element-boundary continuation across buffers
+  - array full behavior for repeated string/bytes
+- Continue **SimpleTypes** parity expansion (after current 6 deserialization tests):
+  - additional split points around fixed64/double/fixed32/sfixed32/float
+  - mixed multi-field progression across repeated partial calls
+  - negative-path partial cases where applicable (fatal vs recoverable)
+- Expand **NestedMessage** parity:
+  - split-at-tag/size/data variants for nested payloads
+  - multi-level nested progression and completion invariants
+- Expand **FieldString/FieldBytes** parity:
+  - align remaining serialization scenarios with deserialize counterparts
+  - include large-size varint split and looped small-buffer style deserialize tests
+- Optional parity check for **RepeatedFieldMessage** serialization side:
+  - add minimal complementary serialization tests for symmetry where beneficial.
+
+### Verify
+- Build in partial mode:
+  - `./build_test.sh partial`
+- Run focused suites after each batch:
+  - `./build/test/test_EmbeddedProto --gtest_filter="*SimpleTypes*"`
+  - `./build/test/test_EmbeddedProto --gtest_filter="*oneof*"`
+  - `./build/test/test_EmbeddedProto --gtest_filter="*string*:*bytes*"`
+  - `./build/test/test_EmbeddedProto --gtest_filter="*NestedMessage*:*Repeated*"`
+
+### Gate
+- Significant reduction of serialize/deserialize partial test imbalance, with OneofField and repeated string/bytes no longer at zero deserialization tests.
+
+---
+
 ## Notes
 
 - Keep `deserialize()` API behavior unchanged for backward compatibility.

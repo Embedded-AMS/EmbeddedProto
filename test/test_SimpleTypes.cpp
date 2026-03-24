@@ -420,6 +420,81 @@ TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
+TEST(SimpleTypes, PartialDeserialize_VarintSplitInData)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_int64 = 300 -> tag 0x10, value 0xAC 0x02
+  buffer.push(0x10);
+  buffer.push(0xAC);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  // Continue varint value without repeating the tag.
+  buffer.push(0x02);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(300, msg.get_a_int64());
+}
+
+TEST(SimpleTypes, PartialDeserialize_Fixed32SplitInData)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_fixed32 = 1 -> tag 0x65 followed by 4 bytes.
+  buffer.push(0x65);
+  buffer.push(0x01);
+  buffer.push(0x00);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  // Continue fixed-width payload without repeating the tag.
+  buffer.push(0x00);
+  buffer.push(0x00);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(1U, msg.get_a_fixed32());
+}
+
+TEST(SimpleTypes, PartialDeserialize_EnumLargeValue_SplitInData)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_enum = TWOBILLION -> tag 0x40 + value 0x80 0xA8 0xD6 0xB9 0x07
+  buffer.push(0x40);
+  buffer.push(0x80);
+  buffer.push(0xA8);
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  // Continue enum varint payload without repeating the tag.
+  buffer.push(0xD6);
+  buffer.push(0xB9);
+  buffer.push(0x07);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_EQ(Test_Enum::TWOBILLION, msg.get_a_enum());
+}
+
+TEST(SimpleTypes, PartialDeserialize_TagOnlyThenValue)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
+  ::Test_Simple_Types msg;
+
+  // a_bool tag only.
+  buffer.push(0x38);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+
+  // Continue with only the value.
+  buffer.push(0x01);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_TRUE(msg.get_a_bool());
+}
+
 #endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(SimpleTypes, deserialize_10_byte_int32)
