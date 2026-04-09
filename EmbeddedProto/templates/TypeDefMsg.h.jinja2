@@ -212,21 +212,21 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       while(continue_deserializing)
       {
-        if(::EmbeddedProto::Phase::TAG == state.phase)
+        if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
         {
           state.field_id = 0U;
           return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, state.wire_type, state.field_id);
           if(::EmbeddedProto::Error::NO_ERRORS == return_value)
           {
             state.phase = (::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
-              ? ::EmbeddedProto::Phase::SIZE
-              : ::EmbeddedProto::Phase::DATA;
+              ? ::EmbeddedProto::FieldProcessingPhase::SIZE
+              : ::EmbeddedProto::FieldProcessingPhase::DATA;
           }
         }
 
         if((::EmbeddedProto::Error::NO_ERRORS == return_value)
-           && ((::EmbeddedProto::Phase::SIZE == state.phase)
-               || (::EmbeddedProto::Phase::DATA == state.phase)))
+           && ((::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
+               || (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)))
         {
           switch(static_cast<FieldNumber>(state.field_id))
           {
@@ -259,9 +259,9 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
         }
 
         if((::EmbeddedProto::Error::NO_ERRORS == return_value)
-           && (::EmbeddedProto::Phase::COMPLETE == state.phase))
+           && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
         {
-          state.phase = ::EmbeddedProto::Phase::TAG;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
           state.field_id = 0U;
           state.size_value = 0U;
           state.bytes_remaining = 0U;
@@ -312,7 +312,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       for(uint32_t iteration = 0;
           (iteration < max_partial_iterations)
           && (::EmbeddedProto::Error::NO_ERRORS == return_value)
-          && (::EmbeddedProto::Phase::COMPLETE != state.phase);
+          && (::EmbeddedProto::FieldProcessingPhase::COMPLETE != state.phase);
           ++iteration)
       {
         // Determine which field to serialize based on field_id
@@ -324,7 +324,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             // Start with first regular field.
             // Keep this order aligned with serialize().
             state.field_id = static_cast<uint32_t>(FieldNumber::{{ typedef.fields[0].get_variable_id_name() }});
-            state.phase = ::EmbeddedProto::Phase::TAG;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
             field_id = state.field_id;
             {% elif typedef.oneofs|length > 0 %}
             // No regular fields available, start with first set oneof field.
@@ -334,7 +334,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                 {% for field in oneof.get_fields() %}
                 case FieldNumber::{{field.get_variable_id_name()}}:
                     state.field_id = static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}});
-                    state.phase = ::EmbeddedProto::Phase::TAG;
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                     field_id = state.field_id;
                     break;
                 {% endfor %}
@@ -342,7 +342,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                     // This oneof is not set, try next oneof or regular fields
                     {% if loop.last %}
                     // No fields to serialize
-                    state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                     {% endif %}
                     break;
             }
@@ -352,7 +352,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             {% endfor %}
             {% else %}
             // No fields to serialize
-            state.phase = ::EmbeddedProto::Phase::COMPLETE;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             {% endif %}
             break;
             
@@ -373,7 +373,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             else
             {
               // This oneof field is not set, skip to complete
-              state.phase = ::EmbeddedProto::Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             }
             break;
             
@@ -381,12 +381,12 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           {% endfor %}
           default:
             // All fields serialized
-            state.phase = ::EmbeddedProto::Phase::COMPLETE;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             break;
         }
         
         // Move to next field when current field is complete
-        if((::EmbeddedProto::Phase::COMPLETE == state.phase) && 
+        if((::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase) && 
            (::EmbeddedProto::Error::NO_ERRORS == return_value))
         {
           // Reset child state for nested messages before moving to next field
@@ -403,7 +403,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             {% if not loop.last %}
               field_id = static_cast<uint32_t>(FieldNumber::{{ typedef.fields[loop.index].get_variable_id_name() }});
               state.field_id = field_id;
-              state.phase = ::EmbeddedProto::Phase::TAG;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
             {% elif typedef.oneofs|length > 0 %}
               // Move to first oneof group - check which field is set
               {% set first_oneof = typedef.oneofs[0] %}
@@ -413,7 +413,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                 case FieldNumber::{{oneof_field.get_variable_id_name()}}:
                   field_id = static_cast<uint32_t>(FieldNumber::{{ oneof_field.get_variable_id_name() }});
                   state.field_id = field_id;
-                  state.phase = ::EmbeddedProto::Phase::TAG;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                   break;
                 {% endfor %}
                 default:
@@ -427,7 +427,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                     case FieldNumber::{{next_field.get_variable_id_name()}}:
                       field_id = static_cast<uint32_t>(FieldNumber::{{ next_field.get_variable_id_name() }});
                       state.field_id = field_id;
-                      state.phase = ::EmbeddedProto::Phase::TAG;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                       break;
                     {% endfor %}
                     default:
@@ -440,33 +440,33 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                         case FieldNumber::{{next_next_field.get_variable_id_name()}}:
                           field_id = static_cast<uint32_t>(FieldNumber::{{ next_next_field.get_variable_id_name() }});
                           state.field_id = field_id;
-                          state.phase = ::EmbeddedProto::Phase::TAG;
+                          state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                           break;
                         {% endfor %}
                         default:
                           // No more oneof groups, we're done
                           field_id = 0;
-                          state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                           break;
                       }
                       {% else %}
                       // No more oneof groups, we're done
                       field_id = 0;
-                      state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                       {% endif %}
                       break;
                   }
                   {% else %}
                   // No more oneof groups, we're done
                   field_id = 0;
-                  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                   {% endif %}
                   break;
               }
             {% else %}
               // Last field - we're done
               field_id = 0;
-              state.phase = ::EmbeddedProto::Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             {% endif %}
               break;
               
@@ -486,7 +486,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                 case FieldNumber::{{next_field.get_variable_id_name()}}:
                   field_id = static_cast<uint32_t>(FieldNumber::{{ next_field.get_variable_id_name() }});
                   state.field_id = field_id;
-                  state.phase = ::EmbeddedProto::Phase::TAG;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                   break;
                 {% endfor %}
                 default:
@@ -501,30 +501,30 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
                     case FieldNumber::{{next_next_field.get_variable_id_name()}}:
                       field_id = static_cast<uint32_t>(FieldNumber::{{ next_next_field.get_variable_id_name() }});
                       state.field_id = field_id;
-                      state.phase = ::EmbeddedProto::Phase::TAG;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
                       break;
                     {% endfor %}
                     default:
                       // No field in this oneof group is set either, we're done
                       field_id = 0;
-                      state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                       break;
                   }
                   {% else %}
                   // No more oneof groups, we're done
                   field_id = 0;
-                  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                   {% endif %}
                   break;
               }
               {% elif oneof_idx == (typedef.oneofs|length - 1) %}
               // Last oneof group - we're done
               field_id = 0;
-              state.phase = ::EmbeddedProto::Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
               {% else %}
               // Should not happen, but mark complete
               field_id = 0;
-              state.phase = ::EmbeddedProto::Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
               {% endif %}
               break;
               
@@ -532,14 +532,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
             {% endfor %}
             default:
               // Unknown field_id, mark complete
-              state.phase = ::EmbeddedProto::Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
               break;
           }
         }
       }
 
       if((::EmbeddedProto::Error::NO_ERRORS == return_value)
-         && (::EmbeddedProto::Phase::COMPLETE != state.phase))
+         && (::EmbeddedProto::FieldProcessingPhase::COMPLETE != state.phase))
       {
         return_value = ::EmbeddedProto::Error::STATE_MISMATCH;
       }

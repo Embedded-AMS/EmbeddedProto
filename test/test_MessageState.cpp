@@ -42,10 +42,10 @@ namespace test_EmbeddedAMS_MessageState
 TEST(MessageState, PhaseEnumValues) 
 {
   // Verify the enum values match the design document
-  EXPECT_EQ(0, static_cast<uint8_t>(EmbeddedProto::Phase::TAG));
-  EXPECT_EQ(1, static_cast<uint8_t>(EmbeddedProto::Phase::SIZE));
-  EXPECT_EQ(2, static_cast<uint8_t>(EmbeddedProto::Phase::DATA));
-  EXPECT_EQ(3, static_cast<uint8_t>(EmbeddedProto::Phase::COMPLETE));
+  EXPECT_EQ(0, static_cast<uint8_t>(::EmbeddedProto::FieldProcessingPhase::TAG));
+  EXPECT_EQ(1, static_cast<uint8_t>(::EmbeddedProto::FieldProcessingPhase::SIZE));
+  EXPECT_EQ(2, static_cast<uint8_t>(::EmbeddedProto::FieldProcessingPhase::DATA));
+  EXPECT_EQ(3, static_cast<uint8_t>(::EmbeddedProto::FieldProcessingPhase::COMPLETE));
 }
 
 //! Test MessageState default initialization.
@@ -53,7 +53,7 @@ TEST(MessageState, DefaultInitialization)
 {
   EmbeddedProto::MessageState state;
   
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.phase);
   EXPECT_EQ(0U, state.field_id);
   EXPECT_EQ(EmbeddedProto::WireFormatter::WireType::VARINT, state.wire_type);
   EXPECT_EQ(0U, state.element_index);
@@ -68,7 +68,7 @@ TEST(MessageState, Reset)
   EmbeddedProto::MessageState state;
   
   // Set some non-default values
-  state.phase = EmbeddedProto::Phase::DATA;
+  state.phase = EmbeddedProto::FieldProcessingPhase::DATA;
   state.field_id = 42;
   state.wire_type = EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED;
   state.element_index = 5;
@@ -78,7 +78,7 @@ TEST(MessageState, Reset)
   // Reset and verify defaults
   state.reset();
   
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.phase);
   EXPECT_EQ(0U, state.field_id);
   EXPECT_EQ(EmbeddedProto::WireFormatter::WireType::VARINT, state.wire_type);
   EXPECT_EQ(0U, state.element_index);
@@ -156,8 +156,8 @@ TEST(MessageStateStack, AtAccessorConst)
   const EmbeddedProto::MessageStateStack<2> stack;
   
   // Should compile and return const references
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.at(0).phase);
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.at(1).phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.at(0).phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.at(1).phase);
 }
 
 //! Test MessageStateStack::root() const version.
@@ -165,7 +165,7 @@ TEST(MessageStateStack, RootAccessorConst)
 {
   const EmbeddedProto::MessageStateStack<2> stack;
   
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.root().phase);
 }
 
 //! Test MessageStateStack::reset() resets all states.
@@ -174,22 +174,22 @@ TEST(MessageStateStack, ResetAll)
   EmbeddedProto::MessageStateStack<3> stack;
   
   // Set non-default values on all states
-  stack.at(0).phase = EmbeddedProto::Phase::COMPLETE;
+  stack.at(0).phase = EmbeddedProto::FieldProcessingPhase::COMPLETE;
   stack.at(0).field_id = 100;
-  stack.at(1).phase = EmbeddedProto::Phase::DATA;
+  stack.at(1).phase = EmbeddedProto::FieldProcessingPhase::DATA;
   stack.at(1).field_id = 200;
-  stack.at(2).phase = EmbeddedProto::Phase::SIZE;
+  stack.at(2).phase = EmbeddedProto::FieldProcessingPhase::SIZE;
   stack.at(2).field_id = 300;
   
   // Reset all
   stack.reset();
   
   // Verify all are reset
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.at(0).phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.at(0).phase);
   EXPECT_EQ(0U, stack.at(0).field_id);
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.at(1).phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.at(1).phase);
   EXPECT_EQ(0U, stack.at(1).field_id);
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.at(2).phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.at(2).phase);
   EXPECT_EQ(0U, stack.at(2).field_id);
   
   // Child pointers should still be linked
@@ -246,27 +246,27 @@ TEST(MessageStateStack, TypicalUsagePattern)
   EmbeddedProto::MessageStateStack<2> stack;
   
   // Start with root message in TAG phase
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.root().phase);
   
   // Simulate transitioning through phases
-  stack.root().phase = EmbeddedProto::Phase::SIZE;
+  stack.root().phase = EmbeddedProto::FieldProcessingPhase::SIZE;
   stack.root().field_id = 1;
   stack.root().size_value = 10;
   
-  EXPECT_EQ(EmbeddedProto::Phase::SIZE, stack.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, stack.root().phase);
   EXPECT_EQ(1U, stack.root().field_id);
   EXPECT_EQ(10U, stack.root().size_value);
   
   // Transition to nested message via child
-  stack.root().phase = EmbeddedProto::Phase::DATA;
+  stack.root().phase = EmbeddedProto::FieldProcessingPhase::DATA;
   stack.root().bytes_remaining = 10;
   
   // Nested message starts in TAG phase
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.root().child->phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.root().child->phase);
   
   // Reset for next message
   stack.reset();
-  EXPECT_EQ(EmbeddedProto::Phase::TAG, stack.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, stack.root().phase);
   EXPECT_EQ(0U, stack.root().field_id);
 }
 

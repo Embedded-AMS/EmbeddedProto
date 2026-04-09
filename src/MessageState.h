@@ -33,19 +33,19 @@
 
 #include "WireFormatter.h"
 
+#include <array>
 #include <cstdint>
-#include <cassert>
 
 namespace EmbeddedProto 
 {
 
   //! Phase of field processing for partial serialization/deserialization.
-  enum class Phase : uint8_t 
+  enum class FieldProcessingPhase : uint8_t 
   {
-    TAG = 0,       //!< Reading/writing field tag (field number + wire type)
-    SIZE = 1,      //!< Reading/writing length prefix (for LENGTH_DELIMITED fields)
-    DATA = 2,      //!< Reading/writing actual field data
-    COMPLETE = 3   //!< Done with this field, ready for next
+    TAG = 0,       //<! Reading/writing field tag (field number + wire type)
+    SIZE = 1,      //<! Reading/writing length prefix (for LENGTH_DELIMITED fields)
+    DATA = 2,      //<! Reading/writing actual field data
+    COMPLETE = 3   //<! Done with this field, ready for next
   };
 
   //! State for partial serialization/deserialization of a single message.
@@ -54,17 +54,22 @@ namespace EmbeddedProto
       serialization or deserialization. It is used for both operations to 
       maintain consistency.
   */
-  class MessageState 
+  struct MessageState 
   {
-    public:
+      //! Default phase for a new field operation.
+      static constexpr::EmbeddedProto::FieldProcessingPhase INITIAL_PHASE = ::EmbeddedProto::FieldProcessingPhase::TAG;
+
+      //! Default wire type value.
+      static constexpr WireFormatter::WireType INITIAL_WIRE_TYPE = WireFormatter::WireType::VARINT;
+
       //! Current phase of field processing.
-      Phase phase = Phase::TAG;
+     ::EmbeddedProto::FieldProcessingPhase phase = INITIAL_PHASE;
       
       //! Field number from protobuf definition (1-based, from tag or next to serialize).
       uint32_t field_id = 0;
       
       //! Wire type from tag (deserialization only, but stored here for simplicity).
-      WireFormatter::WireType wire_type = WireFormatter::WireType::VARINT;
+      WireFormatter::WireType wire_type = INITIAL_WIRE_TYPE;
       
       //! For repeated fields: index of current element (0-based).
       uint32_t element_index = 0;
@@ -81,15 +86,13 @@ namespace EmbeddedProto
       //! Default constructor.
       MessageState() = default;
       
-      //! Default destructor.
-      ~MessageState() = default;
-      
+
       //! Reset state to initial values.
-      void reset() 
+      void reset()
       {
-        phase = Phase::TAG;
+        phase = INITIAL_PHASE;
         field_id = 0;
-        wire_type = WireFormatter::WireType::VARINT;
+        wire_type = INITIAL_WIRE_TYPE;
         element_index = 0;
         bytes_remaining = 0;
         size_value = 0;
@@ -115,8 +118,7 @@ namespace EmbeddedProto
   template<uint32_t DEPTH>
   class MessageStateStack 
   {
-      static_assert(DEPTH >= 1, "Depth must be at least 1");
-      
+
     public:
       //! Constructor - links states together in parent-child chain.
       MessageStateStack() 
@@ -159,7 +161,6 @@ namespace EmbeddedProto
       */
       MessageState& at(uint32_t depth) 
       { 
-        assert(depth < DEPTH);
         return states_[depth]; 
       }
       
@@ -170,7 +171,6 @@ namespace EmbeddedProto
       */
       const MessageState& at(uint32_t depth) const 
       { 
-        assert(depth < DEPTH);
         return states_[depth]; 
       }
       
@@ -194,7 +194,7 @@ namespace EmbeddedProto
       
     private:
       //! The array of message states.
-      MessageState states_[DEPTH];
+      std::array<MessageState, DEPTH> states_{};
   };
 
 } // namespace EmbeddedProto

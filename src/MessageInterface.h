@@ -103,25 +103,25 @@ class MessageInterface : public ::EmbeddedProto::Field
       // This matches the behavior of serialize_len() method
       if(!optional && (0 == serialized_size()))
       {
-        state.phase = Phase::COMPLETE;
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         return return_value;
       }
 
       // Handle TAG and SIZE phases using helper method
-      if((Phase::TAG == state.phase) || (Phase::SIZE == state.phase))
+      if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
       {
         return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
       }
 
-      if(Phase::DATA == state.phase)
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
       {
         if(nullptr != state.child)
         {
           return_value = this->serialize_partial(buffer, *state.child);
-          if((Error::NO_ERRORS == return_value) && (Phase::COMPLETE == state.child->phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
           {
             state.bytes_remaining = 0U;
-            state.phase = Phase::COMPLETE;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           }
         }
         else

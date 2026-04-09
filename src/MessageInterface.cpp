@@ -59,12 +59,12 @@ namespace EmbeddedProto
   {
     Error return_value = Error::NO_ERRORS;
 
-    if(Phase::SIZE == state.phase)
+    if(::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
     {
       return_value = deserialize_partial_size_phase(buffer, state);
     }
 
-    if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+    if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
     {
       if(nullptr != state.child)
       {
@@ -73,7 +73,7 @@ namespace EmbeddedProto
         state.bytes_remaining = section.get_size();
         if((Error::NO_ERRORS == return_value) && (0U == state.bytes_remaining))
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         }
       }
       else
@@ -92,18 +92,18 @@ namespace EmbeddedProto
 
     if(::EmbeddedProto::WireFormatter::WireType::VARINT == state.wire_type)
     {
-      if(Phase::DATA == state.phase)
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
       {
         return_value = skip_varint(buffer);
         if(Error::NO_ERRORS == return_value)
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         }
       }
     }
     else if(::EmbeddedProto::WireFormatter::WireType::FIXED32 == state.wire_type)
     {
-      if(Phase::DATA == state.phase)
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
       {
         if(0U == state.bytes_remaining)
         {
@@ -119,7 +119,7 @@ namespace EmbeddedProto
 
         if(0U == state.bytes_remaining)
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           return_value = Error::NO_ERRORS;
         }
         else
@@ -130,7 +130,7 @@ namespace EmbeddedProto
     }
     else if(::EmbeddedProto::WireFormatter::WireType::FIXED64 == state.wire_type)
     {
-      if(Phase::DATA == state.phase)
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
       {
         if(0U == state.bytes_remaining)
         {
@@ -146,7 +146,7 @@ namespace EmbeddedProto
 
         if(0U == state.bytes_remaining)
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           return_value = Error::NO_ERRORS;
         }
         else
@@ -159,12 +159,12 @@ namespace EmbeddedProto
     {
       return_value = Error::NO_ERRORS;
 
-      if(Phase::SIZE == state.phase)
+      if(::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
       {
         return_value = deserialize_partial_size_phase(buffer, state);
       }
 
-      if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+      if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
       {
         const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
           ? state.bytes_remaining
@@ -175,7 +175,7 @@ namespace EmbeddedProto
 
         if(0U == state.bytes_remaining)
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           return_value = Error::NO_ERRORS;
         }
         else

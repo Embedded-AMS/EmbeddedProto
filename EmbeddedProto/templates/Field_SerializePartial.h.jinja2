@@ -48,7 +48,7 @@ if(has_{{field.get_name()}}())
 }
 else
 {
-  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
 }
 
 {% else %}
@@ -75,7 +75,7 @@ if(has_{{field.get_name()}}())
 }
 else
 {
-  state.phase = ::EmbeddedProto::Phase::COMPLETE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
 }
 
 {% else %}

@@ -208,17 +208,17 @@ namespace EmbeddedProto
 
         if(REPEATED_FIELD_IS_PACKED)
         {
-          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
           {
             return_value = Error::STATE_MISMATCH;
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
           {
             return_value = deserialize_partial_size_phase(buffer, state);
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             ReadBufferSection section(buffer, state.bytes_remaining);
             const uint32_t section_size_before = section.get_size();
@@ -248,7 +248,7 @@ namespace EmbeddedProto
             {
               if(0U == state.bytes_remaining)
               {
-                state.phase = Phase::COMPLETE;
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                 return_value = Error::NO_ERRORS;
               }
               else if(Error::END_OF_BUFFER == element_result)
@@ -264,7 +264,7 @@ namespace EmbeddedProto
         }
         else
         {
-          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
           {
             return_value = Error::STATE_MISMATCH;
           }
@@ -297,7 +297,7 @@ namespace EmbeddedProto
                 }
                 else
                 {
-                  if(Phase::DATA != state.phase)
+                  if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
                   {
                     return_value = Error::STATE_MISMATCH;
                   }
@@ -319,7 +319,7 @@ namespace EmbeddedProto
                   }
                 }
 
-                if((Error::NO_ERRORS == return_value) && (Phase::COMPLETE == state.phase))
+                if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
                 {
                   state.element_index = index + 1U;
                 }
@@ -341,21 +341,21 @@ namespace EmbeddedProto
         // Skip serializing empty non-optional repeated fields (proto3 default behavior).
         if((!optional) && (0U == this->get_length()))
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           return return_value;
         }
 
         if(REPEATED_FIELD_IS_PACKED)
         {
           // Packed repeated field: TAG->SIZE->DATA state machine
-          if(Phase::DATA != state.phase)
+          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
           {
             // Calculate total packed size
             const uint32_t total_size = serialized_size_packed();
             return_value = serialize_partial_tag_and_size(field_number, total_size, buffer, state, optional);
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             // Serialize elements sequentially
             if(state.element_index < this->get_length())
@@ -372,19 +372,19 @@ namespace EmbeddedProto
 
               if(0 == state.bytes_remaining)
               {
-                state.phase = Phase::COMPLETE;
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
               }
             }
             else
             {
-              state.phase = Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             }
           }
         }
         else
         {
           // Unpacked repeated field: Each element gets its own TAG->SIZE->DATA
-          if(state.phase == Phase::COMPLETE)
+          if(state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE)
           {
             // All elements serialized
             return return_value;
@@ -407,7 +407,7 @@ namespace EmbeddedProto
               return_value = element.serialize_partial_with_id(field_number, buffer, state, true);
             }
 
-            if((Error::NO_ERRORS == return_value) && (state.phase == Phase::COMPLETE))
+            if((Error::NO_ERRORS == return_value) && (state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE))
             {
               // Element complete, move to next
               ++state.element_index;
@@ -417,12 +417,12 @@ namespace EmbeddedProto
               {
                 state.child->reset();
               }
-              state.phase = Phase::TAG; // Reset for next element
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG; // Reset for next element
             }
           }
           else
           {
-            state.phase = Phase::COMPLETE;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           }
         }
 

@@ -237,12 +237,12 @@ namespace EmbeddedProto
           Error return_value = Error::NO_ERRORS;
           bool size_phase_processed = false;
 
-          if((Phase::SIZE != state.phase) && (Phase::DATA != state.phase))
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
           {
             return_value = Error::STATE_MISMATCH;
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
           {
             return_value = deserialize_partial_size_phase(buffer, state);
             if(Error::NO_ERRORS == return_value)
@@ -260,7 +260,7 @@ namespace EmbeddedProto
             }
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
             for(uint32_t i = 0U; i < bytes_to_read; ++i)
@@ -282,7 +282,7 @@ namespace EmbeddedProto
               state.bytes_remaining -= bytes_to_read;
               if(0U == state.bytes_remaining)
               {
-                state.phase = Phase::COMPLETE;
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
               }
               else
               {
@@ -302,13 +302,13 @@ namespace EmbeddedProto
           Error return_value = Error::NO_ERRORS;
 
           // Handle TAG and SIZE phases using helper method
-          if(Phase::DATA != state.phase)
+          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
           {
             return_value = serialize_partial_tag_and_size(field_number, get_length(), buffer, state, optional);
           }
 
           // Handle DATA phase
-          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             // Calculate how many bytes we can write (limited by buffer space and remaining data)
             const uint32_t bytes_to_write = std::min(state.bytes_remaining, buffer.get_available_size());
@@ -326,7 +326,7 @@ namespace EmbeddedProto
                 state.bytes_remaining -= bytes_to_write;
                 if(0 == state.bytes_remaining)
                 {
-                  state.phase = Phase::COMPLETE;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                   return_value = Error::NO_ERRORS;
                 }
                 else
@@ -357,7 +357,7 @@ namespace EmbeddedProto
                     state.bytes_remaining -= bytes_written;
                     if(0 == state.bytes_remaining)
                     {
-                        state.phase = Phase::COMPLETE;
+                        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                         return_value = Error::NO_ERRORS;
                     }
                     else
@@ -378,7 +378,7 @@ namespace EmbeddedProto
                     }
                     else
                     {
-                        state.phase = Phase::COMPLETE;
+                        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                         return_value = Error::NO_ERRORS;
                     }
                 }
@@ -395,7 +395,7 @@ namespace EmbeddedProto
               }
               else
               {
-                state.phase = Phase::COMPLETE;
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
                 return_value = Error::NO_ERRORS;
               }
             }

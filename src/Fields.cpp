@@ -52,7 +52,7 @@ namespace EmbeddedProto
   {
     Error return_value = Error::NO_ERRORS;
 
-    if(Phase::TAG == state.phase)
+    if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
     {
       // Check if we have enough space for both tag and size atomically
       const uint32_t tag = WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED);
@@ -71,11 +71,11 @@ namespace EmbeddedProto
       return_value = WireFormatter::SerializeVarint(tag, buffer);
       if(Error::NO_ERRORS == return_value)
       {
-        state.phase = Phase::SIZE;
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
       }
     }
 
-    if((Error::NO_ERRORS == return_value) && (Phase::SIZE == state.phase))
+    if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
     {
       // Write size
       return_value = WireFormatter::SerializeVarint(size, buffer);
@@ -85,11 +85,11 @@ namespace EmbeddedProto
         // For empty fields, skip DATA phase and go directly to COMPLETE
         if(0 == size)
         {
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         }
         else
         {
-          state.phase = Phase::DATA;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
         }
       }
     }
@@ -102,7 +102,7 @@ namespace EmbeddedProto
   {
     Error return_value = Error::NO_ERRORS;
 
-    if(Phase::SIZE == state.phase)
+    if(::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
     {
       uint32_t size = 0;
       return_value = WireFormatter::DeserializeVarint(buffer, size);
@@ -110,7 +110,7 @@ namespace EmbeddedProto
       {
         state.size_value = size;
         state.bytes_remaining = size;
-        state.phase = Phase::DATA;
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
       }
       else
       {

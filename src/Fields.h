@@ -245,7 +245,7 @@ namespace EmbeddedProto
         // For non-optional fields, skip serialization if value equals default (zero/false)
         if(optional || (static_cast<VARIABLE_TYPE>(0) != value_))
         {
-          if(Phase::TAG == state.phase)
+          if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
           {
             // For scalar fields, we need atomic write of tag+value
             // Check if we have enough space for both tag and value
@@ -265,7 +265,7 @@ namespace EmbeddedProto
             return_value = WireFormatter::SerializeVarint(WireFormatter::MakeTag(field_number, WIRETYPE), buffer);
             if(Error::NO_ERRORS == return_value)
             {
-              state.phase = Phase::DATA;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
             }
             else
             {
@@ -275,18 +275,18 @@ namespace EmbeddedProto
             }
           }
 
-          if((Error::NO_ERRORS == return_value) && (Phase::DATA == state.phase))
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             // Write value - this should always fit if TAG phase succeeded
             return_value = serialize(buffer);
             if(Error::NO_ERRORS == return_value)
             {
-              state.phase = Phase::COMPLETE;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             }
             else
             {
               // Value write failed - rollback to TAG phase
-              state.phase = Phase::TAG;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
               return_value = Error::BUFFER_FULL;
               // Note: We've already written the tag, so we can't fully rollback
               // This is a partial write scenario that should be rare
@@ -296,7 +296,7 @@ namespace EmbeddedProto
         else
         {
           // Field has default value - skip to complete
-          state.phase = Phase::COMPLETE;
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         }
 
         return return_value;
@@ -311,7 +311,7 @@ namespace EmbeddedProto
       {
         Error return_value = Error::NO_ERRORS;
 
-        if(Phase::DATA != state.phase)
+        if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
         {
           return_value = Error::STATE_MISMATCH;
         }
@@ -324,7 +324,7 @@ namespace EmbeddedProto
           return_value = deserialize(buffer);
           if(Error::NO_ERRORS == return_value)
           {
-            state.phase = Phase::COMPLETE;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           }
         }
 

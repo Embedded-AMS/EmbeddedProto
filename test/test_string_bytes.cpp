@@ -805,7 +805,7 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_string_split_size_and_dat
 {
   ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::FieldString<8>, 2> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer({0x03, 'A'});
 
@@ -825,7 +825,7 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_bytes_split_size_and_data
 {
   ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::FieldBytes<8>, 2> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer({0x03, 0xAA});
 
@@ -1228,7 +1228,7 @@ TEST(FieldString, PartialSerialize_String_SplitInData)
   EXPECT_EQ(5U, bufferA.get_size());
   
   // Verify state
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(4U, state.root().bytes_remaining);
 
   // Buffer B: fits remaining 4 data bytes
@@ -1268,7 +1268,7 @@ TEST(FieldString, PartialSerialize_String_SplitAfterTagSize)
   EXPECT_EQ(2U, bufferA.get_size());
   
   // Verify state
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(7U, state.root().bytes_remaining);
 
   // Buffer B: fits all data
@@ -1472,7 +1472,7 @@ TEST(FieldBytes, PartialSerialize_Bytes_SplitInData)
   EXPECT_EQ(4U, bufferA.get_size());
   
   // Verify state
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(2U, state.root().bytes_remaining);
 
   // Buffer B: fits remaining 2 data bytes
@@ -1547,7 +1547,7 @@ TEST(FieldString, PartialDeserializeAsField_SizeSplit)
 {
   ::EmbeddedProto::FieldString<140> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<200> buffer(
     {
@@ -1556,7 +1556,7 @@ TEST(FieldString, PartialDeserializeAsField_SizeSplit)
 
   ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::SIZE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.phase);
   EXPECT_EQ(0U, field.get_length());
 
   buffer.push(0x01);
@@ -1567,7 +1567,7 @@ TEST(FieldString, PartialDeserializeAsField_SizeSplit)
 
   result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(120U, state.bytes_remaining);
   EXPECT_EQ(20U, field.get_length());
 
@@ -1578,7 +1578,7 @@ TEST(FieldString, PartialDeserializeAsField_SizeSplit)
 
   result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
   EXPECT_EQ(0U, state.bytes_remaining);
   EXPECT_EQ(140U, field.get_length());
 }
@@ -1587,7 +1587,7 @@ TEST(FieldBytes, PartialDeserializeAsField_DataSplit)
 {
   ::EmbeddedProto::FieldBytes<10> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
     {
@@ -1596,7 +1596,7 @@ TEST(FieldBytes, PartialDeserializeAsField_DataSplit)
 
   ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(2U, state.bytes_remaining);
   EXPECT_EQ(2U, field.get_length());
   EXPECT_EQ(0x01, field.get_const(0));
@@ -1607,7 +1607,7 @@ TEST(FieldBytes, PartialDeserializeAsField_DataSplit)
 
   result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
   EXPECT_EQ(0U, state.bytes_remaining);
   EXPECT_EQ(4U, field.get_length());
   EXPECT_EQ(0x03, field.get_const(2));
@@ -1618,7 +1618,7 @@ TEST(FieldBytes, PartialDeserializeAsField_SizeSplit)
 {
   ::EmbeddedProto::FieldBytes<140> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<200> buffer(
     {
@@ -1627,7 +1627,7 @@ TEST(FieldBytes, PartialDeserializeAsField_SizeSplit)
 
   ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::SIZE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.phase);
   EXPECT_EQ(0U, field.get_length());
 
   buffer.push(0x01);
@@ -1638,7 +1638,7 @@ TEST(FieldBytes, PartialDeserializeAsField_SizeSplit)
 
   result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(110U, state.bytes_remaining);
   EXPECT_EQ(30U, field.get_length());
 
@@ -1649,7 +1649,7 @@ TEST(FieldBytes, PartialDeserializeAsField_SizeSplit)
 
   result = field.deserialize_partial_as_field(buffer, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
   EXPECT_EQ(0U, state.bytes_remaining);
   EXPECT_EQ(140U, field.get_length());
   EXPECT_EQ(0x00, field.get_const(0));
@@ -1662,12 +1662,12 @@ TEST(FieldString, PartialDeserializeAsField_DataOneByteAtATime)
 {
   ::EmbeddedProto::FieldString<8> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<2> buffer_a({0x05, 'H'});
   ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer_a, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(4U, state.bytes_remaining);
   EXPECT_STREQ("H", field.get_const());
 
@@ -1689,7 +1689,7 @@ TEST(FieldString, PartialDeserializeAsField_DataOneByteAtATime)
   ::EmbeddedProto::ReadBufferFixedSize<1> buffer_e({'O'});
   result = field.deserialize_partial_as_field(buffer_e, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
   EXPECT_EQ(0U, state.bytes_remaining);
   EXPECT_STREQ("HELLO", field.get_const());
 }
@@ -1698,12 +1698,12 @@ TEST(FieldBytes, PartialDeserializeAsField_DataOneByteAtATime)
 {
   ::EmbeddedProto::FieldBytes<8> field;
   ::EmbeddedProto::MessageState state;
-  state.phase = ::EmbeddedProto::Phase::SIZE;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
 
   ::EmbeddedProto::ReadBufferFixedSize<2> buffer_a({0x05, 0x10});
   ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer_a, state);
   EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(4U, state.bytes_remaining);
   EXPECT_EQ(1U, field.get_length());
   EXPECT_EQ(0x10, field.get_const(0));
@@ -1726,7 +1726,7 @@ TEST(FieldBytes, PartialDeserializeAsField_DataOneByteAtATime)
   ::EmbeddedProto::ReadBufferFixedSize<1> buffer_e({0x14});
   result = field.deserialize_partial_as_field(buffer_e, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::COMPLETE, state.phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
   EXPECT_EQ(0U, state.bytes_remaining);
   EXPECT_EQ(5U, field.get_length());
   EXPECT_EQ(0x10, field.get_const(0));
@@ -1798,7 +1798,7 @@ TEST(FieldString, PartialSerialize_Oneof_String_SplitInData)
   EXPECT_EQ(5U, bufferA.get_size());
   
   // Verify state
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(4U, state.root().bytes_remaining);
 
   // Buffer B: fits remaining 4 data bytes
@@ -1863,14 +1863,14 @@ TEST(FieldString, PartialSerialize_String_VerifyBytesRemainingTracking)
   ::EmbeddedProto::WriteBufferFixedSize<2> buffer1;
   auto result = msg.serialize_partial(buffer1, state.root());
   EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(10U, state.root().bytes_remaining);
 
   // Buffer 2: 4 data bytes
   ::EmbeddedProto::WriteBufferFixedSize<4> buffer2;
   result = msg.serialize_partial(buffer2, state.root());
   EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
-  EXPECT_EQ(::EmbeddedProto::Phase::DATA, state.root().phase);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
   EXPECT_EQ(6U, state.root().bytes_remaining);
 
   // Buffer 3: remaining 6 data bytes
