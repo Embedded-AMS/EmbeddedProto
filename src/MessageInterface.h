@@ -100,34 +100,34 @@ class MessageInterface : public ::EmbeddedProto::Field
       Error return_value = Error::NO_ERRORS;
 
       // Skip serializing empty fields for non-optional fields (proto3 default behavior)
-      // This matches the behavior of serialize_len() method
-      if(!optional && (0 == serialized_size()))
+      if(optional || (0 != serialized_size()))
       {
-        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-        return return_value;
-      }
-
-      // Handle TAG and SIZE phases using helper method
-      if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
-      {
-        return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
-      }
-
-      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
-      {
-        if(nullptr != state.child)
+        // Handle TAG and SIZE phases using helper method
+        if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
         {
-          return_value = this->serialize_partial(buffer, *state.child);
-          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+          return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
+        }
+
+        if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+        {
+          if(nullptr != state.child)
           {
-            state.bytes_remaining = 0U;
-            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            return_value = this->serialize_partial(buffer, *state.child);
+            if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+            {
+              state.bytes_remaining = 0U;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+          }
+          else
+          {
+            return_value = Error::NESTING_TOO_DEEP;
           }
         }
-        else
-        {
-          return_value = Error::NESTING_TOO_DEEP;
-        }
+      }
+      else
+      {
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
       }
 
       return return_value;

@@ -39,7 +39,6 @@ namespace EmbeddedProto
   {
     ::EmbeddedProto::MessageSizeCalculator calcBuffer;
     this->serialize(calcBuffer);
-
     return calcBuffer.get_size();
   }
 
@@ -134,33 +133,31 @@ namespace EmbeddedProto
     Error return_value = Error::NO_ERRORS;
 
     // Skip serializing empty fields for non-optional fields (proto3 default behavior)
-    if(!optional && (0 == size))
+    if(optional || (0 != size))
     {
-      return return_value;
-    }
-
-    return_value = WireFormatter::SerializeVarint(
-        WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED),
-        buffer);
-
-    if(Error::NO_ERRORS == return_value)
-    {
-      return_value = WireFormatter::SerializeVarint(size, buffer);
+      return_value = WireFormatter::SerializeVarint(
+          WireFormatter::MakeTag(field_number, WireFormatter::WireType::LENGTH_DELIMITED),
+          buffer);
 
       if(Error::NO_ERRORS == return_value)
       {
-        // Check if there's enough space for the data after writing tag and size
-        if(size <= buffer.get_available_size())
+        return_value = WireFormatter::SerializeVarint(size, buffer);
+
+        if(Error::NO_ERRORS == return_value)
         {
-          // Only call serialize if there's actual data to write
-          if(size > 0)
+          // Check if there's enough space for the data after writing tag and size
+          if(size <= buffer.get_available_size())
           {
-            return_value = serialize(buffer);
+            // Only call serialize if there's actual data to write
+            if(size > 0)
+            {
+              return_value = serialize(buffer);
+            }
           }
-        }
-        else
-        {
-          return_value = Error::BUFFER_FULL;
+          else
+          {
+            return_value = Error::BUFFER_FULL;
+          }
         }
       }
     }

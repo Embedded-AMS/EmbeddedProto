@@ -95,6 +95,7 @@ namespace EmbeddedProto
       virtual Error deserialize_check_type(ReadBufferInterface& buffer,
                                            const ::EmbeddedProto::WireFormatter::WireType& wire_type) = 0;
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       //! Serialize this field with partial state support for LENGTH_DELIMITED fields.
       /*!
           Handles TAG->SIZE->DATA state machine for length-delimited field types.
@@ -104,7 +105,6 @@ namespace EmbeddedProto
           \param optional If true, serialize even if size is zero.
           \return NO_ERRORS if successful, BUFFER_FULL if buffer full.
       */
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       virtual Error serialize_partial_as_field(uint32_t field_number,
                                                WriteBufferInterface& buffer,
                                                MessageState& state,
@@ -161,6 +161,8 @@ namespace EmbeddedProto
       virtual void clear() = 0;
 
     protected:
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)    
       //! Helper method for TAG and SIZE phases of partial serialization.
       /*!
           Handles the shared TAG and SIZE phases for LENGTH_DELIMITED fields.
@@ -171,7 +173,6 @@ namespace EmbeddedProto
           \param optional If true, serialize even if size is zero.
           \return NO_ERRORS when phase reaches DATA, other errors on failure.
       */
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
       Error serialize_partial_tag_and_size(uint32_t field_number,
                                            uint32_t size,
                                            WriteBufferInterface& buffer,

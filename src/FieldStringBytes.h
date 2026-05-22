@@ -171,9 +171,6 @@ namespace EmbeddedProto
           return return_value;
         }
 
-
-
-
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
@@ -340,47 +337,45 @@ namespace EmbeddedProto
                 // uses > instead of >=, so we can't fill the buffer completely.
                 // In this case, try to write bytes one at a time.
                 uint32_t bytes_written = 0;
-                for(uint32_t i = 0; i < bytes_to_write; ++i)
+                bool push_more = true;
+                for(uint32_t i = 0; (i < bytes_to_write) && push_more; ++i)
                 {
-                    if(buffer.push(byte_pointer[i]))
-                    {
-                        bytes_written++;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                  push_more = buffer.push(byte_pointer[i]);
+                  if(push_more)
+                  {
+                      bytes_written++;
+                  }
                 }
 
                 if(bytes_written > 0)
                 {
-                    state.bytes_remaining -= bytes_written;
-                    if(0 == state.bytes_remaining)
-                    {
-                        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-                        return_value = Error::NO_ERRORS;
-                    }
-                    else
-                    {
-                        return_value = Error::BUFFER_FULL;
-                    }
+                  state.bytes_remaining -= bytes_written;
+                  if(0 == state.bytes_remaining)
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
+                  else
+                  {
+                    return_value = Error::BUFFER_FULL;
+                  }
                 }
                 else
                 {
-                    // Couldn't write any bytes - this should not happen unless buffer is completely full
-                    // To prevent infinite loops, we need to ensure progress is made
-                    // If we can't write any bytes and there are still bytes remaining, we have a problem
-                    if(state.bytes_remaining > 0)
-                    {
-                        // This is the infinite loop scenario - buffer is full but we can't write any bytes
-                        // We need to return BUFFER_FULL to indicate we need a new buffer
-                        return_value = Error::BUFFER_FULL;
-                    }
-                    else
-                    {
-                        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-                        return_value = Error::NO_ERRORS;
-                    }
+                  // Couldn't write any bytes - this should not happen unless buffer is completely full
+                  // To prevent infinite loops, we need to ensure progress is made
+                  // If we can't write any bytes and there are still bytes remaining, we have a problem
+                  if(state.bytes_remaining > 0)
+                  {
+                    // This is the infinite loop scenario - buffer is full but we can't write any bytes
+                    // We need to return BUFFER_FULL to indicate we need a new buffer
+                    return_value = Error::BUFFER_FULL;
+                  }
+                  else
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
                 }
               }
             }
