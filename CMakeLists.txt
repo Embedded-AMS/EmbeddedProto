@@ -28,7 +28,7 @@
 #    the Netherlands
 #
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 
 project(test_EmbeddedProto)
 
