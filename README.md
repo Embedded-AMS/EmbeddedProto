@@ -4,7 +4,7 @@
 
 Embedded Proto is a product of Embedded AMS B.V. For more information about Embedded Proto please visit [EmbeddedProto.com](https://EmbeddedProto.com).
 
-Copyright (C) 2020-2025 Embedded AMS B.V. - All Rights Reserved, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
+Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved, [www.EmbeddedAMS.nl](https://www.EmbeddedAMS.nl), [info@EmbeddedAMS.nl](mailto:info@EmbeddedAMS.nl)
 
 
 # Introduction
