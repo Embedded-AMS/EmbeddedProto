@@ -45,6 +45,9 @@ namespace EmbeddedProto
     INVALID_FIELD_ID = 5, //!< When the id obtained from the tag equeals zero.
     OVERLONG_VARINT  = 6, //!< The maximum number of bytes where read for this varint but we did not reach the end of the data.
     INDEX_OUT_OF_BOUND = 7, //!< You are trying to access an index outside of valid data.
+    // Errors for partial serialization/deserialization
+    STATE_MISMATCH   = 10, //!< The state object does not match the message type.
+    NESTING_TOO_DEEP = 11, //!< Message nesting exceeds the state stack depth.
   };
 
 }; // End of namespace EmbeddedProto

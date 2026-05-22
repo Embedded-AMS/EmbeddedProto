@@ -27,11 +27,12 @@ Postal address:
   1627 LE, Hoorn
   the Netherlands
 #}
-{% if (field.optional or (field.oneof is not none)) %}
-if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
-{% else %}
-if(({{field.get_default_value()}} != {{field.get_variable_name()}}.get()) && (::EmbeddedProto::Error::NO_ERRORS == return_value))
+{% if field.optional %}
+presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
-{
-  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, {{ "true" if (field.optional or (field.oneof is not none)) else "false" }});
-}
+{% if field.uses_serialize_len() %}
+return_value = {{field.get_variable_name()}}.deserialize_partial_as_field(buffer, state);
+{% else %}
+return_value = {{field.get_variable_name()}}.deserialize_partial_check_type(
+    buffer, state, ::EmbeddedProto::WireFormatter::WireType::{{field.get_wire_type_str()}});
+{% endif %}

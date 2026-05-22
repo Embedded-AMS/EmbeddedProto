@@ -33,6 +33,7 @@
 #include <WireFormatter.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
+#include <WriteBufferFixedSize.h>
 
 #include <ReadBufferFixedSize.h>
 
@@ -117,7 +118,7 @@ TEST(RepeatedFieldMessage, serialize_array_zero_fields)
 TEST(RepeatedFieldMessage, serialize_array_zero_messages)
 { 
   InSequence s;
-  
+
   Mocks::WriteBufferMock buffer;
   repeated_message<Y_SIZE> msg;
 
@@ -129,16 +130,11 @@ TEST(RepeatedFieldMessage, serialize_array_zero_messages)
   msg.add_b(rnm);
   msg.add_b(rnm);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(6));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
-
-  EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+  for(uint32_t i = 0; i < 3; ++i) 
+  {
+    EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+  }
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
@@ -177,7 +173,8 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   repeated_message<Y_SIZE> msg;
 
   repeated_nested_message rnm;
-  
+
+
   rnm.set_u(0);
   rnm.set_v(0);
   msg.add_b(rnm);
@@ -190,18 +187,23 @@ TEST(RepeatedFieldMessage, serialize_array_zero_one_zero_messages)
   rnm.set_v(0);
   msg.add_b(rnm);
 
-  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
-
+  ON_CALL(buffer, get_available_size()).WillByDefault(Return(10));
+  
+  // Empty messages (size=0) 
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
+  // The non-empty message (second one)
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x04)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true)); 
-  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true)); 
-  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
 
+  // The nested message content
+  EXPECT_CALL(buffer, push(0x08)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x10)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x01)).Times(1).WillOnce(Return(true));
+  
+  // Empty messages (size=0) 
   EXPECT_CALL(buffer, push(0x12)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
 
@@ -234,8 +236,6 @@ TEST(RepeatedFieldMessage, serialize_array_one)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
-
-
 TEST(RepeatedFieldMessage, serialize_array_max)
 {
   InSequence s;
@@ -263,8 +263,6 @@ TEST(RepeatedFieldMessage, serialize_array_max)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
-
-
 
 TEST(RepeatedFieldMessage, serialize_one)
 {
@@ -371,6 +369,8 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
 
 }
 
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
+
 TEST(RepeatedFieldMessage, deserialize_empty_message_array) 
 {
   InSequence s;
@@ -384,6 +384,8 @@ TEST(RepeatedFieldMessage, deserialize_empty_message_array)
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 }
+
+#endif 
 
 TEST(RepeatedFieldMessage, deserialize_one) 
 {
@@ -416,6 +418,8 @@ TEST(RepeatedFieldMessage, deserialize_one)
   EXPECT_EQ(1, msg.get_z());
 
 }
+
+#ifdef PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_one_partial) 
 {
@@ -503,7 +507,6 @@ TEST(RepeatedFieldMessage, deserialize_split_after_tag)
 
 }
 
-
 TEST(RepeatedFieldMessage, deserialize_split_varint) 
 {
   repeated_fields<128> msg;
@@ -562,8 +565,6 @@ TEST(RepeatedFieldMessage, deserialize_split_between_elements)
   EXPECT_EQ(2147483647, msg.y(1));
   EXPECT_EQ(1, msg.get_z());
 }
-
-
 
 TEST(RepeatedFieldMessage, deserialize_one_message_array) 
 {
@@ -637,6 +638,8 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   EXPECT_EQ(0, msg.b(2).v());
   EXPECT_EQ(1, msg.get_c());
 }
+
+#endif // PARTIAL_DESERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_max) 
 {
@@ -758,6 +761,238 @@ TEST(RepeatedFieldMessage, deserialize_repeated_enum)
   EXPECT_EQ(SomeEnum::SE_B, enum_msg.get_enum_values()[1]);
   EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
 }
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+
+TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedPacked_SizeSplit)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 130> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<132> buffer({0x82});
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.phase);
+  EXPECT_EQ(0U, field.get_length());
+
+  buffer.push(0x01);
+  for(uint32_t i = 0U; i < 130U; ++i)
+  {
+    buffer.push(0x01);
+  }
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(130U, field.get_length());
+  EXPECT_EQ(1U, field[0].get());
+  EXPECT_EQ(1U, field[129].get());
+}
+
+TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedPacked_DataSplit)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 3> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer({0x03, 0x01});
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
+  EXPECT_EQ(2U, state.bytes_remaining);
+  EXPECT_EQ(1U, field.get_length());
+  EXPECT_EQ(1U, field[0].get());
+
+  buffer.push(0x02);
+  buffer.push(0x03);
+
+  result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(3U, field.get_length());
+  EXPECT_EQ(2U, field[1].get());
+  EXPECT_EQ(3U, field[2].get());
+}
+
+TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedPacked_ArrayFull)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 2> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer({0x03, 0x01, 0x02, 0x03});
+
+  const ::EmbeddedProto::Error result = field.deserialize_partial_as_field(buffer, state);
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, result);
+  EXPECT_EQ(2U, field.get_length());
+  EXPECT_EQ(1U, field[0].get());
+  EXPECT_EQ(2U, field[1].get());
+}
+
+TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedUnpackedBytes_DataSplit)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::FieldBytes<8>, 2> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> first_element({0x03, 0xAA});
+
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(first_element, state);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
+  EXPECT_EQ(1U, field.get_length());
+  EXPECT_EQ(1U, field[0].get_length());
+  EXPECT_EQ(0xAA, field[0].get_const()[0]);
+
+  first_element.push(0xBB);
+  first_element.push(0xCC);
+
+  result = field.deserialize_partial_as_field(first_element, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(1U, state.element_index);
+  EXPECT_EQ(3U, field[0].get_length());
+  EXPECT_EQ(0xCC, field[0].get_const()[2]);
+
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+  ::EmbeddedProto::ReadBufferFixedSize<8> second_element({0x02, 0x11, 0x22});
+  result = field.deserialize_partial_as_field(second_element, state);
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(2U, state.element_index);
+  EXPECT_EQ(2U, field.get_length());
+  EXPECT_EQ(0x11, field[1].get_const()[0]);
+  EXPECT_EQ(0x22, field[1].get_const()[1]);
+}
+
+TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedUnpackedBytes_ArrayFull)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::FieldBytes<8>, 1> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> first_element({0x01, 0x7F});
+  ::EmbeddedProto::Error result = field.deserialize_partial_as_field(first_element, state);
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(1U, field.get_length());
+
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+  ::EmbeddedProto::ReadBufferFixedSize<8> second_element({0x01, 0x55});
+  result = field.deserialize_partial_as_field(second_element, state);
+
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, result);
+  EXPECT_EQ(2U, second_element.get_size());
+  EXPECT_EQ(1U, field.get_length());
+}
+
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_FreshChildState_MakesProgress)
+{
+  repeated_message<Y_SIZE> msg;
+  repeated_nested_message e0;
+  e0.set_u(1);
+  e0.set_v(1);
+  repeated_nested_message e1;
+  e1.set_u(2);
+  e1.set_v(2);
+  msg.add_b(e0);
+  msg.add_b(e1);
+
+  repeated_message<Y_SIZE>::StateStack state;
+  ASSERT_NE(nullptr, state.root().child);
+
+  // Emulate we are in the DATA phase of element 1 (second element), with a clean child state.
+  state.root().field_id = static_cast<uint32_t>(repeated_message<Y_SIZE>::FieldNumber::B);
+  state.root().phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
+  state.root().element_index = 1;
+  state.root().bytes_remaining = msg.b(1).serialized_size();
+
+  ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
+
+  const uint32_t size_before = buffer.get_size();
+  const uint32_t remaining_before = state.root().bytes_remaining;
+  const uint32_t index_before = state.root().element_index;
+
+  const ::EmbeddedProto::Error result = msg.mutable_b().serialize_partial_as_field(
+      static_cast<uint32_t>(repeated_message<Y_SIZE>::FieldNumber::B),
+      buffer,
+      state.root(),
+      false);
+
+  const bool made_progress =
+      (buffer.get_size() != size_before) ||
+      (state.root().bytes_remaining != remaining_before) ||
+      (state.root().element_index != index_before) ||
+      (state.root().phase != ::EmbeddedProto::FieldProcessingPhase::DATA) ||
+      (result != ::EmbeddedProto::Error::NO_ERRORS);
+
+  EXPECT_TRUE(made_progress)
+      << "Expected progress with clean child state, but serializer made no progress.";
+}
+
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedPacked_SplitInData)
+{
+  repeated_fields<Y_SIZE> msg;
+  msg.add_y(1);
+  msg.add_y(2);
+  msg.add_y(3);
+
+  repeated_fields<Y_SIZE>::StateStack state;
+
+  ::EmbeddedProto::WriteBufferFixedSize<3> buffer_a;
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer_a, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(3U, buffer_a.get_size());
+  EXPECT_EQ(0x12, buffer_a.get_data()[0]);
+  EXPECT_EQ(0x03, buffer_a.get_data()[1]);
+  EXPECT_EQ(0x01, buffer_a.get_data()[2]);
+
+  ::EmbeddedProto::WriteBufferFixedSize<3> buffer_b;
+  result = msg.serialize_partial(buffer_b, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer_b.get_size());
+  EXPECT_EQ(0x02, buffer_b.get_data()[0]);
+  EXPECT_EQ(0x03, buffer_b.get_data()[1]);
+}
+
+TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_SplitBetweenElements)
+{
+  repeated_message<Y_SIZE> msg;
+
+  repeated_nested_message rnm;
+  rnm.set_u(0);
+  rnm.set_v(0);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
+  msg.add_b(rnm);
+
+  repeated_message<Y_SIZE>::StateStack state;
+
+  ::EmbeddedProto::WriteBufferFixedSize<4> buffer_a;
+  ::EmbeddedProto::Error result = msg.serialize_partial(buffer_a, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, result);
+  EXPECT_EQ(4U, buffer_a.get_size());
+  EXPECT_EQ(0x12, buffer_a.get_data()[0]);
+  EXPECT_EQ(0x00, buffer_a.get_data()[1]);
+  EXPECT_EQ(0x12, buffer_a.get_data()[2]);
+  EXPECT_EQ(0x00, buffer_a.get_data()[3]);
+
+  ::EmbeddedProto::WriteBufferFixedSize<4> buffer_b;
+  result = msg.serialize_partial(buffer_b, state.root());
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
+  EXPECT_EQ(2U, buffer_b.get_size());
+  EXPECT_EQ(0x12, buffer_b.get_data()[0]);
+  EXPECT_EQ(0x00, buffer_b.get_data()[1]);
+}
+
+#endif // EP_SERIALIZATION_MODE_PARTIAL
 
 #ifdef MSG_TO_STRING
 

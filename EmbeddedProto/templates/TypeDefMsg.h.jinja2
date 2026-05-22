@@ -103,6 +103,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     };
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+    //! State depth for partial serialization.
+    static constexpr uint32_t STATE_DEPTH = {{ typedef.get_state_depth() }};
+    
+    //! Convenience typedef for the state stack.
+    using StateStack = ::EmbeddedProto::MessageStateStack<STATE_DEPTH>;
+#endif
+
     {{ typedef.name }}& operator=(const {{ typedef.name }}& rhs)
     {
       {% if typedef.fields|length == 0 and typedef.oneofs|length == 0%}
@@ -177,7 +185,6 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 
       {% for field in typedef.fields %}
       {{ field.render_serialize(environment)|indent(6) }}
-
       {% endfor %}
       {% for oneof in typedef.oneofs %}
       switch({{oneof.get_which_oneof()}})
@@ -195,6 +202,351 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
       return return_value;
     };
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+    ::EmbeddedProto::Error deserialize_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                               ::EmbeddedProto::MessageState& state) override
+    {
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      bool continue_deserializing = true;
+
+      while(continue_deserializing)
+      {
+        if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
+        {
+          state.field_id = 0U;
+          return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, state.wire_type, state.field_id);
+          if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+          {
+            state.phase = (::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
+              ? ::EmbeddedProto::FieldProcessingPhase::SIZE
+              : ::EmbeddedProto::FieldProcessingPhase::DATA;
+          }
+        }
+
+        if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+           && ((::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
+               || (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)))
+        {
+          switch(static_cast<FieldNumber>(state.field_id))
+          {
+            {% for field in typedef.fields %}
+            case FieldNumber::{{field.get_variable_id_name()}}:
+              {{ field.render_deserialize_partial(environment)|indent(14) }}
+              break;
+
+            {% endfor %}
+            {% for oneof in typedef.oneofs %}
+            {% for field in oneof.get_fields() %}
+            case FieldNumber::{{field.get_variable_id_name()}}:
+              if(FieldNumber::{{field.get_variable_id_name()}} != {{field.get_which_oneof()}})
+              {
+                init_{{oneof.get_name()}}(FieldNumber::{{field.get_variable_id_name()}});
+              }
+              {{ field.render_deserialize_partial(environment)|indent(14) }}
+              break;
+
+            {% endfor %}
+            {% endfor %}
+            case FieldNumber::NOT_SET:
+              return_value = ::EmbeddedProto::Error::INVALID_FIELD_ID;
+              break;
+
+            default:
+              return_value = skip_unknown_field_partial(buffer, state);
+              break;
+          }
+        }
+
+        if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+           && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+          state.field_id = 0U;
+          state.size_value = 0U;
+          state.bytes_remaining = 0U;
+          state.element_index = 0U;
+          if(nullptr != state.child)
+          {
+            state.child->reset();
+          }
+        }
+        else
+        {
+          continue_deserializing = false;
+        }
+      }
+
+      return return_value;
+    }
+
+    ::EmbeddedProto::Error serialize_partial(::EmbeddedProto::WriteBufferInterface& buffer, 
+                                            ::EmbeddedProto::MessageState& state) const override
+    {
+      {% if typedef.fields|length == 0 and typedef.oneofs|length == 0 %}
+      (void)buffer; // Empty message thus unused.
+      (void)state;  // Empty message thus unused.
+      {% endif %}
+      ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      
+      // Get the field id to serialize (from state or start from first field)
+      uint32_t field_id = state.field_id;
+
+      {% set ns = namespace(oneof_field_count=0) %}
+      {% for oneof in typedef.oneofs %}
+      {% set ns.oneof_field_count = ns.oneof_field_count + (oneof.get_fields()|length) %}
+      {% endfor %}
+      static constexpr uint32_t STATIC_PARTIAL_ITERATION_BUDGET = {{ (typedef.fields|length) + ns.oneof_field_count + 1 }}U;
+      const uint32_t serialized_size_value = max_serialized_size();
+      uint32_t max_partial_iterations = STATIC_PARTIAL_ITERATION_BUDGET;
+      if((std::numeric_limits<uint32_t>::max() - max_partial_iterations) > serialized_size_value)
+      {
+        max_partial_iterations += serialized_size_value;
+      }
+      else
+      {
+        max_partial_iterations = std::numeric_limits<uint32_t>::max();
+      }
+      
+      // Iterate through fields based on state
+      for(uint32_t iteration = 0;
+          (iteration < max_partial_iterations)
+          && (::EmbeddedProto::Error::NO_ERRORS == return_value)
+          && (::EmbeddedProto::FieldProcessingPhase::COMPLETE != state.phase);
+          ++iteration)
+      {
+        // Determine which field to serialize based on field_id
+        switch(field_id)
+        {
+          case 0:
+            // Start of serialization - initialize state
+            {% if typedef.fields|length > 0 %}
+            // Start with first regular field.
+            // Keep this order aligned with serialize().
+            state.field_id = static_cast<uint32_t>(FieldNumber::{{ typedef.fields[0].get_variable_id_name() }});
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+            field_id = state.field_id;
+            {% elif typedef.oneofs|length > 0 %}
+            // No regular fields available, start with first set oneof field.
+            {% for oneof in typedef.oneofs %}
+            switch({{oneof.get_which_oneof()}})
+            {
+                {% for field in oneof.get_fields() %}
+                case FieldNumber::{{field.get_variable_id_name()}}:
+                    state.field_id = static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}});
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                    field_id = state.field_id;
+                    break;
+                {% endfor %}
+                default:
+                    // This oneof is not set, try next oneof or regular fields
+                    {% if loop.last %}
+                    // No fields to serialize
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    {% endif %}
+                    break;
+            }
+            {% if loop.last %}
+            break;
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            // No fields to serialize
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            {% endif %}
+            break;
+            
+          {% for field in typedef.fields %}
+          case static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}):
+            {{ field.render_serialize_partial(environment)|indent(12) }}
+            break;
+            
+          {% endfor %}
+          {% for oneof in typedef.oneofs %}
+          {% for field in oneof.get_fields() %}
+          case static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}):
+            // Check if this oneof field is the one that's set
+            if(FieldNumber::{{field.get_variable_id_name()}} == {{field.get_which_oneof()}})
+            {
+              {{ field.render_serialize_partial(environment)|indent(14) }}
+            }
+            else
+            {
+              // This oneof field is not set, skip to complete
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+            break;
+            
+          {% endfor %}
+          {% endfor %}
+          default:
+            // All fields serialized
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            break;
+        }
+        
+        // Move to next field when current field is complete
+        if((::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase) && 
+           (::EmbeddedProto::Error::NO_ERRORS == return_value))
+        {
+          // Reset child state for nested messages before moving to next field
+          if(nullptr != state.child)
+          {
+            state.child->reset();
+          }
+          
+          // Determine next field using switch-case
+          switch(field_id)
+          {
+            {% for field in typedef.fields %}
+            case static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}):
+            {% if not loop.last %}
+              field_id = static_cast<uint32_t>(FieldNumber::{{ typedef.fields[loop.index].get_variable_id_name() }});
+              state.field_id = field_id;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+            {% elif typedef.oneofs|length > 0 %}
+              // Move to first oneof group - check which field is set
+              {% set first_oneof = typedef.oneofs[0] %}
+              switch(get_{{first_oneof.get_which_oneof()}}())
+              {
+                {% for oneof_field in first_oneof.get_fields() %}
+                case FieldNumber::{{oneof_field.get_variable_id_name()}}:
+                  field_id = static_cast<uint32_t>(FieldNumber::{{ oneof_field.get_variable_id_name() }});
+                  state.field_id = field_id;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                  break;
+                {% endfor %}
+                default:
+                  // No field in this oneof group is set, skip to next oneof or complete
+                  {% if typedef.oneofs|length > 1 %}
+                  // Move to next oneof group - check which field is set
+                  {% set next_oneof = typedef.oneofs[1] %}
+                  switch(get_{{next_oneof.get_which_oneof()}}())
+                  {
+                    {% for next_field in next_oneof.get_fields() %}
+                    case FieldNumber::{{next_field.get_variable_id_name()}}:
+                      field_id = static_cast<uint32_t>(FieldNumber::{{ next_field.get_variable_id_name() }});
+                      state.field_id = field_id;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                      break;
+                    {% endfor %}
+                    default:
+                      {% if typedef.oneofs|length > 2 %}
+                      // No field in next oneof is set either, move to next
+                      {% set next_next_oneof = typedef.oneofs[2] %}
+                      switch(get_{{next_next_oneof.get_which_oneof()}}())
+                      {
+                        {% for next_next_field in next_next_oneof.get_fields() %}
+                        case FieldNumber::{{next_next_field.get_variable_id_name()}}:
+                          field_id = static_cast<uint32_t>(FieldNumber::{{ next_next_field.get_variable_id_name() }});
+                          state.field_id = field_id;
+                          state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                          break;
+                        {% endfor %}
+                        default:
+                          // No more oneof groups, we're done
+                          field_id = 0;
+                          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                          break;
+                      }
+                      {% else %}
+                      // No more oneof groups, we're done
+                      field_id = 0;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                      {% endif %}
+                      break;
+                  }
+                  {% else %}
+                  // No more oneof groups, we're done
+                  field_id = 0;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                  {% endif %}
+                  break;
+              }
+            {% else %}
+              // Last field - we're done
+              field_id = 0;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            {% endif %}
+              break;
+              
+            {% endfor %}
+            {% for oneof_idx in range(typedef.oneofs|length) %}
+            {% set oneof = typedef.oneofs[oneof_idx] %}
+            {% for field_idx in range(oneof.get_fields()|length) %}
+            {% set field = oneof.get_fields()[field_idx] %}
+            case static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}):
+              // For oneof fields, we need to check which field is set in the next oneof group
+              {% if oneof_idx < (typedef.oneofs|length - 1) %}
+              // There is a next oneof group - check which field is set
+              {% set next_oneof = typedef.oneofs[oneof_idx + 1] %}
+              switch(get_{{next_oneof.get_which_oneof()}}())
+              {
+                {% for next_field in next_oneof.get_fields() %}
+                case FieldNumber::{{next_field.get_variable_id_name()}}:
+                  field_id = static_cast<uint32_t>(FieldNumber::{{ next_field.get_variable_id_name() }});
+                  state.field_id = field_id;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                  break;
+                {% endfor %}
+                default:
+                  // No field in next oneof group is set, skip to next oneof or complete
+                  {% if (oneof_idx + 2) < typedef.oneofs|length %}
+                  // Move to first field of the oneof group after next
+                  {% set next_next_oneof = typedef.oneofs[oneof_idx + 2] %}
+                  {% set next_next_which_method = next_next_oneof.get_which_method() %}
+                  switch(get_{{next_next_oneof.get_which_oneof()}}())
+                  {
+                    {% for next_next_field in next_next_oneof.get_fields() %}
+                    case FieldNumber::{{next_next_field.get_variable_id_name()}}:
+                      field_id = static_cast<uint32_t>(FieldNumber::{{ next_next_field.get_variable_id_name() }});
+                      state.field_id = field_id;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+                      break;
+                    {% endfor %}
+                    default:
+                      // No field in this oneof group is set either, we're done
+                      field_id = 0;
+                      state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                      break;
+                  }
+                  {% else %}
+                  // No more oneof groups, we're done
+                  field_id = 0;
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                  {% endif %}
+                  break;
+              }
+              {% elif oneof_idx == (typedef.oneofs|length - 1) %}
+              // Last oneof group - we're done
+              field_id = 0;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              {% else %}
+              // Should not happen, but mark complete
+              field_id = 0;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              {% endif %}
+              break;
+              
+            {% endfor %}
+            {% endfor %}
+            default:
+              // Unknown field_id, mark complete
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              break;
+          }
+        }
+      }
+
+      if((::EmbeddedProto::Error::NO_ERRORS == return_value)
+         && (::EmbeddedProto::FieldProcessingPhase::COMPLETE != state.phase))
+      {
+        return_value = ::EmbeddedProto::Error::STATE_MISMATCH;
+      }
+      
+      return return_value;
+    }
+#endif
 
     ::EmbeddedProto::Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
     {

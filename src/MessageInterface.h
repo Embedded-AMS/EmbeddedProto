@@ -34,6 +34,7 @@
 #include "WireFormatter.h"
 #include "Fields.h"
 #include "Errors.h"
+#include "MessageState.h"
 
 #include <cstdint>
 
@@ -49,11 +50,6 @@ class MessageInterface : public ::EmbeddedProto::Field
 
     ~MessageInterface() override = default;
 
-    //! \see Field::serialize_with_id()
-    Error serialize_with_id(uint32_t field_number, 
-                            ::EmbeddedProto::WriteBufferInterface& buffer,
-                            const bool optional) const final;
-
     //! \see Field::deserialize()
     Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override = 0;
 
@@ -67,14 +63,92 @@ class MessageInterface : public ::EmbeddedProto::Field
     */
     void clear() override = 0;
     
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+    //! Deserialize message with partial state support.
+    /*!
+        This method deserializes the message in chunks, allowing deserialization to be paused
+        when the buffer ends and resumed with a fresh buffer.
+
+        \param buffer Read buffer (may be small).
+        \param state External state object (must persist between calls).
+        \return Error::NO_ERRORS when complete.
+        \return Error::END_OF_BUFFER when buffer ended, call again with fresh buffer.
+        \return Other errors on failure (state should be reset).
+    */
+    virtual Error deserialize_partial(ReadBufferInterface& buffer,
+                                      MessageState& state) = 0;
+
+    //! Serialize message with partial state support.
+    /*!
+        This method serializes the message in chunks, allowing serialization to be paused
+        when the buffer becomes full and resumed with a fresh buffer.
+        
+        \param buffer Write buffer (may be small).
+        \param state External state object (must persist between calls).
+        \return Error::NO_ERRORS when complete.
+        \return Error::BUFFER_FULL when buffer full, call again with fresh buffer.
+        \return Other errors on failure (state should be reset).
+    */
+    virtual Error serialize_partial(WriteBufferInterface& buffer,
+                                    MessageState& state) const = 0;
+
+    Error serialize_partial_as_field(uint32_t field_number,
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state,
+                                     bool optional) const override
+    {
+      Error return_value = Error::NO_ERRORS;
+
+      // Skip serializing empty fields for non-optional fields (proto3 default behavior)
+      if(optional || (0 != serialized_size()))
+      {
+        // Handle TAG and SIZE phases using helper method
+        if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
+        {
+          return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
+        }
+
+        if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+        {
+          if(nullptr != state.child)
+          {
+            return_value = this->serialize_partial(buffer, *state.child);
+            if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+            {
+              state.bytes_remaining = 0U;
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+          }
+          else
+          {
+            return_value = Error::NESTING_TOO_DEEP;
+          }
+        }
+      }
+      else
+      {
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+      }
+
+      return return_value;
+    }
+
+    //! \see Field::deserialize_partial_as_field()
+    Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                       MessageState& state) override;
+
+    //! When partially deserializing skip bytes in the buffer of an unknown field.
+    Error skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                     MessageState& state) const;
+#endif
 
   protected:
     //! When deserializing skip the bytes in the buffer of an unknown field.
-    /*! 
-        This function is used when a field with an unknown id is encountered to move through the 
+    /*!
+        This function is used when a field with an unknown id is encountered to move through the
         buffer to the next tag.
     */
-    Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer, 
+    Error skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer,
                              const ::EmbeddedProto::WireFormatter::WireType& wire_type) const;
 
     Error skip_varint(::EmbeddedProto::ReadBufferInterface& buffer) const;
@@ -82,8 +156,6 @@ class MessageInterface : public ::EmbeddedProto::Field
     Error skip_fixed64(::EmbeddedProto::ReadBufferInterface& buffer) const;
     Error skip_length_delimited(::EmbeddedProto::ReadBufferInterface& buffer) const;
 
-
-    uint32_t n_bytes_to_include_in_section_ = 0;
 };
 
 } // End of namespace EmbeddedProto

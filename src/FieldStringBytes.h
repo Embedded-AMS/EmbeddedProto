@@ -171,38 +171,6 @@ namespace EmbeddedProto
           return return_value;
         }
 
-
-        Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const override 
-        {
-          Error return_value = Error::NO_ERRORS;
-
-          if((0 < current_length_) || optional) 
-          {
-            const auto n_bytes_available = buffer.get_available_size();
-            if(current_length_ <= n_bytes_available)
-            {
-              uint32_t tag = WireFormatter::MakeTag(field_number, 
-                                                    WireFormatter::WireType::LENGTH_DELIMITED);
-              return_value = WireFormatter::SerializeVarint(tag, buffer);
-              if(Error::NO_ERRORS == return_value) 
-              {
-                return_value = WireFormatter::SerializeVarint(current_length_, buffer);
-              }
-              // Check check the number of elements again for optional fields.
-              if((Error::NO_ERRORS == return_value) && (0 < current_length_)) 
-              {
-                return_value = serialize(buffer);
-              }
-            }
-            else 
-            {
-              return_value = Error::BUFFER_FULL;
-            }
-          }
-
-          return return_value;
-        }
-
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
@@ -217,66 +185,226 @@ namespace EmbeddedProto
 
         Error deserialize(ReadBufferInterface& buffer) override 
         {
-          Error return_value = Error::NO_ERRORS;
-          // If deserialize_n_bytes_available_ equals zero we are not deserializing yet.
-          // So obtain the amount of bytes to process.
-          if(0 == deserialize_n_bytes_available_)
-          {
-            uint32_t available = 0;
-            return_value = WireFormatter::DeserializeVarint(buffer, available);
-            if(Error::NO_ERRORS == return_value)
-            {
-              // See if this amount of data fits
-              if(MAX_LENGTH >= available)
-              {
-                clear();
-                deserialize_n_bytes_available_ = available;
-              }
-              else 
-              {
-                return_value = Error::ARRAY_FULL;
-              } 
-            }
-
-          }
-
+          uint32_t availiable = 0;
+          Error return_value = WireFormatter::DeserializeVarint(buffer, availiable);
           if(Error::NO_ERRORS == return_value)
           {
-            uint8_t byte = 0;
-            while((current_length_ < deserialize_n_bytes_available_) && buffer.pop(byte)) 
+            if(MAX_LENGTH >= availiable) 
             {
-              (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
-              ++current_length_;
-            }
+              clear();
 
-            if(current_length_ != deserialize_n_bytes_available_)
+              uint8_t byte = 0;
+              while((current_length_ < availiable) && buffer.pop(byte)) 
+              {
+                (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
+                ++current_length_;
+              }
+
+              if(current_length_ != availiable)
+              {
+                // If at the end we did not read the same number of characters something went wrong.
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+            else 
             {
-              // If at the end we did not read the same number of characters not all data has been received.
-              return_value = Error::END_OF_BUFFER;
+              return_value = Error::ARRAY_FULL;
             }
           }
 
           return return_value;
         }
         
-        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                      const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
         {
-          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
                                ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-          if(Error::NO_ERRORS == return_value)  
+          if(Error::NO_ERRORS == return_value)
           {
             return_value = this->deserialize(buffer);
           }
           return return_value;
         }
 
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+        Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                           MessageState& state) override
+        {
+          Error return_value = Error::NO_ERRORS;
+          bool size_phase_processed = false;
+
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
+          {
+            return_value = deserialize_partial_size_phase(buffer, state);
+            if(Error::NO_ERRORS == return_value)
+            {
+              size_phase_processed = true;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && size_phase_processed)
+          {
+            clear();
+            if(MAX_LENGTH < state.bytes_remaining)
+            {
+              return_value = Error::ARRAY_FULL;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
+            for(uint32_t i = 0U; i < bytes_to_read; ++i)
+            {
+              uint8_t byte = 0U;
+              if(buffer.pop(byte))
+              {
+                data_[current_length_] = static_cast<DATA_TYPE>(byte);
+                ++current_length_;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+
+            if(Error::NO_ERRORS == return_value)
+            {
+              state.bytes_remaining -= bytes_to_read;
+              if(0U == state.bytes_remaining)
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+          }
+
+          return return_value;
+        }
+
+        Error serialize_partial_as_field(uint32_t field_number,
+                                         WriteBufferInterface& buffer,
+                                         MessageState& state,
+                                         bool optional) const override
+        {
+          Error return_value = Error::NO_ERRORS;
+
+          // Handle TAG and SIZE phases using helper method
+          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+          {
+            return_value = serialize_partial_tag_and_size(field_number, get_length(), buffer, state, optional);
+          }
+
+          // Handle DATA phase
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            // Calculate how many bytes we can write (limited by buffer space and remaining data)
+            const uint32_t bytes_to_write = std::min(state.bytes_remaining, buffer.get_available_size());
+
+            if(bytes_to_write > 0)
+            {
+              // Calculate starting position in data array
+              const uint32_t start_offset = get_length() - state.bytes_remaining;
+              const auto* void_pointer = static_cast<const void*>(&(data_[start_offset]));
+              const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+
+              // Try to write all bytes at once first
+              if(buffer.push(byte_pointer, bytes_to_write))
+              {
+                state.bytes_remaining -= bytes_to_write;
+                if(0 == state.bytes_remaining)
+                {
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                  return_value = Error::NO_ERRORS;
+                }
+                else
+                {
+                  return_value = Error::BUFFER_FULL;
+                }
+              }
+              else
+              {
+                // Buffer push failed - this can happen when the buffer's push method
+                // uses > instead of >=, so we can't fill the buffer completely.
+                // In this case, try to write bytes one at a time.
+                uint32_t bytes_written = 0;
+                bool push_more = true;
+                for(uint32_t i = 0; (i < bytes_to_write) && push_more; ++i)
+                {
+                  push_more = buffer.push(byte_pointer[i]);
+                  if(push_more)
+                  {
+                      bytes_written++;
+                  }
+                }
+
+                if(bytes_written > 0)
+                {
+                  state.bytes_remaining -= bytes_written;
+                  if(0 == state.bytes_remaining)
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
+                  else
+                  {
+                    return_value = Error::BUFFER_FULL;
+                  }
+                }
+                else
+                {
+                  // Couldn't write any bytes - this should not happen unless buffer is completely full
+                  // To prevent infinite loops, we need to ensure progress is made
+                  // If we can't write any bytes and there are still bytes remaining, we have a problem
+                  if(state.bytes_remaining > 0)
+                  {
+                    // This is the infinite loop scenario - buffer is full but we can't write any bytes
+                    // We need to return BUFFER_FULL to indicate we need a new buffer
+                    return_value = Error::BUFFER_FULL;
+                  }
+                  else
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
+                }
+              }
+            }
+            else
+            {
+              // No space available in buffer - this can happen if buffer is completely full
+              // In this case, we need to ensure we don't get stuck in an infinite loop
+              // by checking if we've made any progress
+              if(state.bytes_remaining > 0)
+              {
+                return_value = Error::BUFFER_FULL;
+              }
+              else
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                return_value = Error::NO_ERRORS;
+              }
+            }
+          }
+
+          return return_value;
+        }
+#endif
+
         //! Reset the field to it's initial value.
-        void clear() override 
-        { 
+        void clear() override
+        {
           data_.fill(0);
           current_length_ = 0;
-          deserialize_n_bytes_available_ = 0;
         }
 
         //! When serialized with the all elements set, how much bytes are then required.
@@ -322,9 +450,6 @@ namespace EmbeddedProto
 
         //! The text.
         std::array<DATA_TYPE, MAX_LENGTH> data_ = {{0}};
-
-        //! Internal state of the deserialization function.
-        uint32_t deserialize_n_bytes_available_ = 0;
 
     }; // End of class FieldStringBytes
 

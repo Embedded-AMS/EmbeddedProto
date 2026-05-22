@@ -1,0 +1,88 @@
+{#
+Copyright (C) 2020-2025 Embedded AMS B.V. - All Rights Reserved
+
+This file is part of Embedded Proto.
+
+Embedded Proto is open source software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, version 3 of the license.
+
+Embedded Proto  is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial and closed source software: please visit:
+<https://embeddedproto.com/pricing/>.
+
+Embedded AMS B.V.
+Info:
+  info at EmbeddedProto dot com
+
+Postal address:
+  Atoomweg 2
+  1627 LE, Hoorn
+  the Netherlands
+#}
+{# Template for partial field serialization.
+   This simplified template delegates to library methods instead of inlining
+   the state machine logic. See doc/design/partial_serialization_design_v2.md
+#}
+
+{% if field.uses_serialize_len() %}
+{# ======================================================================= #}
+{# Field types that use LENGTH_DELIMITED: messages, strings, bytes, repeated #}
+{# ======================================================================= #}
+
+{% if (field.optional or (field.oneof is not none)) %}
+{# ------------------------------------------------------------------------- #}
+{# Optional or oneof LENGTH_DELIMITED field #}
+{# ------------------------------------------------------------------------- #}
+if(has_{{field.get_name()}}())
+{
+  return_value = {{field.get_variable_name()}}.serialize_partial_as_field(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, true);
+}
+else
+{
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+}
+
+{% else %}
+{# ------------------------------------------------------------------------- #}
+{# Required LENGTH_DELIMITED field #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_as_field(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+{% endif %}
+
+{% else %}
+{# ======================================================================= #}
+{# Basic scalar types and enums #}
+{# ======================================================================= #}
+
+{% if (field.optional or (field.oneof is not none)) %}
+{# ------------------------------------------------------------------------- #}
+{# Optional or oneof scalar field #}
+{# ------------------------------------------------------------------------- #}
+if(has_{{field.get_name()}}())
+{
+  return_value = {{field.get_variable_name()}}.serialize_partial_with_id(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, true);
+}
+else
+{
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+}
+
+{% else %}
+{# ------------------------------------------------------------------------- #}
+{# Required scalar field #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_with_id(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+{% endif %}
+{% endif %}

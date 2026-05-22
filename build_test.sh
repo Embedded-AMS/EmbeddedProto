@@ -32,6 +32,34 @@
 # Fail on first non-zero return code
 set -exuo pipefail
 
+# Convert user-friendly parameter to internal numeric value
+MODE_ARG="${1:-}"
+
+if [[ -z "${MODE_ARG}" ]]; then
+  # Default to full serialization mode when no parameter is provided
+  SERIALIZATION_MODE="0"
+  MODE_NAME="full"
+elif [[ "${MODE_ARG}" == "full" ]]; then
+  SERIALIZATION_MODE="0"
+  MODE_NAME="full"
+elif [[ "${MODE_ARG}" == "partial" ]]; then
+  SERIALIZATION_MODE="1"
+  MODE_NAME="partial"
+else
+  echo "Usage: $0 [MODE]"
+  echo "  MODE: 'full' (default) or 'partial'"
+  echo "        Full mode: Traditional serialization (complete in one call)"
+  echo "        Partial mode: Chunked serialization for constrained environments"
+  echo ""
+  echo "Examples:"
+  echo "  $0                    # Build with full serialization (default)"
+  echo "  $0 full               # Build with full serialization"
+  echo "  $0 partial            # Build with partial serialization"
+  exit 1
+fi
+
+echo "Building tests with ${MODE_NAME} serialization mode..."
+
 # Build the tests
-cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-DEP_SERIALIZATION_MODE=${SERIALIZATION_MODE}" -B./build/test
 make -j16 -C ./build/test

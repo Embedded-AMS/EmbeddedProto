@@ -243,6 +243,50 @@ class MessageDefinition(TypeDefinition):
     def get_type(self):
         return self.scope.get_scope_str()
 
+    def get_state_depth(self):
+        """
+        Calculate the required state depth for this message.
+        
+        Returns:
+            int: Minimum 1, plus maximum depth of nested message fields.
+        
+        Examples:
+            - message Simple { int32 a = 1; } -> depth = 1
+            - message A { B b = 1; } where B has no nested -> depth = 2
+            - message A { B b = 1; } where B { C c = 1; } -> depth = 3
+        """
+        max_nested_depth = 0
+        
+        for field in self.fields:
+            # Check if this is a message field
+            if hasattr(field, 'definition') and field.definition is not None:
+                if isinstance(field.definition, MessageDefinition):
+                    nested_depth = field.definition.get_state_depth()
+                    if nested_depth > max_nested_depth:
+                        max_nested_depth = nested_depth
+            # Check for repeated message fields
+            elif hasattr(field, 'actual_type') and hasattr(field.actual_type, 'definition'):
+                if field.actual_type.definition is not None and isinstance(field.actual_type.definition, MessageDefinition):
+                    nested_depth = field.actual_type.definition.get_state_depth()
+                    if nested_depth > max_nested_depth:
+                        max_nested_depth = nested_depth
+        
+        # Check oneof fields as well
+        for oneof in self.oneofs:
+            for field in oneof.get_fields():
+                if hasattr(field, 'definition') and field.definition is not None:
+                    if isinstance(field.definition, MessageDefinition):
+                        nested_depth = field.definition.get_state_depth()
+                        if nested_depth > max_nested_depth:
+                            max_nested_depth = nested_depth
+                elif hasattr(field, 'actual_type') and hasattr(field.actual_type, 'definition'):
+                    if field.actual_type.definition is not None and isinstance(field.actual_type.definition, MessageDefinition):
+                        nested_depth = field.actual_type.definition.get_state_depth()
+                        if nested_depth > max_nested_depth:
+                            max_nested_depth = nested_depth
+        
+        return 1 + max_nested_depth  # +1 for this message itself
+
     def print_template_data(self, indent):
         print(indent + "Message definition: " + self.name)
         if self.nested_msg_definitions:

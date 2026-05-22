@@ -35,42 +35,6 @@
 namespace EmbeddedProto
 {
 
-  Error MessageInterface::MessageInterface::serialize_with_id(uint32_t field_number, 
-                                                              ::EmbeddedProto::WriteBufferInterface& buffer,
-                                                              const bool optional) const
-  {
-    Error return_value = Error::NO_ERRORS;
-
-    // See if we have data which should be serialized.
-    const uint32_t size_x = this->serialized_size();
-    if((0 < size_x) || optional)
-    {
-      uint32_t tag = WireFormatter::MakeTag(field_number, 
-                              WireFormatter::WireType::LENGTH_DELIMITED);
-      return_value = WireFormatter::SerializeVarint(tag, buffer);
-      
-      if(Error::NO_ERRORS == return_value)
-      {
-        return_value = WireFormatter::SerializeVarint(size_x, buffer);
-        if(Error::NO_ERRORS == return_value)
-        {
-          // See if there is enough space left in the buffer for the data.
-          if(size_x <= buffer.get_available_size()) 
-          {
-            const auto* base = static_cast<const ::EmbeddedProto::Field*>(this);  
-            return_value = base->serialize(buffer);
-          }
-          else
-          {
-            return_value = Error::BUFFER_FULL;
-          }
-        }
-      }
-    }
-    return return_value;
-  }
-
-
   Error MessageInterface::deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                                  const ::EmbeddedProto::WireFormatter::WireType& wire_type)
   {
@@ -78,32 +42,152 @@ namespace EmbeddedProto
                          ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
     if(Error::NO_ERRORS == return_value)  
     {
-      if(0 == n_bytes_to_include_in_section_)
+      uint32_t size = 0;
+      return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, size);
+      ::EmbeddedProto::ReadBufferSection bufferSection(buffer, size);
+      if(::EmbeddedProto::Error::NO_ERRORS == return_value)
       {
-        return_value = ::EmbeddedProto::WireFormatter::DeserializeVarint(buffer, n_bytes_to_include_in_section_);
-      }
-
-      if((::EmbeddedProto::Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
-      {
-        ::EmbeddedProto::ReadBufferSection bufferSection(buffer, n_bytes_to_include_in_section_);
-      
-        // See how many bytes we will now process from the buffer and thus how many bytes are left for the next iteration.
-        n_bytes_to_include_in_section_ -= bufferSection.get_size();
-
         return_value = deserialize(bufferSection);
-
-        n_bytes_to_include_in_section_ += bufferSection.get_size();
-
-        // In case we have bytes we still need to receive set the end of buffer return value. 
-        // The return value of deserialize has priority.
-        if((::EmbeddedProto::Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
-        {
-          return_value = ::EmbeddedProto::Error::END_OF_BUFFER;
-        }
       }
     }
     return return_value;
   }
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+  Error MessageInterface::deserialize_partial_as_field(::EmbeddedProto::ReadBufferInterface& buffer,
+                                                       MessageState& state)
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    if(::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
+    {
+      return_value = deserialize_partial_size_phase(buffer, state);
+    }
+
+    if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+    {
+      if(nullptr != state.child)
+      {
+        ::EmbeddedProto::ReadBufferSection section(buffer, state.bytes_remaining);
+        return_value = this->deserialize_partial(section, *state.child);
+        state.bytes_remaining = section.get_size();
+        if((Error::NO_ERRORS == return_value) && (0U == state.bytes_remaining))
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+        }
+      }
+      else
+      {
+        return_value = Error::NESTING_TOO_DEEP;
+      }
+    }
+
+    return return_value;
+  }
+
+  Error MessageInterface::skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,
+                                                     MessageState& state) const
+  {
+    Error return_value = Error::STATE_MISMATCH;
+
+    if(::EmbeddedProto::WireFormatter::WireType::VARINT == state.wire_type)
+    {
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+      {
+        return_value = skip_varint(buffer);
+        if(Error::NO_ERRORS == return_value)
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::FIXED32 == state.wire_type)
+    {
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+      {
+        if(0U == state.bytes_remaining)
+        {
+          state.bytes_remaining = 4U;
+        }
+
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::FIXED64 == state.wire_type)
+    {
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+      {
+        if(0U == state.bytes_remaining)
+        {
+          state.bytes_remaining = 8U;
+        }
+
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+      }
+    }
+    else if(::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
+    {
+      return_value = Error::NO_ERRORS;
+
+      if(::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase)
+      {
+        return_value = deserialize_partial_size_phase(buffer, state);
+      }
+
+      if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+      {
+        const uint32_t bytes_to_advance = (state.bytes_remaining < buffer.get_size())
+          ? state.bytes_remaining
+          : buffer.get_size();
+
+        buffer.advance(bytes_to_advance);
+        state.bytes_remaining -= bytes_to_advance;
+
+        if(0U == state.bytes_remaining)
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          return_value = Error::NO_ERRORS;
+        }
+        else
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+      }
+    }
+
+    return return_value;
+  }
+#endif
 
 
   Error MessageInterface::skip_unknown_field(::EmbeddedProto::ReadBufferInterface& buffer,

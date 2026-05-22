@@ -40,6 +40,7 @@
 #include "Errors.h"
 
 #include <cstdint>
+#include <type_traits>
 
 
 namespace EmbeddedProto
@@ -57,6 +58,16 @@ namespace EmbeddedProto
     //! Definition of a trait to check if DATA_TYPE is a specialization of the FieldTemplate.
     template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
     struct is_specialization_of_FieldTemplate<::EmbeddedProto::FieldTemplate<F,V,W,S>> : std::true_type {};
+
+    //! Helper trait to extract wire type from a FieldTemplate specialization.
+    template<typename>
+    struct fieldtemplate_wire_type;
+
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
+    struct fieldtemplate_wire_type<::EmbeddedProto::FieldTemplate<F, V, W, S>>
+    {
+      static constexpr ::EmbeddedProto::WireFormatter::WireType value = W;
+    };
 
     //! This class only supports Field and FieldTemplate classes as template parameter.
     static_assert(std::is_base_of<::EmbeddedProto::Field, DATA_TYPE>::value || is_specialization_of_FieldTemplate<DATA_TYPE>::value, 
@@ -146,60 +157,14 @@ namespace EmbeddedProto
       //! Remove all data in the array and set it to the default value.
       virtual void clear() override = 0;
 
+      //! Serialize all elements in the array (used for packed serialization).
       Error serialize(WriteBufferInterface& buffer) const final
       {
-        // This function should not be called on a repeated field.
-        // Suppress the unused parameter warning.
-        (void)buffer;
-        return Error::BUFFER_FULL;
-      };
-
-      //! \see Field::serialize_with_id()
-      Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const final
-      {
         Error return_value = Error::NO_ERRORS;
-
-        if(REPEATED_FIELD_IS_PACKED)
+        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
-          // Use the packed way of serialization for base fields.
-          // See if there is data to serialize.
-          const uint32_t size_x = this->serialized_size_packed();
-          if((0 < size_x) || optional)
-          {
-            uint32_t tag = WireFormatter::MakeTag(field_number, 
-                                          WireFormatter::WireType::LENGTH_DELIMITED);
-            return_value = WireFormatter::SerializeVarint(tag, buffer);
-            if(Error::NO_ERRORS == return_value) 
-            {
-              return_value = WireFormatter::SerializeVarint(size_x, buffer);
-
-              if(Error::NO_ERRORS == return_value)
-              {          
-                if(size_x <= buffer.get_available_size()) 
-                {
-                  return_value = serialize_packed(buffer);
-                }
-                else
-                {
-                  return_value = Error::BUFFER_FULL;
-                }
-              }
-            }
-          }
+          return_value = this->get_const(i).serialize(buffer);
         }
-        else 
-        {
-          const uint32_t size_x = this->serialized_size_unpacked(field_number);
-          if(size_x <= buffer.get_available_size()) 
-          {
-            return_value = serialize_unpacked(field_number, buffer);
-          }
-          else 
-          {
-            return_value = Error::BUFFER_FULL;
-          }
-        }
-
         return return_value;
       }
 
@@ -223,17 +188,247 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                    const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
       {
-        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
                              ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-        if(Error::NO_ERRORS == return_value)  
+        if(Error::NO_ERRORS == return_value)
         {
           return_value = this->deserialize(buffer);
         }
         return return_value;
       }
+
+#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+      Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                         MessageState& state) override
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(REPEATED_FIELD_IS_PACKED)
+        {
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
+          {
+            return_value = deserialize_partial_size_phase(buffer, state);
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            ReadBufferSection section(buffer, state.bytes_remaining);
+            const uint32_t section_size_before = section.get_size();
+            DATA_TYPE element;
+            Error element_result = element.deserialize(section);
+
+            while(Error::NO_ERRORS == element_result)
+            {
+              return_value = this->add(element);
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++state.element_index;
+                element_result = element.deserialize(section);
+              }
+              else
+              {
+                return_value = Error::ARRAY_FULL;
+                element_result = Error::ARRAY_FULL;
+              }
+            }
+
+            const uint32_t section_size_after = section.get_size();
+            const uint32_t bytes_consumed = section_size_before - section_size_after;
+            state.bytes_remaining -= bytes_consumed;
+
+            if(Error::NO_ERRORS == return_value)
+            {
+              if(0U == state.bytes_remaining)
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                return_value = Error::NO_ERRORS;
+              }
+              else if(Error::END_OF_BUFFER == element_result)
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+              else
+              {
+                return_value = element_result;
+              }
+            }
+          }
+        }
+        else
+        {
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if(Error::NO_ERRORS == return_value)
+          {
+            uint32_t index = state.element_index;
+            if(index > this->get_length())
+            {
+              return_value = Error::STATE_MISMATCH;
+            }
+            else
+            {
+              const bool is_new_element = (index == this->get_length());
+              if(is_new_element && (this->get_max_length() <= index))
+              {
+                return_value = Error::ARRAY_FULL;
+              }
+              else
+              {
+                if(is_new_element)
+                {
+                  // Reserve a slot for this element.
+                  (void)this->get(index);
+                }
+
+                if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+                {
+                  return_value = this->get(index).deserialize_partial_as_field(buffer, state);
+                }
+                else
+                {
+                  if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+                  {
+                    return_value = Error::STATE_MISMATCH;
+                  }
+                  else
+                  {
+                    DATA_TYPE value;
+                    return_value = value.deserialize_partial_check_type(
+                      buffer,
+                      state,
+                      fieldtemplate_wire_type<DATA_TYPE>::value);
+                    if(Error::NO_ERRORS == return_value)
+                    {
+                      return_value = this->add(value);
+                      if(Error::NO_ERRORS != return_value)
+                      {
+                        return_value = Error::ARRAY_FULL;
+                      }
+                    }
+                  }
+                }
+
+                if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
+                {
+                  state.element_index = index + 1U;
+                }
+              }
+            }
+          }
+        }
+
+        return return_value;
+      }
+
+      Error serialize_partial_as_field(uint32_t field_number,
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state,
+                                     bool optional) const override
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        // Skip serializing empty non-optional repeated fields (proto3 default behavior).
+        if((!optional) && (0U == this->get_length()))
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          return return_value;
+        }
+
+        if(REPEATED_FIELD_IS_PACKED)
+        {
+          // Packed repeated field: TAG->SIZE->DATA state machine
+          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+          {
+            // Calculate total packed size
+            const uint32_t total_size = serialized_size_packed();
+            return_value = serialize_partial_tag_and_size(field_number, total_size, buffer, state, optional);
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            // Serialize elements sequentially
+            if(state.element_index < this->get_length())
+            {
+              const uint32_t initial_size = buffer.get_size();
+              return_value = this->get_const(state.element_index).serialize(buffer);
+              const uint32_t bytes_written = buffer.get_size() - initial_size;
+              state.bytes_remaining -= bytes_written;
+
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++state.element_index;
+              }
+
+              if(0 == state.bytes_remaining)
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              }
+            }
+            else
+            {
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+          }
+        }
+        else
+        {
+          // Unpacked repeated field: Each element gets its own TAG->SIZE->DATA
+          if(state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE)
+          {
+            // All elements serialized
+            return return_value;
+          }
+
+          // Handle current element
+          if(state.element_index < this->get_length())
+          {
+            const auto& element = this->get_const(state.element_index);
+
+            // Check if element is a Field-derived type (messages, strings, bytes) or scalar type
+            if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+            {
+              // Field-derived types (messages, strings, bytes) use serialize_partial_as_field
+              return_value = element.serialize_partial_as_field(field_number, buffer, state, true);
+            }
+            else
+            {
+              // Scalar types use serialize_partial_with_id
+              return_value = element.serialize_partial_with_id(field_number, buffer, state, true);
+            }
+
+            if((Error::NO_ERRORS == return_value) && (state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE))
+            {
+              // Element complete, move to next
+              ++state.element_index;
+              // Reset child state for next element to avoid stale COMPLETE phase
+              // in nested message serialization.
+              if(nullptr != state.child)
+              {
+                state.child->reset();
+              }
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG; // Reset for next element
+            }
+          }
+          else
+          {
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          }
+        }
+
+        return return_value;
+      }
+#endif
 
 
       //! Calculate the size of this field when serialized.
@@ -244,7 +439,7 @@ namespace EmbeddedProto
       uint32_t serialized_size_packed() const 
       {
         ::EmbeddedProto::MessageSizeCalculator calcBuffer;
-        serialize_packed(calcBuffer);
+        serialize(calcBuffer);
         return calcBuffer.get_size();
       }
 
@@ -306,21 +501,14 @@ namespace EmbeddedProto
 
     private:
 
-      Error serialize_packed(WriteBufferInterface& buffer) const
-      {
-        Error return_value = Error::NO_ERRORS;
-        for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
-        {
-          return_value = this->get_const(i).serialize(buffer);
-        }
-        return return_value;
-      }
-
       Error serialize_unpacked(uint32_t field_number, WriteBufferInterface& buffer) const
       {
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
         {
+          // Each element gets its own [tag][size][data]
+          // Note: serialize_len() is only available on Field-derived types (messages, strings, bytes)
+          // which is exactly what unpacked mode is used for.
           const uint32_t size_x = this->get_const(i).serialized_size();
           uint32_t tag = WireFormatter::MakeTag(field_number, 
                                     WireFormatter::WireType::LENGTH_DELIMITED);
@@ -339,39 +527,25 @@ namespace EmbeddedProto
 
       Error deserialize_packed(ReadBufferInterface& buffer)
       {
-        Error return_value = Error::NO_ERRORS;
+        uint32_t size = 0;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, size);
+        ReadBufferSection bufferSection(buffer, size);
+        DATA_TYPE x;
         
-        if(0 == n_bytes_to_include_in_section_)
+        return_value = x.deserialize(bufferSection);
+        while(Error::NO_ERRORS == return_value)
         {
-          return_value = WireFormatter::DeserializeVarint(buffer, n_bytes_to_include_in_section_);
+          return_value = this->add(x);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = x.deserialize(bufferSection);
+          }
         }
 
-        // If there are no bytes in the array do not start deserializing data.
-        if((Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
+        // We expect the buffersection to be empty, in that case everything is fine..
+        if(Error::END_OF_BUFFER == return_value)
         {
-          ReadBufferSection bufferSection(buffer, n_bytes_to_include_in_section_);
-          DATA_TYPE x;
-
-          // See how many bytes we will now process from the buffer and thus how many bytes are left for the next iteration.
-          n_bytes_to_include_in_section_ -= bufferSection.get_size();
-        
-          return_value = x.deserialize(bufferSection);
-          while(Error::NO_ERRORS == return_value)
-          {
-            return_value = this->add(x);
-            if(Error::NO_ERRORS == return_value)
-            {
-              return_value = x.deserialize(bufferSection);
-            }
-          }
-
-          n_bytes_to_include_in_section_ += bufferSection.get_size();
-
-          // We expect the buffersection to be empty, in that case everything is fine..
-          if((Error::END_OF_BUFFER == return_value) && (0 == n_bytes_to_include_in_section_))
-          {
-            return_value = Error::NO_ERRORS;
-          }
+          return_value = Error::NO_ERRORS;
         }
 
         return return_value;
@@ -383,49 +557,19 @@ namespace EmbeddedProto
 
         // For repeated messages, strings or bytes
         // First allocate an element in the array.
-        uint32_t index = this->get_length();
-
-        // But only allocate that new element if we where not already working on an element.
-        if(0 != n_bytes_to_include_in_section_)
-        {
-          // If that is the case use the last element.
-          --index;
-        }
-
+        const uint32_t index = this->get_length();
         if(this->get_max_length() > index)
         {
           // For messages read the size here, with strings and byte arrays this is include in 
           // deserialize.
           if(std::is_base_of<MessageInterface, DATA_TYPE>::value)
           {
-            if(0 == n_bytes_to_include_in_section_)
-            {
-              return_value = WireFormatter::DeserializeVarint(buffer, n_bytes_to_include_in_section_);
-            }
-
+            uint32_t size;
+            return_value = WireFormatter::DeserializeVarint(buffer, size);
             if(Error::NO_ERRORS == return_value) 
             {
-              // Even if the number of bytes is zero we should allocate the element in the array.
-              auto& element = this->get(index);
-
-              if(0 < n_bytes_to_include_in_section_)
-              {
-                ReadBufferSection bufferSection(buffer, n_bytes_to_include_in_section_);
-
-                // See how many bytes we will now process from the buffer and thus how many bytes are left for the next iteration.
-                n_bytes_to_include_in_section_ -= bufferSection.get_size();
-
-                return_value = element.deserialize(bufferSection);
-
-                n_bytes_to_include_in_section_ += bufferSection.get_size();
-
-                // In case we have bytes we still need to receive set the end of buffer return value. 
-                // The return value of deserialize has priority.
-                if((::EmbeddedProto::Error::NO_ERRORS == return_value) && (0 < n_bytes_to_include_in_section_))
-                {
-                  return_value = ::EmbeddedProto::Error::END_OF_BUFFER;
-                }
-              }
+              ReadBufferSection bufferSection(buffer, size);
+              return_value = this->get(index).deserialize(bufferSection);
             }
           }
           else 
@@ -440,8 +584,6 @@ namespace EmbeddedProto
 
         return return_value;
       }
-
-      uint32_t n_bytes_to_include_in_section_ = 0;
 
   };
 

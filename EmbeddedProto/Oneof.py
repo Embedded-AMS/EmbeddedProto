@@ -53,7 +53,10 @@ class Oneof:
         return self.get_name() + "_"
 
     def get_which_oneof(self):
-        return "which_" + self.get_name() + "_"
+        return "which_" + self.get_name()
+    
+    def get_which_method(self):
+        return "get_" + self.get_which_oneof() + "()"
 
     def get_fields(self):
         return self.fields

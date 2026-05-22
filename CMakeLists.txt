@@ -88,7 +88,7 @@ add_custom_target(generate_python_protobuf ALL DEPENDS ${GENERATED_PYTHON_FILES}
 ###############################################################################
 # Start building the unit tests
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wdouble-promotion") #-fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wdouble-promotion") #-fprofile-arcs -ftest-coverage")
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
 
 add_subdirectory(external/googletest)
