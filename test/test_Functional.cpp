@@ -31,6 +31,7 @@
 #include <gtest/gtest.h>
 
 #include <Functional.h>
+#include <Errors.h>
 
 namespace test_EmbeddedAMS_Functional
 {
@@ -62,9 +63,42 @@ class Counter
       mutable_value_ += value;
     }
 
+    int32_t plus(int32_t value)
+    {
+      value_ += value;
+      return value_;
+    }
+
+    int32_t plus_const(int32_t value) const
+    {
+      mutable_value_ += value;
+      return mutable_value_;
+    }
+
+    ::EmbeddedProto::Error error_for_id(uint32_t id)
+    {
+      ::EmbeddedProto::Error result = ::EmbeddedProto::Error::INVALID_FIELD_ID;
+      if(10U == id)
+      {
+        result = ::EmbeddedProto::Error::NO_ERRORS;
+      }
+      return result;
+    }
+
     int32_t value_ = 0;
     mutable int32_t mutable_value_ = 0;
 };
+
+int32_t free_function_double(int32_t value)
+{
+  return 2 * value;
+}
+
+::EmbeddedProto::Error free_function_error(void* context, uint32_t id)
+{
+  Counter* counter = static_cast<Counter*>(context);
+  return counter->error_for_id(id);
+}
 
 TEST(Functional, default_not_set)
 {
@@ -157,6 +191,91 @@ TEST(Functional, clear_and_rebind)
   callback.set(&free_function_with_context, &counter.value_);
   callback(3);
   EXPECT_EQ(5, counter.value_);
+}
+
+TEST(Functional, return_free_function)
+{
+  ::EmbeddedProto::Functional<int32_t(int32_t)> callback;
+  int32_t out = 0;
+
+  callback.set(&free_function_double);
+
+  EXPECT_TRUE(callback.invoke(out, 4));
+  EXPECT_EQ(8, out);
+}
+
+TEST(Functional, return_member_function)
+{
+  ::EmbeddedProto::Functional<int32_t(int32_t)> callback;
+  Counter counter;
+  int32_t out = 0;
+
+  callback.set<Counter, &Counter::plus>(&counter);
+
+  EXPECT_TRUE(callback(out, 3));
+  EXPECT_EQ(3, out);
+  EXPECT_EQ(3, counter.value_);
+}
+
+TEST(Functional, return_const_member_function)
+{
+  ::EmbeddedProto::Functional<int32_t(int32_t)> callback;
+  const Counter counter;
+  int32_t out = 0;
+
+  callback.set<Counter, &Counter::plus_const>(&counter);
+
+  EXPECT_TRUE(callback.invoke(out, 6));
+  EXPECT_EQ(6, out);
+  EXPECT_EQ(6, counter.mutable_value_);
+}
+
+TEST(Functional, return_lambda)
+{
+  ::EmbeddedProto::Functional<int32_t(int32_t)> callback;
+  auto lambda = [](int32_t value)
+  {
+    return value + 1;
+  };
+  int32_t out = 0;
+
+  callback.set(lambda);
+
+  EXPECT_TRUE(callback.invoke(out, 7));
+  EXPECT_EQ(8, out);
+}
+
+TEST(Functional, return_unset_keeps_output)
+{
+  ::EmbeddedProto::Functional<int32_t(int32_t)> callback;
+  int32_t out = 42;
+
+  EXPECT_FALSE(callback.invoke(out, 5));
+  EXPECT_EQ(42, out);
+}
+
+TEST(Functional, return_error_enum_context_function)
+{
+  ::EmbeddedProto::Functional<::EmbeddedProto::Error(uint32_t)> callback;
+  Counter counter;
+  ::EmbeddedProto::Error err = ::EmbeddedProto::Error::BUFFER_FULL;
+
+  callback.set(&free_function_error, &counter);
+
+  EXPECT_TRUE(callback.invoke(err, 10U));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, err);
+
+  EXPECT_TRUE(callback.invoke(err, 11U));
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_FIELD_ID, err);
+}
+
+TEST(Functional, return_error_enum_unset)
+{
+  ::EmbeddedProto::Functional<::EmbeddedProto::Error(uint32_t)> callback;
+  ::EmbeddedProto::Error err = ::EmbeddedProto::Error::BUFFER_FULL;
+
+  EXPECT_FALSE(callback.invoke(err, 10U));
+  EXPECT_EQ(::EmbeddedProto::Error::BUFFER_FULL, err);
 }
 
 } // namespace test_EmbeddedAMS_Functional
