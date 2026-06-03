@@ -61,17 +61,20 @@ class Functional<R(Args...)>
     void clear()
     {
       context_ = nullptr;
-      context_callback_ = nullptr;
-      function_callback_ = nullptr;
+      callback_.context_callback_ = nullptr;
     }
 
     //! Check if a callback is bound.
     bool is_set() const
     {
       bool result = false;
-      if((nullptr != context_callback_) || (nullptr != function_callback_))
+      if(nullptr != context_)
       {
-        result = true;
+        result = (nullptr != callback_.context_callback_);
+      }
+      else
+      {
+        result = (nullptr != callback_.function_callback_);
       }
       return result;
     }
@@ -79,35 +82,39 @@ class Functional<R(Args...)>
     //! Bind a plain C/C++ function pointer.
     void set(FunctionCallback function)
     {
-      function_callback_ = function;
-      context_callback_ = nullptr;
       context_ = nullptr;
+      callback_.function_callback_ = function;
     }
 
     //! Bind a C style callback with context pointer.
     void set(ContextCallback function, void* context)
     {
-      function_callback_ = nullptr;
-      context_callback_ = function;
-      context_ = context;
+      if(nullptr != function)
+      {
+        callback_.context_callback_ = function;
+        context_ = (nullptr == context) ? null_context_sentinel() : context;
+      }
+      else
+      {
+        context_ = nullptr;
+        callback_.context_callback_ = nullptr;
+      }
     }
 
     //! Bind a member function (non-const) at compile time.
     template<class T, R (T::*METHOD)(Args...)>
     void set(T* instance)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &member_thunk<T, METHOD>;
       context_ = instance;
+      callback_.context_callback_ = &member_thunk<T, METHOD>;
     }
 
     //! Bind a member function (const) at compile time.
     template<class T, R (T::*METHOD)(Args...) const>
     void set(const T* instance)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &const_member_thunk<T, METHOD>;
       context_ = const_cast<T*>(instance);
+      callback_.context_callback_ = &const_member_thunk<T, METHOD>;
     }
 
     //! Bind a callable object by reference (non-owning).
@@ -115,9 +122,8 @@ class Functional<R(Args...)>
     void set(Callable& callable,
              typename std::enable_if<!std::is_same<Callable, Functional<R(Args...)>>::value>::type* = nullptr)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &callable_thunk<Callable>;
       context_ = &callable;
+      callback_.context_callback_ = &callable_thunk<Callable>;
     }
 
     //! Bind a const callable object by reference (non-owning).
@@ -125,9 +131,8 @@ class Functional<R(Args...)>
     void set(const Callable& callable,
              typename std::enable_if<!std::is_same<Callable, Functional<R(Args...)>>::value>::type* = nullptr)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &const_callable_thunk<Callable>;
       context_ = const_cast<Callable*>(&callable);
+      callback_.context_callback_ = &const_callable_thunk<Callable>;
     }
 
     //! Invoke the bound callback if set.
@@ -139,19 +144,21 @@ class Functional<R(Args...)>
     {
       bool result = false;
 
-      if(nullptr != context_callback_)
+      if(nullptr != context_)
       {
-        out = context_callback_(context_, args...);
-        result = true;
-      }
-      else if(nullptr != function_callback_)
-      {
-        out = function_callback_(args...);
-        result = true;
+        if(nullptr != callback_.context_callback_)
+        {
+          out = callback_.context_callback_(decode_context(context_), args...);
+          result = true;
+        }
       }
       else
       {
-        // Intentionally empty.
+        if(nullptr != callback_.function_callback_)
+        {
+          out = callback_.function_callback_(args...);
+          result = true;
+        }
       }
 
       return result;
@@ -164,6 +171,32 @@ class Functional<R(Args...)>
     }
 
   private:
+    union CallbackStorage
+    {
+      FunctionCallback function_callback_;
+      ContextCallback context_callback_;
+
+      CallbackStorage() : context_callback_(nullptr)
+      {
+      }
+    };
+
+    static void* null_context_sentinel()
+    {
+      static int sentinel = 0;
+      return &sentinel;
+    }
+
+    static void* decode_context(void* context)
+    {
+      void* result = context;
+      if(null_context_sentinel() == context)
+      {
+        result = nullptr;
+      }
+      return result;
+    }
+
     template<class T, R (T::*METHOD)(Args...)>
     static R member_thunk(void* context, Args... args)
     {
@@ -193,8 +226,7 @@ class Functional<R(Args...)>
     }
 
     void* context_ = nullptr;
-    ContextCallback context_callback_ = nullptr;
-    FunctionCallback function_callback_ = nullptr;
+    CallbackStorage callback_{};
 };
 
 //! Specialization for callbacks without return value.
@@ -212,17 +244,20 @@ class Functional<void(Args...)>
     void clear()
     {
       context_ = nullptr;
-      context_callback_ = nullptr;
-      function_callback_ = nullptr;
+      callback_.context_callback_ = nullptr;
     }
 
     //! Check if a callback is bound.
     bool is_set() const
     {
       bool result = false;
-      if((nullptr != context_callback_) || (nullptr != function_callback_))
+      if(nullptr != context_)
       {
-        result = true;
+        result = (nullptr != callback_.context_callback_);
+      }
+      else
+      {
+        result = (nullptr != callback_.function_callback_);
       }
       return result;
     }
@@ -230,35 +265,39 @@ class Functional<void(Args...)>
     //! Bind a plain C/C++ function pointer.
     void set(FunctionCallback function)
     {
-      function_callback_ = function;
-      context_callback_ = nullptr;
       context_ = nullptr;
+      callback_.function_callback_ = function;
     }
 
     //! Bind a C style callback with context pointer.
     void set(ContextCallback function, void* context)
     {
-      function_callback_ = nullptr;
-      context_callback_ = function;
-      context_ = context;
+      if(nullptr != function)
+      {
+        callback_.context_callback_ = function;
+        context_ = (nullptr == context) ? null_context_sentinel() : context;
+      }
+      else
+      {
+        context_ = nullptr;
+        callback_.context_callback_ = nullptr;
+      }
     }
 
     //! Bind a member function (non-const) at compile time.
     template<class T, void (T::*METHOD)(Args...)>
     void set(T* instance)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &member_thunk<T, METHOD>;
       context_ = instance;
+      callback_.context_callback_ = &member_thunk<T, METHOD>;
     }
 
     //! Bind a member function (const) at compile time.
     template<class T, void (T::*METHOD)(Args...) const>
     void set(const T* instance)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &const_member_thunk<T, METHOD>;
       context_ = const_cast<T*>(instance);
+      callback_.context_callback_ = &const_member_thunk<T, METHOD>;
     }
 
     //! Bind a callable object by reference (non-owning).
@@ -266,9 +305,8 @@ class Functional<void(Args...)>
     void set(Callable& callable,
              typename std::enable_if<!std::is_same<Callable, Functional<void(Args...)>>::value>::type* = nullptr)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &callable_thunk<Callable>;
       context_ = &callable;
+      callback_.context_callback_ = &callable_thunk<Callable>;
     }
 
     //! Bind a const callable object by reference (non-owning).
@@ -276,25 +314,26 @@ class Functional<void(Args...)>
     void set(const Callable& callable,
              typename std::enable_if<!std::is_same<Callable, Functional<void(Args...)>>::value>::type* = nullptr)
     {
-      function_callback_ = nullptr;
-      context_callback_ = &const_callable_thunk<Callable>;
       context_ = const_cast<Callable*>(&callable);
+      callback_.context_callback_ = &const_callable_thunk<Callable>;
     }
 
     //! Invoke the bound callback if set.
     void invoke(Args... args) const
     {
-      if(nullptr != context_callback_)
+      if(nullptr != context_)
       {
-        context_callback_(context_, args...);
-      }
-      else if(nullptr != function_callback_)
-      {
-        function_callback_(args...);
+        if(nullptr != callback_.context_callback_)
+        {
+          callback_.context_callback_(decode_context(context_), args...);
+        }
       }
       else
       {
-        // Intentionally empty.
+        if(nullptr != callback_.function_callback_)
+        {
+          callback_.function_callback_(args...);
+        }
       }
     }
 
@@ -305,6 +344,32 @@ class Functional<void(Args...)>
     }
 
   private:
+    union CallbackStorage
+    {
+      FunctionCallback function_callback_;
+      ContextCallback context_callback_;
+
+      CallbackStorage() : context_callback_(nullptr)
+      {
+      }
+    };
+
+    static void* null_context_sentinel()
+    {
+      static int sentinel = 0;
+      return &sentinel;
+    }
+
+    static void* decode_context(void* context)
+    {
+      void* result = context;
+      if(null_context_sentinel() == context)
+      {
+        result = nullptr;
+      }
+      return result;
+    }
+
     template<class T, void (T::*METHOD)(Args...)>
     static void member_thunk(void* context, Args... args)
     {
@@ -346,8 +411,7 @@ class Functional<void(Args...)>
     }
 
     void* context_ = nullptr;
-    ContextCallback context_callback_ = nullptr;
-    FunctionCallback function_callback_ = nullptr;
+    CallbackStorage callback_{};
 };
 
 } // namespace EmbeddedProto
