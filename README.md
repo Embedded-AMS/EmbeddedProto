@@ -193,8 +193,11 @@ singular | Full
 repeated | Length fixed via template or custom option
 optional | Full
 
-All features mentioned above are of version proto3. At this moment, proto2 is not supported. Taken from the Protobuf website:
-> Prefer proto3 while proto2 will continue to be supported, we encourage new codes to use proto3 instead, which is easier to use and supports more languages.
+All features mentioned above are based on proto3 behavior. At this moment, proto2 is not supported.
+
+Protobuf editions are not yet fully supported. For files using `edition = "2023"` or newer, the plugin prints a warning and continues code generation with proto3 behavior as best as possible:
+> Warning: Protobuf Edition 2023 and newer are not yet supported. Code will be generated based on Proto3 as best as possible.
+
 For this reason, it is unlikely that Embedded Proto will support proto2 in the future.
 
 
