@@ -34,6 +34,7 @@ import locale
 import json
 from datetime import datetime
 from EmbeddedProto.ProtoFile import ProtoFile
+from google.protobuf import descriptor_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
 from importlib.resources import path as resource_path
@@ -130,13 +131,24 @@ def get_current_date_and_time():
 
 # -----------------------------------------------------------------------------
 
+def configure_response_features(response):
+    response.supported_features = (
+        plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL |
+        plugin.CodeGeneratorResponse.FEATURE_SUPPORTS_EDITIONS
+    )
+
+    if hasattr(descriptor_pb2, "Edition"):
+        response.minimum_edition = descriptor_pb2.Edition.Value("EDITION_2023")
+        response.maximum_edition = descriptor_pb2.Edition.Value("EDITION_MAX")
+
+
 def main_plugin():
     # The main function when running the scrip as a protoc plugin. It will read in the protoc data from the stdin and
     # write back the output to stdout.
 
     # Create the response object
     response = plugin.CodeGeneratorResponse()
-    response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+    configure_response_features(response)
 
     # Read request message from stdin
     data = io.open(sys.stdin.fileno(), "rb").read()
@@ -185,7 +197,7 @@ def main_cli():
     with open("debug_embedded_proto.bin", 'rb') as file:
         # Create the response object
         response = plugin.CodeGeneratorResponse()
-        response.supported_features = plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+        configure_response_features(response)
 
         data = file.read()
         request = plugin.CodeGeneratorRequest.FromString(data)
