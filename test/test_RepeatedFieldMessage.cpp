@@ -36,6 +36,7 @@
 #include <WriteBufferFixedSize.h>
 
 #include <ReadBufferFixedSize.h>
+#include <MockRepeatedFieldStorage.h>
 
 #include <cstdint>    
 #include <limits>
@@ -87,6 +88,50 @@ TEST(RepeatedFieldMessage, serialize_empty_message)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 
   EXPECT_EQ(0, msg.serialized_size());
+}
+
+TEST(RepeatedFieldMessage, custom_storage_override_serialize)
+{
+  using MessageType = repeated_message<Y_SIZE, Mocks::MockRepeatedFieldStorage>;
+
+  MessageType msg;
+  repeated_nested_message rnm;
+  rnm.set_u(42U);
+  rnm.set_v(7U);
+  msg.add_b(rnm);
+
+  ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+  EXPECT_EQ(6U, buffer.get_size());
+
+  const uint8_t expected[] = {
+    0x12, 0x04,
+    0x08, 0x2A,
+    0x10, 0x07
+  };
+
+  for(uint32_t i = 0U; i < buffer.get_size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]);
+  }
+}
+
+TEST(RepeatedFieldMessage, custom_storage_override_deserialize)
+{
+  using MessageType = repeated_message<Y_SIZE, Mocks::MockRepeatedFieldStorage>;
+
+  MessageType msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<6> buffer({
+    0x12, 0x04,
+    0x08, 0x2A,
+    0x10, 0x07
+  });
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  ASSERT_EQ(1U, msg.b().get_length());
+  EXPECT_EQ(42U, msg.b(0).u());
+  EXPECT_EQ(7U, msg.b(0).v());
 }
 
 TEST(RepeatedFieldMessage, serialize_array_zero_fields)

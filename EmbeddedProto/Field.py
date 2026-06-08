@@ -484,11 +484,28 @@ class FieldMessage(Field):
         return ""
 
     def get_template_parameters(self):
-        # Get the template names used by the definition.
+        # Get the template parameters from the nested message definition. A deep copy is made because we will rename
+        # them to be unique within the parent message scope.
         templates = copy.deepcopy(self.definition.get_templates())
-        # Next add our variable name to make them unique.
+
+        # Prefix each parameter name with the parent message name and field variable name to avoid collisions when
+        # the same message type is used in multiple fields. Track the old-to-new mapping for updating defaults.
+        rename_map = {}
         for tmp in templates:
-            tmp["name"] = self.parent.name + "_" + self.variable_name + tmp["name"]
+            old_name = tmp["name"]
+            new_name = self.parent.name + "_" + self.variable_name + old_name
+            rename_map[old_name] = new_name
+            tmp["name"] = new_name
+
+        # Default values may reference other template parameter names (e.g. a repeated storage type parameter whose
+        # default is a fixed-size type). These references must be updated to use the renamed parameter names.
+        for tmp in templates:
+            if "default" in tmp:
+                default_value = tmp["default"]
+                for old_name, new_name in rename_map.items():
+                    default_value = default_value.replace(old_name, new_name)
+                tmp["default"] = default_value
+
         return templates
 
     def match_field_with_definitions(self, all_types_definitions):
@@ -546,6 +563,10 @@ class FieldRepeated(Field):
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
+        # The name of the C++ template parameter that allows users to inject a custom repeated storage type
+        # (e.g. a callback-based implementation) instead of the default RepeatedFieldFixedSize.
+        self.storage_type_param_str = self.parent.name + "_" + self.variable_name + "REP_STORAGE"
+
         # Find options we know and use in this type of field.
         self.MaxLength = None
         if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
@@ -555,7 +576,17 @@ class FieldRepeated(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+        # Check whether the storage type template parameter is actually exposed on the parent message. It will only
+        # be present when the parent has at least one non-defaulted template parameter (see
+        # Scope.get_template_parameters). When exposed, use the template parameter name so the user can override the
+        # storage type. Otherwise fall back to the concrete RepeatedFieldFixedSize type.
+        use_storage_template = any(param["name"] == self.storage_type_param_str for param in self.parent.get_templates())
+
+        if use_storage_template:
+            type_str = self.storage_type_param_str + "<" + self.actual_type.get_type() + ", "
+        else:
+            type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
+
         if self.MaxLength:
             type_str += str(self.MaxLength) + ">"
         else:
@@ -563,12 +594,8 @@ class FieldRepeated(Field):
         return type_str
 
     def get_short_type(self):
-        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
-        if self.MaxLength:
-            type_str += str(self.MaxLength) + ">"
-        else:
-            type_str += self.template_param_str + ">"
-        return type_str
+        # Delegates to get_type() because the storage type may be a template parameter whose name cannot be shortened.
+        return self.get_type()
 
     # As this is a repeated field we need a function to get the type we are repeating.
     def get_base_type(self):
@@ -576,10 +603,22 @@ class FieldRepeated(Field):
 
     def get_template_parameters(self):
         result = []
-        # When we do not have a maximum length specified add the length as a template param.
+        # When the maxLength option is not set in the .proto file, expose the array length as a C++ template parameter
+        # so the user specifies it at compile time.
         if not self.MaxLength:
             result.append({"name": self.template_param_str, "type": "uint32_t"})
+
+        # Include any template parameters required by the element type (e.g. nested message templates).
         result.extend(self.actual_type.get_template_parameters())
+
+        # Expose the storage type as a template-template parameter. The default is RepeatedFieldFixedSize which
+        # preserves backward compatibility. Users can override this with a custom storage class (e.g. callback-based)
+        # that satisfies the RepeatedField<T> API contract. The "default" key causes this parameter to be placed last
+        # in the C++ template parameter list and to be omitted when the parent message has no other template parameters
+        # (see Scope.get_template_parameters).
+        result.append({"name": self.storage_type_param_str,
+                       "type": "template<class, uint32_t> class",
+                       "default": "::EmbeddedProto::RepeatedFieldFixedSize"})
         return result
 
     def match_field_with_definitions(self, all_types_definitions):
@@ -587,17 +626,15 @@ class FieldRepeated(Field):
 
     def register_template_parameters(self):
         result = True
-        
-        # Check for the special case where a string or bytes field is nested in the repeated field.
-        string_or_bytes_field = (FieldDescriptorProto.TYPE_STRING == self.actual_type.descriptor.type) or \
-          (FieldDescriptorProto.TYPE_BYTES == self.actual_type.descriptor.type)
-        
-        # If we do not have a max length defined register the template parameter.
-        if not self.MaxLength or (string_or_bytes_field and not self.actual_type.MaxLength):
-            self.parent.register_child_with_template(self)
 
-        # Check if field in the array is of a message type which might have template parameters.
-        elif FieldDescriptorProto.TYPE_MESSAGE == self.actual_type.descriptor.type:
+        # Every repeated field registers itself with the parent message because it always contributes at least the
+        # storage type template parameter. Previously only fields without a fixed maxLength registered; now the
+        # storage type parameter makes registration unconditional.
+        self.parent.register_child_with_template(self)
+
+        # If the repeated element is a message type, it may have its own template parameters (e.g. nested repeated
+        # fields or string lengths) that also need to be registered up the chain.
+        if FieldDescriptorProto.TYPE_MESSAGE == self.actual_type.descriptor.type:
             result = self.actual_type.register_template_parameters()
 
         return result
