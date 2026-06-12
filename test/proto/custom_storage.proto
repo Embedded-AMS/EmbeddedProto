@@ -1,0 +1,68 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+// This file is used to test the customStorage option which lets the user supply the storage
+// type for repeated, string, bytes and message fields.
+
+syntax = "proto3";
+
+import "embedded_proto_options.proto";
+
+package custom_storage;
+
+message Nested
+{
+  int32 value = 1;
+}
+
+// Each supported field kind with the customStorage option set.
+message CustomStorageMsg
+{
+  repeated uint32 values = 1 [(EmbeddedProto.options).customStorage = true];
+  string          text   = 2 [(EmbeddedProto.options).customStorage = true];
+  bytes           data   = 3 [(EmbeddedProto.options).customStorage = true];
+  Nested          nested = 4 [(EmbeddedProto.options).customStorage = true];
+}
+
+// An optional field with the customStorage option.
+message OptionalCustomStorageMsg
+{
+  optional string text = 1 [(EmbeddedProto.options).customStorage = true];
+}
+
+// A oneof with a customStorage arm and a regular arm.
+message OneofCustomStorageMsg
+{
+  oneof choice
+  {
+    string one_text   = 1 [(EmbeddedProto.options).customStorage = true];
+    int32  one_scalar = 2;
+  }
+}

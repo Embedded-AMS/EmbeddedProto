@@ -21,6 +21,12 @@ message Options {
   uint32 nestedMaxLength = 2;     // Only used for string/bytes fields in a repeated array. The 
                                   // option is used to set the length of the string/byte while 
                                   // maxLength is used to set the length of the repeated array.
+  bool customStorage = 3;         // When set the user supplies the storage type for this field
+                                  // via a template parameter. Applies to repeated, string, bytes
+                                  // and message fields. The supplied type must derive from the
+                                  // matching base class (RepeatedField, BaseStringBytes or
+                                  // MessageInterface). Takes precedence over maxLength and
+                                  // generates no size template parameter.
 }
 
 extend google.protobuf.FieldOptions { 

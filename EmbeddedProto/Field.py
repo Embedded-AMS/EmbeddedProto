@@ -56,6 +56,25 @@ class Field:
 
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == proto_descriptor.type
 
+        # Whether the user wants to supply the storage type for this field via a template parameter.
+        self.custom_storage = False
+        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+            options = self.descriptor.options.Extensions[embedded_proto_options_pb2.options]
+            self.custom_storage = options.customStorage
+
+    # Returns true when the user supplies the storage type for this field (the customStorage option).
+    def has_custom_storage(self):
+        return self.custom_storage
+
+    # The name of the C++ template parameter exposing the user supplied storage type.
+    def get_storage_type_param_str(self):
+        return self.parent.name + "_" + self.variable_name + "STORAGE"
+
+    # The C++ base class a customStorage type must derive from. Returns an empty string for field kinds that do not
+    # support customStorage. Used to emit a static_assert in the generated code.
+    def get_storage_base_type(self):
+        return ""
+
     @staticmethod
     # This function create the appropriate field object for a variable defined in the message.
     # The descriptor and parent message parameters are required parameters, all field need them to be created. The oneof
@@ -299,16 +318,26 @@ class BaseStringBytes(Field):
 
     def get_template_parameters(self):
         result = []
-        # When we do not have a maximum length specified add the length as a template param.
-        if not self.MaxLength:
+        # When the user supplies the storage type, expose a single plain type parameter without a default. The user
+        # must supply a type derived from ::EmbeddedProto::internal::BaseStringBytes. The maximum length is ignored.
+        if self.has_custom_storage():
+            result.append({"name": self.get_storage_type_param_str(), "type": "class"})
+          
+        # When no maximum length is specified, expose the length as a template parameter.
+        elif not self.MaxLength:
             result.append({"name": self.template_param_str, "type": "uint32_t"})
+        
         return result
 
     def register_template_parameters(self):
-        # If we do not have a max length defined register the template parameter.
-        if not self.MaxLength:
+        # A user supplied storage type contributes a storage type parameter; an unspecified maximum length contributes
+        # a length parameter. In either case this field has a template parameter to register with the parent.
+        if self.has_custom_storage() or not self.MaxLength:
             self.parent.register_child_with_template(self)
         return True
+
+    def get_storage_base_type(self):
+        return "::EmbeddedProto::internal::BaseStringBytes"
 
     def render_deserialize(self, jinja_env):
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
@@ -329,6 +358,10 @@ class FieldString(BaseStringBytes):
         super().__init__(proto_descriptor, parent_msg, oneof)
 
     def get_type(self):
+        # When the user supplies the storage type, use the plain template parameter as the field type.
+        if self.has_custom_storage():
+            return self.get_storage_type_param_str()
+
         str_type = "::EmbeddedProto::FieldString<"
         if self.MaxLength:
             str_type += str(self.MaxLength) + ">"
@@ -351,6 +384,10 @@ class FieldBytes(BaseStringBytes):
         super().__init__(proto_descriptor, parent_msg, oneof)
 
     def get_type(self):
+        # When the user supplies the storage type, use the plain template parameter as the field type.
+        if self.has_custom_storage():
+            return self.get_storage_type_param_str()
+
         str_type = "::EmbeddedProto::FieldBytes<"
         if self.MaxLength:
             str_type += str(self.MaxLength) + ">"
@@ -455,6 +492,15 @@ class FieldMessage(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
+        # When the user supplies the storage type, use the plain template parameter as the field type.
+        if self.has_custom_storage():
+            return self.get_storage_type_param_str()
+
+        return self.get_message_type()
+
+    # Returns the actual nested message C++ type, independent of the customStorage option. Used to resolve the message
+    # definition and as the documented base type for the customStorage static_assert.
+    def get_message_type(self):
         if not self.definition:
             # When the actual definition is unknown use the protobuf type.
             type_name = self.descriptor.type_name if "." != self.descriptor.type_name[0] else self.descriptor.type_name[1:]
@@ -467,7 +513,7 @@ class FieldMessage(Field):
             # Remove the last ::
             type_name = type_name[:-2]
 
-            tmpl_param = self.get_template_parameters()
+            tmpl_param = self.get_message_template_parameters()
             if tmpl_param:
                 type_name += "<"
                 for param in tmpl_param:
@@ -484,6 +530,15 @@ class FieldMessage(Field):
         return ""
 
     def get_template_parameters(self):
+        # When the user supplies the storage type, expose a single plain type parameter without a default. The user
+        # must supply a type derived from ::EmbeddedProto::MessageInterface. The nested message template parameters are
+        # not exposed because the user owns the complete type.
+        if self.has_custom_storage():
+            return [{"name": self.get_storage_type_param_str(), "type": "class"}]
+
+        return self.get_message_template_parameters()
+
+    def get_message_template_parameters(self):
         # Get the template parameters from the nested message definition. A deep copy is made because we will rename
         # them to be unique within the parent message scope.
         templates = copy.deepcopy(self.definition.get_templates())
@@ -510,7 +565,8 @@ class FieldMessage(Field):
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
-        my_type = self.get_type()
+        # Use the real message type (not the customStorage parameter) to resolve the definition.
+        my_type = self.get_message_type()
         for msg_defs in all_types_definitions["messages"]:
             other_scope = msg_defs.scope.get_scope_str()
             if my_type == other_scope:
@@ -522,6 +578,12 @@ class FieldMessage(Field):
             raise Exception("Unable to find the definition of this message: " + self.name)
 
     def register_template_parameters(self):
+        # When the user supplies the storage type, this field contributes a single plain storage type parameter. The
+        # user owns the complete type so the nested message parameters are not propagated.
+        if self.has_custom_storage():
+            self.parent.register_child_with_template(self)
+            return True
+
         if self.definition.all_parameters_registered:
             if self.definition.contains_template_parameters:
                 self.parent.register_child_with_template(self)
@@ -549,6 +611,9 @@ class FieldMessage(Field):
         """Returns True if this field is a nested message type (not string/bytes)."""
         return True
 
+    def get_storage_base_type(self):
+        return "::EmbeddedProto::MessageInterface"
+
 # -----------------------------------------------------------------------------
 
 
@@ -563,10 +628,6 @@ class FieldRepeated(Field):
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "REP_LENGTH"
 
-        # The name of the C++ template parameter that allows users to inject a custom repeated storage type
-        # (e.g. a callback-based implementation) instead of the default RepeatedFieldFixedSize.
-        self.storage_type_param_str = self.parent.name + "_" + self.variable_name + "REP_STORAGE"
-
         # Find options we know and use in this type of field.
         self.MaxLength = None
         if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
@@ -576,17 +637,14 @@ class FieldRepeated(Field):
         return "LENGTH_DELIMITED"
 
     def get_type(self):
-        # Check whether the storage type template parameter is actually exposed on the parent message. It will only
-        # be present when the parent has at least one non-defaulted template parameter (see
-        # Scope.get_template_parameters). When exposed, use the template parameter name so the user can override the
-        # storage type. Otherwise fall back to the concrete RepeatedFieldFixedSize type.
-        use_storage_template = any(param["name"] == self.storage_type_param_str for param in self.parent.get_templates())
+        # When the user supplies the storage type, use the plain template parameter as the field type. No size is
+        # appended; a user supplied storage type takes precedence over a maximum length.
+        if self.has_custom_storage():
+            return self.get_storage_type_param_str()
 
-        if use_storage_template:
-            type_str = self.storage_type_param_str + "<" + self.actual_type.get_type() + ", "
-        else:
-            type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
-
+        # Otherwise use the built-in fixed-size storage. The size is hard coded when a maximum length is set or exposed
+        # as a template parameter when it is not.
+        type_str = "::EmbeddedProto::RepeatedFieldFixedSize<" + self.actual_type.get_type() + ", "
         if self.MaxLength:
             type_str += str(self.MaxLength) + ">"
         else:
@@ -603,22 +661,21 @@ class FieldRepeated(Field):
 
     def get_template_parameters(self):
         result = []
-        # When the maxLength option is not set in the .proto file, expose the array length as a C++ template parameter
-        # so the user specifies it at compile time.
+
+        # When the user supplies the storage type, expose a single plain type parameter without a default. The user
+        # must supply a type derived from ::EmbeddedProto::RepeatedField. The maximum length is ignored.
+        if self.has_custom_storage():
+            result.append({"name": self.get_storage_type_param_str(), "type": "class"})
+            return result
+
+        # When no maximum length is set, expose the array length as a C++ template parameter so the user specifies it
+        # at compile time.
         if not self.MaxLength:
             result.append({"name": self.template_param_str, "type": "uint32_t"})
 
         # Include any template parameters required by the element type (e.g. nested message templates).
         result.extend(self.actual_type.get_template_parameters())
 
-        # Expose the storage type as a template-template parameter. The default is RepeatedFieldFixedSize which
-        # preserves backward compatibility. Users can override this with a custom storage class (e.g. callback-based)
-        # that satisfies the RepeatedField<T> API contract. The "default" key causes this parameter to be placed last
-        # in the C++ template parameter list and to be omitted when the parent message has no other template parameters
-        # (see Scope.get_template_parameters).
-        result.append({"name": self.storage_type_param_str,
-                       "type": "template<class, uint32_t> class",
-                       "default": "::EmbeddedProto::RepeatedFieldFixedSize"})
         return result
 
     def match_field_with_definitions(self, all_types_definitions):
@@ -627,17 +684,30 @@ class FieldRepeated(Field):
     def register_template_parameters(self):
         result = True
 
-        # Every repeated field registers itself with the parent message because it always contributes at least the
-        # storage type template parameter. Previously only fields without a fixed maxLength registered; now the
-        # storage type parameter makes registration unconditional.
-        self.parent.register_child_with_template(self)
+        # When the user supplies the storage type, this field contributes a single plain storage type parameter. The
+        # user owns the complete type so the element parameters are not propagated.
+        if self.has_custom_storage():
+            self.parent.register_child_with_template(self)
+            return result
 
-        # If the repeated element is a message type, it may have its own template parameters (e.g. nested repeated
-        # fields or string lengths) that also need to be registered up the chain.
-        if FieldDescriptorProto.TYPE_MESSAGE == self.actual_type.descriptor.type:
+        # Check for the special case where a string or bytes field is nested in the repeated field. Such an element
+        # contributes its own length template parameter when no nested maximum length is defined.
+        string_or_bytes_field = (FieldDescriptorProto.TYPE_STRING == self.actual_type.descriptor.type) or \
+            (FieldDescriptorProto.TYPE_BYTES == self.actual_type.descriptor.type)
+
+        # When the array size or a nested string/bytes length is not fixed, register the template parameter(s).
+        if not self.MaxLength or (string_or_bytes_field and not self.actual_type.MaxLength):
+            self.parent.register_child_with_template(self)
+
+        # If the array element is a message type it may have its own template parameters (e.g. nested repeated fields
+        # or string lengths) that also need to be registered up the chain.
+        elif FieldDescriptorProto.TYPE_MESSAGE == self.actual_type.descriptor.type:
             result = self.actual_type.register_template_parameters()
 
         return result
+
+    def get_storage_base_type(self):
+        return "::EmbeddedProto::RepeatedField<" + self.actual_type.get_type() + ">"
 
     def render_get_set(self, jinja_env):
         return self.render("FieldRepeated_GetSet.h.jinja2", jinja_environment=jinja_env)

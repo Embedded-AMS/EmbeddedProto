@@ -31,7 +31,7 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 * TODO Installation via pip3: `pip install EmbeddedProto`. This will also install a matching version of protoc. So you do not need to install the protoc compiler yourself.
 * TODO Run EmbeddedProto as an executable: `embeddedproto -I YOUR_FOLDER YOUR_PROTO_FILE.proto`
 * Included the C++ source files in the python package. You can get the location of these C++ source files by running: `embeddedproto --cpp-src-location`.
-* Added configurable repeated field storage templates in generated code. You can now inject your own repeated storage type (compatible with the `::EmbeddedProto::RepeatedField<T>` interface) for generated repeated fields. The default remains `::EmbeddedProto::RepeatedFieldFixedSize<T, N>`, so existing `.proto` files and existing generated-user code keep working unchanged.
+* Added the `customStorage` field option. With `[(EmbeddedProto.options).customStorage = true]` you take control of the storage type of a repeated, string, bytes or message field. The generated message exposes the storage type as a plain template parameter (without a size parameter and without a default), so you supply the complete type yourself. The supplied type must derive from `::EmbeddedProto::RepeatedField<T>` (repeated), `::EmbeddedProto::internal::BaseStringBytes` (string/bytes) or `::EmbeddedProto::MessageInterface` (message); this is enforced with a `static_assert`. The option takes precedence over `maxLength`. Fields without the option keep their existing behaviour, so existing `.proto` files and generated user code are unchanged.
 
 ## 3.6.0
 * Update to Protobuf version 32.0.
