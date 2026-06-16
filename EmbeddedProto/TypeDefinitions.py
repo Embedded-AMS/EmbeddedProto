@@ -72,14 +72,40 @@ class Scope:
         return scope_str
 
     def register_template_parameters(self, field):
-        self.fields_with_templates.append(field)
+        # Guard against duplicate registration. This can happen because FieldRepeated now unconditionally registers
+        # itself, and a nested message field may trigger a second registration through its own register chain.
+        if field not in self.fields_with_templates:
+            self.fields_with_templates.append(field)
 
     # Return the list of template parameters required for this scope alone.
     def get_template_parameters(self):
+        # Collect all template parameters from every field that registered with this scope.
         result = []
         for field in self.fields_with_templates:
             result.extend(field.get_template_parameters())
-        return result
+
+        # Multiple fields may contribute parameters with the same name (e.g. when a field registers both through
+        # the repeated path and the nested message path). De-duplicate by name, keeping first-seen order.
+        unique = []
+        seen = set()
+        for param in result:
+            if param["name"] not in seen:
+                unique.append(param)
+                seen.add(param["name"])
+
+        # In C++ template parameter lists, parameters with default values must appear after those without. Separate
+        # them to enforce this ordering.
+        non_default = [param for param in unique if "default" not in param]
+        defaulted = [param for param in unique if "default" in param]
+
+        # Backward compatibility: if a message only has defaulted template parameters (e.g. a message where all
+        # repeated fields have a fixed maxLength and only contribute the storage type parameter), suppress them
+        # entirely. This prevents turning a previously non-templated message into a template class, which would
+        # break existing user code that instantiates it without template arguments.
+        if not non_default:
+            return []
+
+        return non_default + defaulted
 
     # Return a full list of the scope, parent scopes and their templates
     def get(self):

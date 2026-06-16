@@ -29,11 +29,25 @@ Postal address:
 #}
 {% import 'TypeOneof.h.jinja2' as TypeOneof %}
 {% for tmpl_param in typedef.get_templates() %}
-{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{", " if not loop.last}}{{"\n>" if loop.last}}
+{{"template<\n" if loop.first}}    {{tmpl_param['type']}} {{tmpl_param['name']}}{{" = " + tmpl_param['default'] if 'default' in tmpl_param}}{{", " if not loop.last}}{{"\n>" if loop.last}}
 {% endfor %}
 class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
 {
   public:
+    {% for field in typedef.fields %}
+    {% if field.has_custom_storage() %}
+    static_assert(::std::is_base_of<{{field.get_storage_base_type()}}, {{field.get_storage_type_param_str()}}>::value,
+                  "The customStorage type for the field \"{{field.get_name()}}\" must derive from {{field.get_storage_base_type()}}.");
+    {% endif %}
+    {% endfor %}
+    {% for oneof in typedef.oneofs %}
+    {% for field in oneof.fields %}
+    {% if field.has_custom_storage() %}
+    static_assert(::std::is_base_of<{{field.get_storage_base_type()}}, {{field.get_storage_type_param_str()}}>::value,
+                  "The customStorage type for the field \"{{field.get_name()}}\" must derive from {{field.get_storage_base_type()}}.");
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
     {{ typedef.get_name() }}() = default;
     {{ typedef.get_name() }}(const {{typedef.get_name()}}& rhs )
     {
