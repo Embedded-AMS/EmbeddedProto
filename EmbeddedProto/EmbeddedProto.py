@@ -42,9 +42,37 @@ def get_well_known_types_location():
     return str(file_name)
 
 
+def _run_license_command(argv):
+    # Configure / verify the license token without running a build. Imported
+    # lazily so the normal protoc path does not pay for it.
+    import argparse
+    from EmbeddedProto import custom_header
+
+    parser = argparse.ArgumentParser(
+        prog="embeddedproto",
+        description="Configure the EmbeddedProto license token and server URL.")
+    parser.add_argument("--set-token", metavar="TOKEN", default=None,
+                        help="Store this build token in the user config.")
+    parser.add_argument("--server-url", metavar="URL", default=None,
+                        help="Store this license server URL (must be https://).")
+    parser.add_argument("--check-license", action="store_true",
+                        help="Verify the configured token against the server; write nothing.")
+    args = parser.parse_args(argv)
+    return custom_header.configure(token=args.set_token, server_url=args.server_url,
+                                   check_only=args.check_license)
+
+
 def run_protoc(argv=sys.argv):
     # Remove the program name
     argv.pop(0)
+
+    # License configuration sub-commands, handled before protoc. These let
+    # `embeddedproto --set-token <KEY> [--server-url <URL>]` and
+    # `embeddedproto --check-license` manage the user config without a build.
+    _license_flags = ("--set-token", "--server-url", "--check-license")
+    if any(arg == flag or arg.startswith(flag + "=")
+           for arg in argv for flag in _license_flags):
+        sys.exit(_run_license_command(argv))
 
     # Check if the --cpp-src-location parameter is present
     if "--cpp-src-location" in argv:

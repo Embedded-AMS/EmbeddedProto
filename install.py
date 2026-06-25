@@ -33,6 +33,7 @@ import argparse
 import platform
 import os
 import re
+import sys
 from sys import stderr, stdout
 import venv
 import shutil
@@ -141,10 +142,37 @@ def run(arguments):
         else:
             print(" [" + CGREEN + "Success" + CEND + "]")
 
+        # ---------------------------------------
+        # Generate the license config (and store/verify a token if one was given).
+        configure_credentials(arguments)
+
     except Exception as e:
         print(" [" + CRED + "Fail" + CEND + "]")
         print("Error: " + str(e), file=stderr)
         exit(1)
+
+
+####################################################################################
+
+def configure_credentials(arguments):
+    # Set up the license configuration. This always ensures a default config file
+    # exists (so the user can find and edit it), and when a token or server URL was
+    # passed it stores them and verifies the token against the server. The license
+    # modules are pure standard library, so this runs without the freshly built venv.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    try:
+        from EmbeddedProto import custom_header, config
+    except Exception as e:
+        print("Skipping license configuration (could not load module): " + str(e), file=stderr)
+        return
+
+    config.ensure_default()
+    if arguments.token is not None or arguments.server_url is not None:
+        # configure() prints its own colored result; a bad token is reported there
+        # and does not fail the install (the environment is already set up).
+        custom_header.configure(token=arguments.token, server_url=arguments.server_url)
 
 
 ####################################################################################
@@ -177,6 +205,14 @@ def add_parser_arguments(parser_obj):
     parser_obj.add_argument('--ignore_version_diff', action='store_true',
                             help="Ignore differences in the version of Protoc and that of the installed python package."
                                  " Try to run with the different version.")
+
+    parser_obj.add_argument('--token', default=None,
+                            help="Store this license build token in the EmbeddedProto user config "
+                                 "(~/.config/embeddedproto/config.ini) and verify it against the server.")
+
+    parser_obj.add_argument('--server-url', dest='server_url', default=None,
+                            help="Store a custom license server URL (must be https://) in the user config. "
+                                 "Use to point at a staging server.")
 
 
 ####################################################################################

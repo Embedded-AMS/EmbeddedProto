@@ -49,17 +49,21 @@ import time
 import urllib.error
 import urllib.request
 
+from EmbeddedProto import config
+
 # --- Contract constants (see the server-side API contract) --------------------
 
-DEFAULT_SERVER_URL = "https://license.embeddedproto.com/v1/header"
+# Re-exported from config (the lowest-level module) so there is a single
+# source of truth for the default endpoint.
+DEFAULT_SERVER_URL = config.DEFAULT_SERVER_URL
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._:-]{16,256}$")
 
 _ENV_TOKEN = "EMBEDDEDPROTO_BUILD_TOKEN"
 _ENV_URL = "EMBEDDEDPROTO_LICENSE_URL"
-_ENV_FRESHNESS = "EMBEDDEDPROTO_LICENSE_FRESHNESS"
+_ENV_INTERVAL = "EMBEDDEDPROTO_LICENSE_CHECKIN_INTERVAL"
 _ENV_DISABLE = "EMBEDDEDPROTO_LICENSE_DISABLE_CHECKIN"
 
-_DEFAULT_FRESHNESS = 3600          # reuse cache younger than this without a call
+_DEFAULT_INTERVAL = 300            # 5 minutes
 _DEFAULT_GRACE = 86400             # offline-grace default when server omits ttl
 _GRACE_MIN = 300
 _GRACE_MAX = 2592000
@@ -77,16 +81,6 @@ def _warn(message):
 
 def _env_truthy(value):
     return bool(value) and value.strip().lower() in ("1", "true", "yes", "on")
-
-
-def _config_token_path():
-    """Platform path to the optional token file (see token discovery rules)."""
-    if os.name == "nt":
-        base = os.environ.get("APPDATA")
-        return os.path.join(base, "embeddedproto", "token.txt") if base else None
-    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(
-        os.path.expanduser("~"), ".config")
-    return os.path.join(base, "embeddedproto", "token.txt")
 
 
 def _cache_dir():
@@ -107,18 +101,23 @@ def _cache_file(token):
     return os.path.join(directory, digest + ".json")
 
 
-def _freshness():
-    raw = os.environ.get(_ENV_FRESHNESS, "").strip()
+def _checkin_interval():
+    raw = os.environ.get(_ENV_INTERVAL, "").strip()
     if not raw:
-        return _DEFAULT_FRESHNESS
+        return _DEFAULT_INTERVAL
     try:
         return max(0, int(raw))
     except ValueError:
-        return _DEFAULT_FRESHNESS
+        return _DEFAULT_INTERVAL
 
 
 def _server_url():
-    return os.environ.get(_ENV_URL, "").strip() or DEFAULT_SERVER_URL
+    env_url = os.environ.get(_ENV_URL, "").strip()
+    if env_url:
+        return env_url
+    # check_perms=False: we only need the (non-secret) URL here, so do not run the
+    # token permission check (and its warning) for an inline token we won't read.
+    return config.load(check_perms=False).get("server_url") or DEFAULT_SERVER_URL
 
 
 def _atomic_write_json(path, payload):
@@ -135,32 +134,16 @@ def _atomic_write_json(path, payload):
 
 # --- Token discovery ----------------------------------------------------------
 
-def _read_token_file(path):
-    """Return the token-file contents, rejecting world/group-accessible files."""
-    try:
-        if os.name == "posix":
-            mode = os.stat(path).st_mode
-            if mode & 0o077:
-                _warn("ignoring token file (readable by group/other; "
-                      "tighten permissions to 0600): " + path)
-                return None
-        with open(path, "r", encoding="utf-8") as handle:
-            return handle.read().strip()
-    except OSError:
-        return None
-
-
 def resolve_token():
     """Return a validated build token, or None when none is configured.
 
-    Priority: the EMBEDDEDPROTO_BUILD_TOKEN environment variable, then the
-    platform token file. A malformed value is treated as absent.
+    Priority: the EMBEDDEDPROTO_BUILD_TOKEN environment variable, then the inline
+    token in the user config file. A malformed value is treated as absent.
     """
     try:
         token = os.environ.get(_ENV_TOKEN, "").strip()
         if not token:
-            path = _config_token_path()
-            token = (_read_token_file(path) or "").strip() if path else ""
+            token = (config.load().get("token") or "").strip()
         if not token:
             return None
         if not TOKEN_RE.match(token):
@@ -200,16 +183,46 @@ def _clamp_grace(ttl_seconds):
 # --- Cache --------------------------------------------------------------------
 
 def _read_cache(path):
-    """Return (header, fetched_at, expires_at) or None."""
+    """Return the cache dict or None.
+
+    Keys: ``header`` (str or None for an attempt-only marker), ``fetched_at``,
+    ``expires_at`` and ``last_attempt_at`` (floats). ``last_attempt_at`` records
+    the time of the last check-in attempt regardless of its outcome, and is what
+    throttles the next attempt.
+    """
     try:
         with open(path, "r", encoding="utf-8") as handle:
             data = json.load(handle)
+        if not isinstance(data, dict):
+            return None
         header = data.get("header")
-        if isinstance(header, str):
-            return header, float(data.get("fetched_at", 0)), float(
-                data.get("expires_at", 0))
+        if header is not None and not isinstance(header, str):
+            header = None
+        return {
+            "header": header,
+            "fetched_at": float(data.get("fetched_at", 0)),
+            "expires_at": float(data.get("expires_at", 0)),
+            "last_attempt_at": float(data.get("last_attempt_at", 0)),
+        }
     except (OSError, ValueError, TypeError):
-        pass
+        return None
+
+
+def _write_cache(path, header, fetched_at, expires_at, last_attempt_at):
+    """Persist the cache dict (best-effort; see _atomic_write_json)."""
+    if path:
+        _atomic_write_json(path, {
+            "header": header,
+            "fetched_at": fetched_at,
+            "expires_at": expires_at,
+            "last_attempt_at": last_attempt_at,
+        })
+
+
+def _usable_header(cached, now):
+    """The cached header if still within its offline-grace window, else None."""
+    if cached is not None and cached["header"] is not None and now < cached["expires_at"]:
+        return cached["header"]
     return None
 
 
@@ -275,7 +288,7 @@ def _free_install_due(now):
             pinged_at = float(json.load(handle).get("pinged_at", 0))
     except (OSError, ValueError, TypeError):
         pinged_at = 0.0
-    return (now - pinged_at) >= _freshness()
+    return (now - pinged_at) >= _checkin_interval()
 
 
 def _free_install_checkin(now, plugin_version):
@@ -298,10 +311,12 @@ def resolve_custom_header(token, plugin_version=""):
     """Return a sanitized custom-header string, or None to use the default.
 
     Never raises. Flow:
-      * no token       -> throttled free-install check-in, return None
-      * fresh cache    -> return cached header without a network call
-      * otherwise      -> best-effort refresh; on failure fall back to a stale
-                          cached header within its offline-grace window, else None
+      * no token            -> throttled free-install check-in, return None
+      * within the check-in
+        interval             -> return the cached header without a network call
+      * otherwise            -> best-effort check-in; on success use/refresh the
+                                header, on failure fall back to the cached header
+                                within its offline-grace window, else None
     """
     try:
         return _resolve(token, plugin_version)
@@ -309,8 +324,91 @@ def resolve_custom_header(token, plugin_version=""):
         return None
 
 
+def check_token(token, url=None, plugin_version=""):
+    """Probe the server for ``token`` and return ``(status, parsed_dict_or_None)``.
+
+    A one-shot POST used by the configuration command to verify a token. The
+    HTTPS guard and 5s timeout of ``_post_json`` apply. ``status`` is None when the
+    request did not complete (timeout/DNS/TLS). Never raises.
+    """
+    try:
+        return _post_json(url or _server_url(), _payload(token, plugin_version))
+    except Exception:  # pragma: no cover - defensive
+        return None, None
+
+
+# CLI color helpers (best-effort ANSI; harmless when the terminal ignores them).
+_C_OK = "\033[92m"
+_C_WARN = "\033[93m"
+_C_ERR = "\033[91m"
+_C_END = "\033[0m"
+
+
+def _describe_check(status, data):
+    """Map a check_token result to ``(color, message)`` for display."""
+    if status == 200 and isinstance(data, dict) and isinstance(data.get("header"), str):
+        size = len(data["header"].encode("utf-8"))
+        return _C_OK, "License active - custom header retrieved (%d bytes)." % size
+    if status == 200:
+        return _C_WARN, "Server returned 200 but no usable header; build uses the default."
+    if status == 204:
+        return _C_WARN, ("Server reachable, but this token returned no header (unknown or "
+                         "inactive token). Builds still work with the default header.")
+    if status == 400:
+        return _C_ERR, "Server rejected the request as malformed."
+    if status is None:
+        return _C_WARN, ("Could not reach the server (network/TLS/timeout). Settings saved; "
+                         "builds still work and will retry later.")
+    return _C_WARN, "Unexpected server response (status %s)." % status
+
+
+def configure(token=None, server_url=None, check_only=False, plugin_version=""):
+    """Save token/url to the user config and probe the server. Returns an exit code.
+
+    Shared by ``embeddedproto --set-token`` and ``install.py``. With ``check_only``
+    nothing is written and the already-configured token/url is probed. A malformed
+    token or a non-https URL is a hard error (returns 1, nothing written). A failed
+    connectivity check is reported but returns 0 - a build is never blocked by it.
+    """
+    if token is not None:
+        token = token.strip()
+        if not TOKEN_RE.match(token):
+            sys.stdout.write(_C_ERR + "Invalid token format; nothing was saved." + _C_END + "\n")
+            return 1
+    if server_url is not None:
+        server_url = server_url.strip()
+        if not server_url.lower().startswith("https://"):
+            sys.stdout.write(_C_ERR + "Server URL must start with https://; nothing was saved."
+                             + _C_END + "\n")
+            return 1
+
+    if not check_only and (token is not None or server_url is not None):
+        try:
+            path = config.set_values(token=token, server_url=server_url)
+            sys.stdout.write("Saved license settings to " + path + "\n")
+        except (OSError, RuntimeError) as error:
+            sys.stdout.write(_C_ERR + "Could not write config: " + str(error) + _C_END + "\n")
+            return 1
+
+    probe_token = token if token is not None else resolve_token()
+    if not probe_token:
+        sys.stdout.write(_C_WARN + "No token configured; skipping server check." + _C_END + "\n")
+        return 0
+
+    status, data = check_token(probe_token, url=server_url, plugin_version=plugin_version)
+    color, message = _describe_check(status, data)
+    sys.stdout.write(color + message + _C_END + "\n")
+    return 0
+
+
 def _resolve(token, plugin_version):
     now = time.time()
+
+    # Zero-touch first run: drop a commented default config so the user can find
+    # and edit it. Skipped when a token is supplied via the environment (e.g. CI),
+    # and a no-op when a config already exists. Best-effort; never blocks a build.
+    if not os.environ.get(_ENV_TOKEN, "").strip():
+        config.ensure_default()
 
     if token is None:
         _free_install_checkin(now, plugin_version)
@@ -319,28 +417,29 @@ def _resolve(token, plugin_version):
     cache_path = _cache_file(token)
     cached = _read_cache(cache_path) if cache_path else None
 
-    if cached is not None:
-        header, fetched_at, _expires_at = cached
-        if (now - fetched_at) < _freshness():
-            return header  # within freshness window: no network call
+    # Throttle the check-in (one network call + one usage signal) by the interval,
+    # gated on the last *attempt* (recorded regardless of outcome). This collapses
+    # rapid repeats within a single build and stops a down server from stalling
+    # every build. The cached header keeps serving in the meantime.
+    if cached is not None and (now - cached["last_attempt_at"]) < _checkin_interval():
+        return _usable_header(cached, now)
 
     status, data = _post_json(_server_url(), _payload(token, plugin_version))
     if status == 200 and data is not None:
         header = _sanitize_header(data.get("header"))
         if header is not None:
             grace = _clamp_grace(data.get("ttl_seconds", _DEFAULT_GRACE))
-            if cache_path:
-                _atomic_write_json(cache_path, {
-                    "header": header,
-                    "fetched_at": now,
-                    "expires_at": now + grace,
-                })
+            _write_cache(cache_path, header, now, now + grace, now)
             return header
 
-    # Refresh failed or served no header: reuse stale cache within offline grace.
+    # Check-in failed or served no header. Record the attempt (so the next build is
+    # throttled even against a down server) and keep serving the cached header
+    # within its offline-grace window; a header-less marker throttles the no-cache
+    # case the same way.
     if cached is not None:
-        header, _fetched_at, expires_at = cached
-        if now < expires_at:
-            return header
+        _write_cache(cache_path, cached["header"], cached["fetched_at"],
+                     cached["expires_at"], now)
+        return _usable_header(cached, now)
 
+    _write_cache(cache_path, None, 0, 0, now)
     return None

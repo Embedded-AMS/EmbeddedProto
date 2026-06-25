@@ -154,6 +154,45 @@ After running protoc without errors, the generated source code is located in the
 * When building do not for get to pass `-lstdc++` to the linker. This to prevent errors like: `undefined reference to`.
 
 
+# Setting your license token
+
+A commercial license adds a customer-specific header to the generated files. To configure your token, run:
+
+```bash
+# pip install:
+embeddedproto --set-token <YOUR_TOKEN>
+
+# submodule install (the install script accepts the same token):
+python install.py --token <YOUR_TOKEN>
+```
+
+This stores the settings in a per-user config file and immediately verifies the token against the license server, printing whether it is active. The file lives at:
+
+* Linux/macOS: `~/.config/embeddedproto/config.ini` (honours `$XDG_CONFIG_HOME`)
+* Windows: `%APPDATA%\embeddedproto\config.ini`
+
+It is created automatically (with a commented template) the first time the plugin runs, so you can also just edit it by hand:
+
+```ini
+[license]
+token = <YOUR_TOKEN>
+server_url = https://license.embeddedproto.com/v1/header
+```
+
+To point at a different (e.g. staging) server, pass `--server-url https://…` (it must be
+`https://`) or set `server_url` in the file. Verify a configured setup at any time with
+`embeddedproto --check-license`.
+
+**CI / CD:** do not commit the token. Instead export it as an environment variable in your
+pipeline; an exported variable always takes precedence over the config file:
+
+```bash
+export EMBEDDEDPROTO_BUILD_TOKEN=<YOUR_TOKEN>
+# optional, to override the server:
+export EMBEDDEDPROTO_LICENSE_URL=https://license.embeddedproto.com/v1/header
+```
+
+
 # Examples 
 
 Our website hosts an array of [examples](https://embeddedproto.com/examples/) detailing possible use cases and tutorials on toolchain integrations. This includes:
