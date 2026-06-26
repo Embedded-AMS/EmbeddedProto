@@ -398,6 +398,61 @@ class FreeInstallCheckin(_Base):
         post.assert_not_called()
 
 
+class FileLock(_Base):
+    """The check-in lock serialises concurrent (parallel-build) invocations so
+    they collapse to a single server call instead of one call per .proto file."""
+
+    @unittest.skipIf(custom_header.fcntl is None, "requires POSIX fcntl")
+    def test_lock_is_exclusive_while_held(self):
+        fcntl = custom_header.fcntl
+        lock_path = os.path.join(self.cache_home, "checkin.lock")
+        with custom_header._file_lock(lock_path):
+            # A second open of the same lock cannot be taken while held.
+            other = open(lock_path, "a+")
+            try:
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            finally:
+                other.close()
+        # Released on context exit: a non-blocking lock now succeeds.
+        other = open(lock_path, "a+")
+        try:
+            fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(other.fileno(), fcntl.LOCK_UN)
+        finally:
+            other.close()
+
+    def test_noop_without_path(self):
+        with custom_header._file_lock(None):
+            pass  # must not raise
+
+    def test_resolve_degrades_without_fcntl(self):
+        # On a platform without fcntl (e.g. Windows) the resolve still works,
+        # just without cross-process serialisation.
+        with mock.patch.object(custom_header, "fcntl", None), \
+                mock.patch.object(custom_header, "_post_json",
+                                  return_value=(200, {"header": "/* h */"})):
+            header = custom_header.resolve_custom_header(VALID_TOKEN, "4.0.0")
+        self.assertEqual(header, "/* h */")
+
+    def test_resolve_locks_on_the_per_token_path(self):
+        # The resolve must serialise on the per-token lock file (so siblings of
+        # the same build contend on the same lock).
+        observed = {}
+        real_lock = custom_header._file_lock
+
+        def spy(path):
+            observed["path"] = path
+            return real_lock(path)  # delegate to the real (releasing) lock
+
+        with mock.patch.object(custom_header, "_file_lock", spy), \
+                mock.patch.object(custom_header, "_post_json",
+                                  return_value=(200, {"header": "/* h */"})):
+            custom_header.resolve_custom_header(VALID_TOKEN, "4.0.0")
+        self.assertEqual(observed["path"],
+                         self.cache_path(VALID_TOKEN) + ".lock")
+
+
 class Sanitisation(_Base):
     def test_oversized_header_rejected(self):
         self.assertIsNone(custom_header._sanitize_header("x" * 8193))
