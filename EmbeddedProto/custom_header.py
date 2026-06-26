@@ -38,6 +38,7 @@ custom header" and the generator falls back to its default banner. Nothing here
 ever raises into, blocks, or slows a build beyond a single short timeout.
 """
 
+import contextlib
 import hashlib
 import json
 import os
@@ -48,6 +49,11 @@ import sys
 import time
 import urllib.error
 import urllib.request
+
+try:
+    import fcntl  # POSIX advisory file locking; absent on Windows.
+except ImportError:  # pragma: no cover - exercised only on non-POSIX platforms
+    fcntl = None
 
 from EmbeddedProto import config
 
@@ -130,6 +136,50 @@ def _atomic_write_json(path, payload):
         os.replace(tmp, path)
     except OSError:
         pass  # caching is an optimisation, never fatal
+
+
+@contextlib.contextmanager
+def _file_lock(path):
+    """Best-effort exclusive lock, used to serialise concurrent check-ins.
+
+    A single build commonly runs the plugin once per .proto file, in parallel
+    (e.g. ``make -j``). Without coordination every one of those processes finds
+    an empty cache and checks in, so the per-token throttle is bypassed and the
+    server sees one request per file. Holding this lock around the resolve makes
+    the first process fetch and cache the header while the rest wait briefly and
+    then read the warm cache - collapsing a parallel build to a single check-in.
+
+    Best-effort and non-fatal: without a path, or if the lock cannot be taken
+    (no fcntl on this platform, an OSError, ...), it degrades to no locking
+    rather than blocking or failing a build. The lock is released automatically
+    if the holder dies, so a crash cannot wedge other builds.
+    """
+    if not path:
+        yield
+        return
+    handle = None
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        handle = open(path, "a+")
+    except OSError:
+        yield
+        return
+    locked = False
+    try:
+        if fcntl is not None:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            locked = True
+    except OSError:
+        pass  # proceed unsynchronised rather than fail the build
+    try:
+        yield
+    finally:
+        try:
+            if locked:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+        handle.close()
 
 
 # --- Token discovery ----------------------------------------------------------
@@ -295,13 +345,18 @@ def _free_install_checkin(now, plugin_version):
     """Send the throttled, opt-out, best-effort tokenless check-in."""
     if _env_truthy(os.environ.get(_ENV_DISABLE)):
         return
-    if not _free_install_due(now):
-        return
-    _post_json(_server_url(), _payload(None, plugin_version))
-    # Record the attempt regardless of outcome so a down server cannot turn the
-    # throttle off and cause a check-in on every build.
     path = _free_marker_path()
-    if path:
+    if path is None:
+        return  # no cache dir: nowhere to throttle, so decline rather than ping
+    # Serialise parallel invocations (as for the token path) so a single build
+    # checks in once; re-test the throttle inside the lock so the winner pings
+    # and the rest observe the fresh marker.
+    with _file_lock(path + ".lock"):
+        if not _free_install_due(now):
+            return
+        _post_json(_server_url(), _payload(None, plugin_version))
+        # Record the attempt regardless of outcome so a down server cannot turn
+        # the throttle off and cause a check-in on every build.
         _atomic_write_json(path, {"pinged_at": now})
 
 
@@ -415,15 +470,39 @@ def _resolve(token, plugin_version):
         return None
 
     cache_path = _cache_file(token)
-    cached = _read_cache(cache_path) if cache_path else None
+    if cache_path is None:
+        # No cache directory (e.g. no home): nowhere to lock or cache, so fall
+        # back to a single unsynchronised best-effort check-in.
+        return _checkin(token, None, None, plugin_version, now)
 
-    # Throttle the check-in (one network call + one usage signal) by the interval,
-    # gated on the last *attempt* (recorded regardless of outcome). This collapses
-    # rapid repeats within a single build and stops a down server from stalling
-    # every build. The cached header keeps serving in the meantime.
-    if cached is not None and (now - cached["last_attempt_at"]) < _checkin_interval():
-        return _usable_header(cached, now)
+    # Serialise concurrent invocations (a parallel build generating many .proto
+    # files at once) so they collapse to a single check-in: the lock holder
+    # fetches and caches the header, the rest wait briefly then read the warm
+    # cache. Re-read inside the lock to observe a sibling's fresh write.
+    with _file_lock(cache_path + ".lock"):
+        now = time.time()
+        cached = _read_cache(cache_path)
 
+        # Throttle the check-in (one network call + one usage signal) by the
+        # interval, gated on the last *attempt* (recorded regardless of outcome).
+        # This collapses rapid repeats within a single build and stops a down
+        # server from stalling every build. The cached header keeps serving in
+        # the meantime.
+        if cached is not None and (now - cached["last_attempt_at"]) < _checkin_interval():
+            return _usable_header(cached, now)
+        return _checkin(token, cache_path, cached, plugin_version, now)
+
+
+def _checkin(token, cache_path, cached, plugin_version, now):
+    """Perform one server check-in and return the header (or None).
+
+    Invoked with the per-token lock held (when a cache directory exists) so only
+    one process per build makes the network round-trip. On success the header is
+    sanitised and cached. On failure (or no usable header) the cached header
+    keeps serving within its offline-grace window and the attempt time is
+    recorded, so a down server still throttles the next build; with no usable
+    cache a header-less marker is written to throttle the retry the same way.
+    """
     status, data = _post_json(_server_url(), _payload(token, plugin_version))
     if status == 200 and data is not None:
         header = _sanitize_header(data.get("header"))
@@ -432,10 +511,6 @@ def _resolve(token, plugin_version):
             _write_cache(cache_path, header, now, now + grace, now)
             return header
 
-    # Check-in failed or served no header. Record the attempt (so the next build is
-    # throttled even against a down server) and keep serving the cached header
-    # within its offline-grace window; a header-less marker throttles the no-cache
-    # case the same way.
     if cached is not None:
         _write_cache(cache_path, cached["header"], cached["fetched_at"],
                      cached["expires_at"], now)
