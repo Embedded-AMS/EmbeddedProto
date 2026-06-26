@@ -1,14 +1,27 @@
 name: CI
 
 on:
+  # Allow other workflows (e.g. the release/publish workflow) to run the full
+  # test suite as a gate before building or publishing.
+  workflow_call:
   pull_request:
+  # Test every feature branch on push. master/develop are intentionally excluded
+  # here because they are tested through distribute_pypi.yml (which calls this
+  # workflow) before a build/publish, so we do not run the matrix twice.
   push:
-    branches:
+    branches-ignore:
       - master
       - develop
 
+# Cancel an in-progress run when a newer commit is pushed to the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test:
+    env:
+      EMBEDDEDPROTO_BUILD_TOKEN: ${{ secrets.EMBEDDEDPROTO_BUILD_TOKEN }}
     strategy:
       matrix:
         os: [ubuntu-24.04]
@@ -28,6 +41,10 @@ jobs:
       run: pip install gcovr==7.0
     - name: Setup venv
       run: python install.py
+    - name: Check EmbeddedProto license
+      run: |
+        echo "token present: ${EMBEDDEDPROTO_BUILD_TOKEN:+yes}"
+        ./venv/bin/embeddedproto --check-license
     - name: Python unit tests
       run: python -m unittest discover -s test/python -p 'test_*.py' -v
     - name: Build test
