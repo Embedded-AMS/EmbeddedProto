@@ -34,6 +34,7 @@ import locale
 import json
 from datetime import datetime
 from EmbeddedProto.ProtoFile import ProtoFile
+from EmbeddedProto import custom_header
 from google.protobuf import descriptor_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
@@ -105,6 +106,12 @@ def generate_code(request, respones):
     # Load version information
     version_info = load_version_info()
 
+    # Resolve the optional custom header once per generation run (best-effort,
+    # never blocks the build).
+    plugin_version = "{major}.{minor}.{patch}".format(**version_info)
+    custom_header_text = custom_header.resolve_custom_header(
+        custom_header.resolve_token(), plugin_version)
+
     with resource_path("EmbeddedProto", "templates") as filepath:
         template_loader = jinja2.FileSystemLoader(searchpath=filepath)
         template_env = jinja2.Environment(loader=template_loader, trim_blocks=True, lstrip_blocks=True)
@@ -113,6 +120,7 @@ def generate_code(request, respones):
         template_env.globals['version_major'] = version_info['major']
         template_env.globals['version_minor'] = version_info['minor']
         template_env.globals['version_patch'] = version_info['patch']
+        template_env.globals['custom_header'] = custom_header_text
 
     for fd in file_definitions:
         file_str = fd.render(template_env)

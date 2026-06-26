@@ -28,6 +28,8 @@ jobs:
       run: pip install gcovr==7.0
     - name: Setup venv
       run: python install.py
+    - name: Python unit tests
+      run: python -m unittest discover -s test/python -p 'test_*.py' -v
     - name: Build test
       run: ./build_test.sh ${{ matrix.serialization-mode }}
     - name: Code coverage
