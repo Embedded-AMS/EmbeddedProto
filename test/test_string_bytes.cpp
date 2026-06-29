@@ -258,7 +258,7 @@ TEST(FieldString, deserialize)
   EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(FieldString, deserialize_partial_in_data) 
 {
@@ -307,7 +307,7 @@ TEST(FieldString, deserialize_partial_before_and_in_size)
   EXPECT_EQ(140, msg.get_txt().get_length());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(FieldString, deserialize_error_invalid_wiretype) 
 {
@@ -536,7 +536,7 @@ TEST(FieldBytes, deserialize)
   EXPECT_EQ(0, msg.get_b()[3]);
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(FieldBytes, deserialize_partial) 
 {
@@ -558,7 +558,7 @@ TEST(FieldBytes, deserialize_partial)
   EXPECT_EQ(0, msg.get_b()[3]);
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(FieldBytes, deserialize_error_invalid_wiretype) 
 {
@@ -799,7 +799,7 @@ TEST(RepeatedStringBytes, deserialize)
   EXPECT_STREQ(msg.array_of_txt(2).get_const(), "Foo bar 3"); 
 }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedStringBytes, deserialize_partial_repeated_string_split_size_and_data)
 {
@@ -903,7 +903,7 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_bytes_array_full)
   EXPECT_EQ(0x03, msg.array_of_bytes(2).get_const(0));
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 #ifndef DISABLE_FIELD_NUMBER_TO_NAME 
 
@@ -1097,7 +1097,7 @@ TEST(RepeatedBytesNestedOnly, test_nested_only) {
 // Partial Serialization Tests for String and Bytes Fields
 //==============================================================================
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(FieldString, PartialSerialize_String_ShortText_SufficientBuffer)
 {
@@ -2078,4 +2078,4 @@ TEST(RepeatedStringBytes, PartialSerialize_RepeatedBytes_ThreeArrays_LargeBuffer
   }
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED

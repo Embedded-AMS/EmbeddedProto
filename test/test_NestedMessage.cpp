@@ -304,7 +304,7 @@ TEST(NestedMessage, deserialize_one)
   EXPECT_EQ(1, msg.get_v());
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(NestedMessage, deserialize_one_partial_clean_tag) 
 {
@@ -451,7 +451,7 @@ TEST(NestedMessage, deserialize_one_partial_clean_field)
   EXPECT_EQ(1, msg.get_v());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(NestedMessage, deserialize_nested_in_nested_max) 
 {
@@ -522,7 +522,7 @@ TEST(NestedMessage, to_string)
 
 #endif // MSG_TO_STRING
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(NestedMessage, PartialSerialize_SingleNestedMessage_SufficientBuffer)
 {
@@ -1237,6 +1237,6 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_FatalOverlongVarint)
   EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 } // End of namespace test_EmbeddedAMS_NestedMessage

@@ -317,7 +317,7 @@ TEST(SimpleTypes, deserialize_one)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(SimpleTypes, deserialize_one_partial_clean) 
 {
@@ -495,7 +495,7 @@ TEST(SimpleTypes, PartialDeserialize_TagOnlyThenValue)
   EXPECT_TRUE(msg.get_a_bool());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(SimpleTypes, deserialize_10_byte_int32)
 {
@@ -728,7 +728,7 @@ TEST(SimpleTypes, to_string)
 //==============================================================================
 
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 TEST(SimpleTypes, PartialSerialize_SingleVarintField_SufficientBuffer)
 {
   // Test 14.3.1: Single varint field with sufficient buffer
@@ -1347,5 +1347,5 @@ TEST(SimpleTypes, PartialDeserialize_FatalOverlongVarint)
   EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 } // End of namespace test_EmbeddedAMS_SimpleTypes

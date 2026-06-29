@@ -117,7 +117,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       {% endfor %}
     };
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
     //! State depth for partial serialization.
     static constexpr uint32_t STATE_DEPTH = {{ typedef.get_state_depth() }};
     
@@ -217,7 +217,7 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       return return_value;
     };
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
     ::EmbeddedProto::Error deserialize_partial(::EmbeddedProto::ReadBufferInterface& buffer,
                                                ::EmbeddedProto::MessageState& state) override
     {

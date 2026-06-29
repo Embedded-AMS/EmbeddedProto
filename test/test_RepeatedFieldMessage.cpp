@@ -369,7 +369,7 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
 
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_empty_message_array) 
 {
@@ -419,7 +419,7 @@ TEST(RepeatedFieldMessage, deserialize_one)
 
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_one_partial) 
 {
@@ -639,7 +639,7 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   EXPECT_EQ(1, msg.get_c());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_max) 
 {
@@ -762,7 +762,7 @@ TEST(RepeatedFieldMessage, deserialize_repeated_enum)
   EXPECT_EQ(SomeEnum::SE_C, enum_msg.get_enum_values()[2]);
 }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedPacked_SizeSplit)
 {
@@ -992,7 +992,7 @@ TEST(RepeatedFieldMessage, PartialSerialize_RepeatedMessage_SplitBetweenElements
   EXPECT_EQ(0x00, buffer_b.get_data()[1]);
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 #ifdef MSG_TO_STRING
 

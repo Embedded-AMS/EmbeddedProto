@@ -244,7 +244,7 @@ TEST(CustomStorage, oneof_roundtrip_customStorage_arm)
   EXPECT_STREQ("rt", result.one_text());
 }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 // Partial serialization must work through the custom storage types as it does for the defaults.
 TEST(CustomStorage, partial_serialize_resumes_after_full_buffer)
@@ -288,6 +288,6 @@ TEST(CustomStorage, partial_serialize_resumes_after_full_buffer)
   EXPECT_STREQ("partial text", deserialized.text());
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 } // namespace test_EmbeddedAMS_CustomStorage

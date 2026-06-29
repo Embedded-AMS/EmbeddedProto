@@ -63,7 +63,7 @@ class MessageInterface : public ::EmbeddedProto::Field
     */
     void clear() override = 0;
     
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
     //! Deserialize message with partial state support.
     /*!
         This method deserializes the message in chunks, allowing deserialization to be paused

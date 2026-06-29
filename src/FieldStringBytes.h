@@ -227,7 +227,7 @@ namespace EmbeddedProto
           return return_value;
         }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
         Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                            MessageState& state) override
         {

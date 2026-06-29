@@ -41,17 +41,12 @@
 namespace EmbeddedProto
 {
 
-#define EP_SERIALIZATION_MODE_FULL 0
-#define EP_SERIALIZATION_MODE_PARTIAL 1
-
-#ifndef EP_SERIALIZATION_MODE
-  #define EP_SERIALIZATION_MODE EP_SERIALIZATION_MODE_FULL
-#endif
-
-#if (EP_SERIALIZATION_MODE != EP_SERIALIZATION_MODE_FULL) && \
-    (EP_SERIALIZATION_MODE != EP_SERIALIZATION_MODE_PARTIAL)
-  #error "EP_SERIALIZATION_MODE must be EP_SERIALIZATION_MODE_FULL or EP_SERIALIZATION_MODE_PARTIAL."
-#endif
+//! Define PARTIAL_SERIALIZATION_ENABLED to enable partial (chunked) serialization
+//! and deserialization. When defined the generated messages and the library gain
+//! the serialize_partial()/deserialize_partial() methods, which allow (de)serialization
+//! to be paused when a buffer is exhausted and resumed with a fresh buffer.
+//! When the macro is not defined only the regular, single-call serialize()/deserialize()
+//! are available.
 
 #if __cplusplus >= 201703L // C++17 and up
   

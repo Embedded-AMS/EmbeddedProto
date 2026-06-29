@@ -254,7 +254,7 @@ TEST(OptionalFields, cleared_serialization)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OptionalFields, empty_deserialization) 
 {
@@ -280,7 +280,7 @@ TEST(OptionalFields, empty_deserialization)
   EXPECT_TRUE(msg.has_str());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OptionalFields, cleared_deserialization) 
 {

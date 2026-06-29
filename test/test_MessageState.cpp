@@ -33,7 +33,7 @@
 #include <Defines.h>
 #include <MessageState.h>
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 namespace test_EmbeddedAMS_MessageState 
 {
@@ -272,4 +272,4 @@ TEST(MessageStateStack, TypicalUsagePattern)
 
 } // namespace test_EmbeddedAMS_MessageState
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED

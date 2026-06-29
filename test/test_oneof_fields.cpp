@@ -435,7 +435,7 @@ TEST(OneofField, sb_oneof_serialize_empty)
 
 }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OneofField, PartialDeserialize_ScalarOneof_SplitTagAndData)
 {
@@ -565,7 +565,7 @@ TEST(OneofField, PartialDeserialize_StateResetReuse_BetweenMessages)
   EXPECT_EQ(2, msg.get_y());
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 
 #ifndef DISABLE_FIELD_NUMBER_TO_NAME 
@@ -619,7 +619,7 @@ TEST(OneofField, to_string)
 // Partial Serialization Tests
 //==============================================================================
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OneofField, PartialSerialize_ScalarOneof_SufficientBuffer)
 {
@@ -1412,4 +1412,4 @@ TEST(OneofField, PartialSerialize_BasicOneof_SetToZero)
   EXPECT_EQ(0x00, buffer.get_data()[1]);
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED

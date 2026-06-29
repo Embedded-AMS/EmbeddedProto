@@ -42,7 +42,7 @@ namespace EmbeddedProto
     return calcBuffer.get_size();
   }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
   Error Field::serialize_partial_tag_and_size(uint32_t field_number,
                                              uint32_t size,
                                              WriteBufferInterface& buffer,

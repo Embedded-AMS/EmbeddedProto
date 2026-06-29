@@ -118,7 +118,7 @@ TEST(UnknownFields, length_delimited)
   EXPECT_EQ(std::numeric_limits<uint32_t>::max(), msg.get_a_uint32());  
 }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
 class TestUnknownFieldPartialMessage final : public ::EmbeddedProto::MessageInterface
 {
@@ -313,6 +313,6 @@ TEST(UnknownFieldsPartialSkip, length_delimited_size_overlong_is_fatal)
   EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.phase);
 }
 
-#endif // (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 } // End of namespace test_EmbeddedAMS_UnknownFields

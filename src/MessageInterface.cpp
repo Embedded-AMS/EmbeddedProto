@@ -53,7 +53,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
   Error MessageInterface::deserialize_partial_as_field(::EmbeddedProto::ReadBufferInterface& buffer,
                                                        MessageState& state)
   {
