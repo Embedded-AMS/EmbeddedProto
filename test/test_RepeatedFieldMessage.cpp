@@ -371,18 +371,19 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(RepeatedFieldMessage, deserialize_empty_message_array) 
+TEST(RepeatedFieldMessage, deserialize_empty_message_array)
 {
-  InSequence s;
-
   repeated_message<Y_SIZE> msg;
+  repeated_message<Y_SIZE>::StateStack state;
 
-  Mocks::ReadBufferMock buffer;
-  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(0x12), Return(true)));// Tag of b
-  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(0x00), Return(true)));// Size of b = 0
-  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(Return(false));
+  // A single empty nested message element: tag of b, size 0.
+  ::EmbeddedProto::ReadBufferFixedSize<2> buffer({0x12, 0x00});
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+  EXPECT_EQ(1, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.b(0).u());
+  EXPECT_EQ(0, msg.b(0).v());
 }
 
 #endif 
@@ -421,29 +422,31 @@ TEST(RepeatedFieldMessage, deserialize_one)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(RepeatedFieldMessage, deserialize_one_partial) 
+TEST(RepeatedFieldMessage, deserialize_one_partial)
 {
   repeated_fields<Y_SIZE> msg;
+  repeated_fields<Y_SIZE>::StateStack state;
 
   static constexpr uint32_t SIZE = 9;
 
-  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({  
+  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({
                                     0x08, 0x01, // x tag and value
-                                    0x12}); // y tag 
+                                    0x12}); // y tag
 
-  buffer.push(0x03); //y size                                    
-                                    
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  buffer.push(0x03); //y size
 
-          
-  buffer.push(0x01);  // start of y data.                                
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
+
+  buffer.push(0x01);  // start of y data.
   buffer.push(0x01);
-  buffer.push(0x01);                                
-  
+  buffer.push(0x01);
+
   buffer.push(0x18); // z tag
   buffer.push(0x01); // z value
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(3, msg.get_y().get_length());
@@ -454,49 +457,52 @@ TEST(RepeatedFieldMessage, deserialize_one_partial)
 
 }
 
-TEST(RepeatedFieldMessage, deserialize_incomplete_set_of_bytes) 
+TEST(RepeatedFieldMessage, deserialize_incomplete_set_of_bytes)
 {
   repeated_fields<Y_SIZE> msg;
+  repeated_fields<Y_SIZE>::StateStack state;
 
   static constexpr uint32_t SIZE = 6;
 
-  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({  
+  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({
                                     0x08, 0x01, // x tag and value
                                     0x12, 0x03}); // y tag and size.
-                                    
-                                    
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
-                                 
-  buffer.push(0x01);  // start of y data.                                
-  buffer.push(0x01);        
-  // We are missing one byte here.                     
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
- 
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
+  buffer.push(0x01);  // start of y data.
+  buffer.push(0x01);
+  // We are missing one byte here.
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
 }
 
-TEST(RepeatedFieldMessage, deserialize_split_after_tag) 
+TEST(RepeatedFieldMessage, deserialize_split_after_tag)
 {
   repeated_fields<Y_SIZE> msg;
+  repeated_fields<Y_SIZE>::StateStack state;
 
   static constexpr uint32_t SIZE = 9;
 
-  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({  
+  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({
                                     0x08, 0x01, // x tag and value
                                     0x12}); // just y tag.
-                                    
-                                    
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
 
-  buffer.push(0x03);  // y size                                 
-  buffer.push(0x01);  // start of y data.                                
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
+  buffer.push(0x03);  // y size
+  buffer.push(0x01);  // start of y data.
   buffer.push(0x01);
-  buffer.push(0x01);                                
-  
+  buffer.push(0x01);
+
   buffer.push(0x18); // z tag
   buffer.push(0x01); // z value
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(3, msg.get_y().get_length());
@@ -507,17 +513,18 @@ TEST(RepeatedFieldMessage, deserialize_split_after_tag)
 
 }
 
-TEST(RepeatedFieldMessage, deserialize_split_varint) 
+TEST(RepeatedFieldMessage, deserialize_split_varint)
 {
   repeated_fields<128> msg;
+  repeated_fields<128>::StateStack state;
 
   static constexpr uint32_t SIZE = 133;
-  
-  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({  
+
+  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({
                                     0x08, 0x01, // x tag and value
                                     0x12, 0x80}); // y size is 128 bytes (0x80 0x01)
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));                                    
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x01); // rest of size
 
@@ -525,7 +532,8 @@ TEST(RepeatedFieldMessage, deserialize_split_varint)
     buffer.push(0x0D); // Push 128 bytes of value 0x0D
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(128, msg.get_y().get_length());
@@ -533,31 +541,33 @@ TEST(RepeatedFieldMessage, deserialize_split_varint)
   EXPECT_EQ(13, msg.y(127));
 }
 
-TEST(RepeatedFieldMessage, deserialize_split_between_elements) 
+TEST(RepeatedFieldMessage, deserialize_split_between_elements)
 {
   repeated_fields<Y_SIZE> msg;
+  repeated_fields<Y_SIZE>::StateStack state;
 
   static constexpr uint32_t SIZE = 16;
-  
-  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({  
+
+  EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({
                                     0x08, 0x01, // x tag and value
-                                    0x12, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0x07}); // left over y data 
-                                    
-                                    
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+                                    0x12, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0x07}); // left over y data
+
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0xFF); // Rest of y data
   buffer.push(0xFF);
   buffer.push(0xFF);
   buffer.push(0xFF);
   buffer.push(0x07);
-  buffer.push(0x18); // z tag           
+  buffer.push(0x18); // z tag
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));  
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
-  buffer.push(0x01); // z value                  
-  
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  buffer.push(0x01); // z value
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_x());
   EXPECT_EQ(2, msg.get_y().get_length());
@@ -566,28 +576,18 @@ TEST(RepeatedFieldMessage, deserialize_split_between_elements)
   EXPECT_EQ(1, msg.get_z());
 }
 
-TEST(RepeatedFieldMessage, deserialize_one_message_array) 
+TEST(RepeatedFieldMessage, deserialize_one_message_array)
 {
-  InSequence s;
-
   repeated_message<Y_SIZE> msg;
-  Mocks::ReadBufferMock buffer;
+  repeated_message<Y_SIZE>::StateStack state;
 
-  static constexpr uint32_t SIZE = 14;
+  ::EmbeddedProto::ReadBufferFixedSize<14> buffer({
+      0x08, 0x01, // a
+      0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // b
+      0x18, 0x01}); // c
 
-  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
-
-  std::array<uint8_t, SIZE> referee = { 0x08, 0x01, // x
-                                        0x12, 0x00, 0x12, 0x04, 0x08, 0x01, 0x10, 0x01, 0x12, 0x00, // b
-                                        0x18, 0x01}; // z 
-
-  for(auto r: referee) 
-  {
-    EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(r), Return(true)));
-  }
-  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(Return(false));
-
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(3, msg.get_b().get_length());
@@ -600,33 +600,23 @@ TEST(RepeatedFieldMessage, deserialize_one_message_array)
   EXPECT_EQ(1, msg.get_c());
 }
 
-TEST(RepeatedFieldMessage, deserialize_mixed_message_array) 
+TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
 {
-  // I should be possible to read in the non packed data mixed with other fields. All elements 
-  // should be added to the array.
-
-  InSequence s;
+  // It should be possible to read in the non packed data mixed with other fields.
+  // All elements should be added to the array.
 
   repeated_message<Y_SIZE> msg;
-  Mocks::ReadBufferMock buffer;
+  repeated_message<Y_SIZE>::StateStack state;
 
-  static constexpr uint32_t SIZE = 14;
+  ::EmbeddedProto::ReadBufferFixedSize<14> buffer({
+      0x12, 0x00, // b[0]
+      0x08, 0x01, // a
+      0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // b[1]
+      0x18, 0x01, // c
+      0x12, 0x00}); // b[2]
 
-  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
-
-  std::array<uint8_t, SIZE> referee = { 0x12, 0x00, // b[0]
-                                        0x08, 0x01, // x
-                                        0x12, 0x04, 0x08, 0x01, 0x10, 0x01, // b[1]
-                                        0x18, 0x01, // z
-                                        0x12, 0x00, }; // b[2] 
-
-  for(auto r: referee) 
-  {
-    EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(r), Return(true)));
-  }
-  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(Return(false));
-
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(3, msg.get_b().get_length());
@@ -637,11 +627,25 @@ TEST(RepeatedFieldMessage, deserialize_mixed_message_array)
   EXPECT_EQ(0, msg.b(2).u());
   EXPECT_EQ(0, msg.b(2).v());
   EXPECT_EQ(1, msg.get_c());
+}
+
+TEST(RepeatedFieldMessage, deserialize_empty_packed_repeated)
+{
+  // A packed repeated field present on the wire with size 0 must complete cleanly
+  // and leave the array empty.
+  repeated_fields<Y_SIZE> msg;
+  repeated_fields<Y_SIZE>::StateStack state;
+
+  ::EmbeddedProto::ReadBufferFixedSize<2> buffer({0x12, 0x00}); // y tag + size 0
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+  EXPECT_EQ(0, msg.get_y().get_length());
 }
 
 #endif // PARTIAL_SERIALIZATION_ENABLED
 
-TEST(RepeatedFieldMessage, deserialize_max) 
+TEST(RepeatedFieldMessage, deserialize_max)
 {
   InSequence s;
 
@@ -853,17 +857,23 @@ TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedUnpackedBytes_DataSplit)
   result = field.deserialize_partial_as_field(first_element, state);
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
   EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  // element_index acts as a per-occurrence flag: it is 1 once a slot has been
+  // reserved for the element currently being read. Elements accumulate based on
+  // the array length, not this flag.
   EXPECT_EQ(1U, state.element_index);
   EXPECT_EQ(3U, field[0].get_length());
   EXPECT_EQ(0xCC, field[0].get_const()[2]);
 
+  // The message loop resets phase and element_index between repeated-field
+  // occurrences. Emulate that here as we call the field method directly.
   state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+  state.element_index = 0U;
   ::EmbeddedProto::ReadBufferFixedSize<8> second_element({0x02, 0x11, 0x22});
   result = field.deserialize_partial_as_field(second_element, state);
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
   EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
-  EXPECT_EQ(2U, state.element_index);
+  EXPECT_EQ(1U, state.element_index);
   EXPECT_EQ(2U, field.get_length());
   EXPECT_EQ(0x11, field[1].get_const()[0]);
   EXPECT_EQ(0x22, field[1].get_const()[1]);
@@ -880,7 +890,10 @@ TEST(RepeatedFieldMessage, PartialDeserialize_RepeatedUnpackedBytes_ArrayFull)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result);
   EXPECT_EQ(1U, field.get_length());
 
+  // The message loop resets phase and element_index between repeated-field
+  // occurrences. Emulate that here as we call the field method directly.
   state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+  state.element_index = 0U;
   ::EmbeddedProto::ReadBufferFixedSize<8> second_element({0x01, 0x55});
   result = field.deserialize_partial_as_field(second_element, state);
 

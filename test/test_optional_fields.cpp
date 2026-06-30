@@ -256,10 +256,13 @@ TEST(OptionalFields, cleared_serialization)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(OptionalFields, empty_deserialization) 
+TEST(OptionalFields, empty_deserialization)
 {
-  // Test is empty and default vvalues will set the precense flags.
+  // Explicitly present fields with default/empty values must still set the
+  // presence flags, including the empty nested message (pos) and empty
+  // string/bytes fields.
   ::optional_fields<5,10> msg;
+  ::optional_fields<5,10>::StateStack state;
 
   static constexpr uint32_t SIZE = 15;
 
@@ -270,7 +273,8 @@ TEST(OptionalFields, empty_deserialization)
                                                       0x3a, 0x00,  // bytes_array
                                                       0x42, 0x00}); // str
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_TRUE(msg.has_b());
   EXPECT_TRUE(msg.has_y());
@@ -278,6 +282,26 @@ TEST(OptionalFields, empty_deserialization)
   EXPECT_TRUE(msg.has_state());
   EXPECT_TRUE(msg.has_bytes_array());
   EXPECT_TRUE(msg.has_str());
+}
+
+TEST(ManyOptFields, deserialize_partial_split_in_multibyte_tag)
+{
+  // Field a16 (number 16) has a two-byte tag: (16 << 3) | 0 = 128 -> 0x80 0x01.
+  // Split the buffer inside that tag varint to verify the tag resumes correctly.
+  ::many_opt_fields msg;
+  ::many_opt_fields::StateStack state;
+
+  ::EmbeddedProto::ReadBufferFixedSize<3> buffer({0x80}); // first byte of the tag only
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
+  buffer.push(0x01); // rest of the tag
+  buffer.push(0x01); // a16 = 1
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+  EXPECT_TRUE(msg.has_a16());
+  EXPECT_EQ(1, msg.get_a16());
 }
 
 #endif // PARTIAL_SERIALIZATION_ENABLED

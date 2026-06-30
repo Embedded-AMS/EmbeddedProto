@@ -260,41 +260,48 @@ TEST(FieldString, deserialize)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(FieldString, deserialize_partial_in_data) 
+TEST(FieldString, deserialize_partial_in_data)
 {
   text<10> msg;
- 
-  ::EmbeddedProto::ReadBufferFixedSize<9> buffer({0x0a, 0x07, 0x46, 0x6f, 0x6f}); // Split in the data
+  text<10>::StateStack state;
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  // "Foo bar" (7 bytes) is split in the middle of the data.
+  ::EmbeddedProto::ReadBufferFixedSize<5> buffer1({0x0a, 0x07, 0x46, 0x6f, 0x6f});
 
-  buffer.push(0x20);
-  buffer.push(0x62);
-  buffer.push(0x61);
-  buffer.push(0x72);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer2({0x20, 0x62, 0x61, 0x72});
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+
   EXPECT_EQ(7, msg.get_txt().get_length());
   EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
-TEST(FieldString, deserialize_partial_before_and_in_size) 
+TEST(FieldString, deserialize_partial_before_and_in_size)
 {
   text<140> msg;
- 
-  ::EmbeddedProto::ReadBufferFixedSize<150> buffer({0x0a});   // Field tag 
+  text<140>::StateStack state;
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  // The buffer is split right after the tag and again in the middle of the
+  // two byte length varint (0x8c 0x01 == 140).
+  ::EmbeddedProto::ReadBufferFixedSize<150> buffer({0x0a});   // Field tag
 
-  buffer.push(0x8c); // First byte of length  
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.root().phase);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  buffer.push(0x8c); // First byte of length
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::SIZE, state.root().phase);
 
   buffer.push(0x01); // Second byte of the length
 
   for( uint32_t i = 0; i < 20; ++i)
   {
-    buffer.push(0x46); 
+    buffer.push(0x46);
     buffer.push(0x6f);
     buffer.push(0x6f);
     buffer.push(0x20);
@@ -303,7 +310,8 @@ TEST(FieldString, deserialize_partial_before_and_in_size)
     buffer.push(0x72);
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(140, msg.get_txt().get_length());
 }
 
@@ -538,19 +546,26 @@ TEST(FieldBytes, deserialize)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(FieldBytes, deserialize_partial) 
+TEST(FieldBytes, deserialize_partial)
 {
   raw_bytes<10> msg;
- 
-  ::EmbeddedProto::ReadBufferFixedSize<6> buffer({0x0a, 0x04, 0x01});
+  raw_bytes<10>::StateStack state;
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  // The bytes field {1, 2, 3, 0} is split across two buffer fills, halfway through
+  // the data. The partial deserializer must retain the bytes read before the split.
+  ::EmbeddedProto::ReadBufferFixedSize<3> buffer1({0x0a, 0x04, 0x01});
 
-  buffer.push(0x02);
-  buffer.push(0x03);
-  buffer.push(0x00);
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+  // We stopped midway through the field data.
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::DATA, state.root().phase);
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  ::EmbeddedProto::ReadBufferFixedSize<3> buffer2({0x02, 0x03, 0x00});
+
+  // Feeding the remainder completes the field. For a top level message the final
+  // read returns END_OF_BUFFER at a clean field boundary (phase back to TAG).
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+
   EXPECT_EQ(4, msg.get_b().get_length());
   EXPECT_EQ(1, msg.get_b()[0]);
   EXPECT_EQ(2, msg.get_b()[1]);
@@ -848,18 +863,21 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_bytes_split_size_and_data
 TEST(RepeatedStringBytes, deserialize_partial_repeated_string_element_boundary_continuation)
 {
   repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3>::StateStack state;
 
+  // Two complete repeated string elements arrive in separate buffer fills. The
+  // shared state must keep accumulating them into the same array.
   ::EmbeddedProto::ReadBufferFixedSize<11> buffer_a({
       0x0A, 0x09, 'F', 'o', 'o', ' ', 'b', 'a', 'r', ' ', '1'
     });
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_a));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_a, state.root()));
   EXPECT_EQ(1, msg.array_of_txt().get_length());
   EXPECT_STREQ("Foo bar 1", msg.array_of_txt(0).get_const());
 
   ::EmbeddedProto::ReadBufferFixedSize<11> buffer_b({
       0x0A, 0x09, 'F', 'o', 'o', ' ', 'b', 'a', 'r', ' ', '2'
     });
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_b));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_b, state.root()));
   EXPECT_EQ(2, msg.array_of_txt().get_length());
   EXPECT_STREQ("Foo bar 2", msg.array_of_txt(1).get_const());
 }
@@ -867,6 +885,7 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_string_element_boundary_c
 TEST(RepeatedStringBytes, deserialize_partial_repeated_string_array_full)
 {
   repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3>::StateStack state;
 
   ::EmbeddedProto::ReadBufferFixedSize<12> buffer({
       0x0A, 0x01, 'A',
@@ -875,7 +894,8 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_string_array_full)
       0x0A, 0x01, 'D'
     });
 
-  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.deserialize(buffer));
+  // The fourth element does not fit in the array of three.
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.deserialize_partial(buffer, state.root()));
   EXPECT_EQ(3, msg.array_of_txt().get_length());
   EXPECT_STREQ("A", msg.array_of_txt(0).get_const());
   EXPECT_STREQ("B", msg.array_of_txt(1).get_const());
@@ -885,6 +905,7 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_string_array_full)
 TEST(RepeatedStringBytes, deserialize_partial_repeated_bytes_array_full)
 {
   repeated_string_bytes<3, 15, 3, 15, 3, 3> msg;
+  repeated_string_bytes<3, 15, 3, 15, 3, 3>::StateStack state;
 
   ::EmbeddedProto::ReadBufferFixedSize<12> buffer({
       0x12, 0x01, 0x01,
@@ -893,7 +914,8 @@ TEST(RepeatedStringBytes, deserialize_partial_repeated_bytes_array_full)
       0x12, 0x01, 0x04
     });
 
-  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.deserialize(buffer));
+  // The fourth element does not fit in the array of three.
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, msg.deserialize_partial(buffer, state.root()));
   EXPECT_EQ(3, msg.array_of_bytes().get_length());
   EXPECT_EQ(1, msg.array_of_bytes(0).get_length());
   EXPECT_EQ(1, msg.array_of_bytes(1).get_length());

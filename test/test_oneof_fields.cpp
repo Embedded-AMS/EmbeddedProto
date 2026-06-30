@@ -440,19 +440,21 @@ TEST(OneofField, sb_oneof_serialize_empty)
 TEST(OneofField, PartialDeserialize_ScalarOneof_SplitTagAndData)
 {
   message_oneof msg;
+  message_oneof::StateStack state;
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer({
     0x08, 0x01, // a = 1
     0x30        // y tag only
   });
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
 
   buffer.push(0x02); // y = 2
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(1, msg.get_a());
   EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
   EXPECT_EQ(2, msg.get_y());
@@ -461,18 +463,20 @@ TEST(OneofField, PartialDeserialize_ScalarOneof_SplitTagAndData)
 TEST(OneofField, PartialDeserialize_OverwriteLastFieldWins_AcrossChunks)
 {
   message_oneof msg;
+  message_oneof::StateStack state;
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer({
     0x30, 0x01, // y = 1
     0x28        // x tag only
   });
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
   EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
 
   buffer.push(0x02); // x = 2
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
   EXPECT_EQ(2, msg.get_x());
 }
@@ -480,11 +484,12 @@ TEST(OneofField, PartialDeserialize_OverwriteLastFieldWins_AcrossChunks)
 TEST(OneofField, PartialDeserialize_NestedOneofMessage_SplitTagSizeAndData)
 {
   message_oneof msg;
+  message_oneof::StateStack state;
 
   // msg_ABC tag split over two bytes.
   ::EmbeddedProto::ReadBufferFixedSize<20> buffer({0xA2});
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
   EXPECT_EQ(message_oneof::FieldNumber::NOT_SET, msg.get_which_message());
 
   buffer.push(0x01);
@@ -497,7 +502,8 @@ TEST(OneofField, PartialDeserialize_NestedOneofMessage_SplitTagSizeAndData)
   buffer.push(0xCD);
   buffer.push(0x02);
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(message_oneof::FieldNumber::MSG_ABC, msg.get_which_message());
   EXPECT_EQ(1, msg.get_msg_ABC().get_varA());
   EXPECT_EQ(22, msg.get_msg_ABC().get_varB());
@@ -507,33 +513,37 @@ TEST(OneofField, PartialDeserialize_NestedOneofMessage_SplitTagSizeAndData)
 TEST(OneofField, PartialDeserialize_StringBytesOneof_StringAndBytesSplit)
 {
   string_bytes_oneof<20, 20> msg_string;
+  string_bytes_oneof<20, 20>::StateStack state_string;
 
   // name tag only first.
   ::EmbeddedProto::ReadBufferFixedSize<20> buffer_string({0x0A});
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_string.deserialize(buffer_string));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_string.deserialize_partial(buffer_string, state_string.root()));
   EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::NAME), msg_string.get_which_sb());
 
   buffer_string.push(0x02);
   buffer_string.push('J');
   buffer_string.push('o');
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg_string.deserialize(buffer_string));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_string.deserialize_partial(buffer_string, state_string.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state_string.root().phase);
   EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::NAME), msg_string.get_which_sb());
   EXPECT_STREQ("Jo", msg_string.name());
 
   string_bytes_oneof<20, 20> msg_bytes;
+  string_bytes_oneof<20, 20>::StateStack state_bytes;
   std::array<uint8_t, 2> expected = {0x01, 0x02};
   ::EmbeddedProto::ReadBufferFixedSize<20> buffer_bytes({0x12});
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_bytes.deserialize(buffer_bytes));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_bytes.deserialize_partial(buffer_bytes, state_bytes.root()));
   EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::DATA), msg_bytes.get_which_sb());
 
   buffer_bytes.push(0x02);
   buffer_bytes.push(0x01);
   buffer_bytes.push(0x02);
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg_bytes.deserialize(buffer_bytes));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg_bytes.deserialize_partial(buffer_bytes, state_bytes.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state_bytes.root().phase);
   EXPECT_EQ((string_bytes_oneof<20, 20>::FieldNumber::DATA), msg_bytes.get_which_sb());
   EXPECT_EQ(2U, msg_bytes.get_data().get_length());
   for(uint32_t i = 0U; i < expected.size(); ++i)
@@ -545,22 +555,26 @@ TEST(OneofField, PartialDeserialize_StringBytesOneof_StringAndBytesSplit)
 TEST(OneofField, PartialDeserialize_StateResetReuse_BetweenMessages)
 {
   message_oneof msg;
+  message_oneof::StateStack state;
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer_x({0x28});
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer_x));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_x, state.root()));
 
   buffer_x.push(0x01);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_x));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_x, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(message_oneof::FieldNumber::X, msg.get_which_xyz());
   EXPECT_EQ(1, msg.get_x());
 
   msg.clear();
+  state.reset();
 
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer_y({0x30});
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer_y));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_y, state.root()));
 
   buffer_y.push(0x02);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer_y));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer_y, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
   EXPECT_EQ(message_oneof::FieldNumber::Y, msg.get_which_xyz());
   EXPECT_EQ(2, msg.get_y());
 }

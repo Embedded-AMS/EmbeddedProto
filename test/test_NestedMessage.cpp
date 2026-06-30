@@ -306,10 +306,11 @@ TEST(NestedMessage, deserialize_one)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(NestedMessage, deserialize_one_partial_clean_tag) 
+TEST(NestedMessage, deserialize_one_partial_clean_tag)
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
-  
+  ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
+
   static constexpr uint32_t SIZE1 = 10;
   static constexpr uint32_t SIZE2 = 13;
 
@@ -330,8 +331,9 @@ TEST(NestedMessage, deserialize_one_partial_clean_tag)
                                         // And back to the parent message with field v.
                                         0x18, 0x01 });
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer1));
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer2));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(1, msg.get_nested_a().get_x().get_length());
@@ -341,31 +343,33 @@ TEST(NestedMessage, deserialize_one_partial_clean_tag)
   EXPECT_EQ(1, msg.get_v());
 }
 
-TEST(NestedMessage, deserialize_one_partial_clean_size) 
+TEST(NestedMessage, deserialize_one_partial_clean_size)
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
-  
+  ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
+
   static constexpr uint32_t SIZE1 = 11;
   static constexpr uint32_t SIZE2 = 12;
 
   // Test splitting the buffer just after the size of nested message a.
 
-  ::EmbeddedProto::ReadBufferFixedSize<SIZE1> buffer1({ 
+  ::EmbeddedProto::ReadBufferFixedSize<SIZE1> buffer1({
                                         0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
                                         0x12, 0x0A, // tag and size of nested a
                                     });
-  
+
   // Split after the tag of nested message A
-  
-  ::EmbeddedProto::ReadBufferFixedSize<SIZE2> buffer2({ 
-                                        0x0A, 0x01, 0x01, // x of nested message a                               
+
+  ::EmbeddedProto::ReadBufferFixedSize<SIZE2> buffer2({
+                                        0x0A, 0x01, 0x01, // x of nested message a
                                         0x15, 0x00, 0x00, 0x80, 0x3F, // y of nested a
                                         0x18, 0x02, // z of nested message a
                                         // And back to the parent message with field v.
                                         0x18, 0x01 });
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer1));
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer2));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(1, msg.get_nested_a().get_x().get_length());
@@ -375,20 +379,21 @@ TEST(NestedMessage, deserialize_one_partial_clean_size)
   EXPECT_EQ(1, msg.get_v());
 }
 
-TEST(NestedMessage, deserialize_one_partial_size) 
+TEST(NestedMessage, deserialize_one_partial_size)
 {
   ::demo::space::message_b<127> msg;
- 
-  // Have a larger nested message a where the size consists of multiple bytes. Split in between 
+  ::demo::space::message_b<127>::StateStack state;
+
+  // Have a larger nested message a where the size consists of multiple bytes. Split in between
   // those size bytes.
 
-  ::EmbeddedProto::ReadBufferFixedSize<150> buffer({  
+  ::EmbeddedProto::ReadBufferFixedSize<150> buffer({
                                         0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
                                         0x18, 0x01, // v
                                         0x12, 0x88, });   // Split within the size nested message A
-  
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
-  
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
   std::array<uint8_t, 10> temp_buffer({             0x01, // Continuation of the size of nested message A.
                                         0x15, 0x00, 0x00, 0x80, 0x3F, // y of nested a
                                         0x18, 0x02, // z of nested message a
@@ -403,8 +408,9 @@ TEST(NestedMessage, deserialize_one_partial_size)
     buffer.push(0x01);
   }
 
-  // Deserialize the second part. 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  // Deserialize the second part.
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(127, msg.get_nested_a().get_x().get_length());
@@ -417,31 +423,33 @@ TEST(NestedMessage, deserialize_one_partial_size)
   EXPECT_EQ(1, msg.get_v());
 }
 
-TEST(NestedMessage, deserialize_one_partial_clean_field) 
+TEST(NestedMessage, deserialize_one_partial_clean_field)
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
-  
+  ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
+
   static constexpr uint32_t SIZE1 = 14;
   static constexpr uint32_t SIZE2 = 9;
 
   // Split after a random field of nested message a.
 
-  ::EmbeddedProto::ReadBufferFixedSize<SIZE1> buffer1({ 
+  ::EmbeddedProto::ReadBufferFixedSize<SIZE1> buffer1({
                                         0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u
                                         0x12, 0x0A, // tag and size of nested a
                                         0x0A, 0x01, 0x01, // x
                                     });
-  
+
   // Clean split at the end of a field in a nested message
-  
-  ::EmbeddedProto::ReadBufferFixedSize<SIZE2> buffer2({                                   
+
+  ::EmbeddedProto::ReadBufferFixedSize<SIZE2> buffer2({
                                         0x15, 0x00, 0x00, 0x80, 0x3F, // y of nested a
                                         0x18, 0x02, // z
                                         // And back to the parent message with field v.
                                         0x18, 0x01 });
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer1));
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer2));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(1, msg.get_nested_a().get_x().get_length());
@@ -1145,6 +1153,7 @@ TEST(NestedMessage, PartialSerialize_MaximumValues)
 TEST(NestedMessage, PartialDeserialize_NestedMessage_MultiFieldProgress)
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
   ::EmbeddedProto::ReadBufferFixedSize<32> buffer;
 
   const std::array<uint8_t, 22> part_a = {
@@ -1160,10 +1169,11 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_MultiFieldProgress)
     buffer.push(byte);
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x01);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(1U, msg.get_nested_a().get_x().get_length());
@@ -1176,6 +1186,7 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_MultiFieldProgress)
 TEST(NestedMessage, PartialDeserialize_NestedMessage_LargeSizeVarintSplit)
 {
   ::demo::space::message_b<127> msg;
+  ::demo::space::message_b<127>::StateStack state;
   ::EmbeddedProto::ReadBufferFixedSize<170> buffer;
 
   // Start with split in multi-byte size varint for nested_a.
@@ -1189,7 +1200,7 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_LargeSizeVarintSplit)
     buffer.push(byte);
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   const std::array<uint8_t, 10> part_b = {
     0x01,
@@ -1207,7 +1218,8 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_LargeSizeVarintSplit)
     buffer.push(0x01);
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0F, msg.get_u());
   EXPECT_EQ(127U, msg.get_nested_a().get_x().get_length());
@@ -1219,6 +1231,7 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_LargeSizeVarintSplit)
 TEST(NestedMessage, PartialDeserialize_NestedMessage_FatalOverlongVarint)
 {
   ::demo::space::message_b<SIZE_MSG_A> msg;
+  ::demo::space::message_b<SIZE_MSG_A>::StateStack state;
   ::EmbeddedProto::ReadBufferFixedSize<32> buffer;
 
   const std::array<uint8_t, 22> data = {
@@ -1234,7 +1247,63 @@ TEST(NestedMessage, PartialDeserialize_NestedMessage_FatalOverlongVarint)
     buffer.push(byte);
   }
 
-  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize_partial(buffer, state.root()));
+}
+
+TEST(NestedMessage, PartialDeserialize_MultiLevelNested_SplitInDeepestMessage)
+{
+  // message_c -> nested_b (message_b) -> nested_a (message_a) is three levels deep.
+  // Split the buffer inside the deepest nested message (message_a), after its first
+  // field, to exercise the recursive child-state chaining beyond a single level.
+  ::demo::space::message_c<SIZE_MSG_A, SIZE_MSG_D> msg;
+  ::demo::space::message_c<SIZE_MSG_A, SIZE_MSG_D>::StateStack state;
+
+  // nested_b is message_c field 1 (tag 0x0A), length 23. Its content is a message_b:
+  //   u   = 1.0   -> 0x09 + 8 bytes
+  //   nested_a    -> 0x12 0x0A + 10 bytes (x, y, z)
+  //   v   = 1     -> 0x18 0x01
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer1({
+      0x0A, 0x17,                                     // message_c.nested_b tag + size (23)
+      0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // message_b.u = 1.0
+      0x12, 0x0A,                                     // message_b.nested_a tag + size (10)
+      0x0A, 0x01, 0x01                                // message_a.x = [1]  (split here)
+    });
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer1, state.root()));
+
+  ::EmbeddedProto::ReadBufferFixedSize<9> buffer2({
+      0x15, 0x00, 0x00, 0x80, 0x3F,                   // message_a.y = 1.0F
+      0x18, 0x02,                                     // message_a.z = 1 (zigzag)
+      0x18, 0x01                                      // message_b.v = 1
+    });
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer2, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+
+  EXPECT_EQ(1.0, msg.get_nested_b().get_u());
+  EXPECT_EQ(1, msg.get_nested_b().get_nested_a().get_x().get_length());
+  EXPECT_EQ(1, msg.get_nested_b().get_nested_a().x(0));
+  EXPECT_EQ(1.0F, msg.get_nested_b().get_nested_a().get_y());
+  EXPECT_EQ(1, msg.get_nested_b().get_nested_a().get_z());
+  EXPECT_EQ(1, msg.get_nested_b().get_v());
+}
+
+TEST(NestedMessage, PartialDeserialize_NestingTooDeep)
+{
+  // Drive deserialize_partial with a state stack that is too shallow for the message:
+  // a depth-1 stack has no child state, so the nested message cannot be entered.
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+  ::EmbeddedProto::MessageStateStack<1> shallow_state; // root only, child == nullptr
+
+  ::EmbeddedProto::ReadBufferFixedSize<21> buffer({
+      0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F, // u = 1.0
+      0x12, 0x0A,                                            // nested_a tag + size (10)
+      0x0A, 0x01, 0x01,                                      // x
+      0x15, 0x00, 0x00, 0x80, 0x3F,                          // y
+      0x18, 0x02                                             // z
+    });
+
+  EXPECT_EQ(::EmbeddedProto::Error::NESTING_TOO_DEEP, msg.deserialize_partial(buffer, shallow_state.root()));
 }
 
 #endif // PARTIAL_SERIALIZATION_ENABLED
