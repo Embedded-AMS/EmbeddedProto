@@ -151,4 +151,84 @@ TEST(EditionsPresence, round_trip)
   EXPECT_EQ(9U, result.get_required_field());
 }
 
+// ED-3 custom default values ------------------------------------------------
+
+// A freshly constructed message returns the custom default for every field.
+TEST(EditionsDefaults, construct_to_default)
+{
+  DefaultsMessage msg;
+
+  EXPECT_EQ(42, msg.get_a());
+  EXPECT_TRUE(msg.get_b());
+  EXPECT_FLOAT_EQ(1.5F, msg.get_f());
+  EXPECT_EQ(DefaultColor::DC_BLUE, msg.get_c());
+  EXPECT_EQ(-9000000000LL, msg.get_big());
+
+  // The fields are explicit-presence; the default does not imply presence.
+  EXPECT_FALSE(msg.has_a());
+}
+
+// clear_*() returns the field to its custom default, not to zero.
+TEST(EditionsDefaults, clear_restores_default)
+{
+  DefaultsMessage msg;
+  msg.set_a(7);
+  EXPECT_TRUE(msg.has_a());
+  EXPECT_EQ(7, msg.get_a());
+
+  msg.clear_a();
+  EXPECT_FALSE(msg.has_a());
+  EXPECT_EQ(42, msg.get_a());
+}
+
+// Deserializing a buffer that omits a field leaves it at its custom default.
+TEST(EditionsDefaults, absent_field_yields_default)
+{
+  // Build a buffer that carries only field b (set to a non-default value) so
+  // fields a and c are absent on the wire.
+  DefaultsMessage source;
+  source.set_b(false);
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, source.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
+  for(uint32_t i = 0; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+
+  DefaultsMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(read_buffer));
+  EXPECT_FALSE(msg.get_b());            // received
+  EXPECT_EQ(42, msg.get_a());           // absent -> default
+  EXPECT_EQ(DefaultColor::DC_BLUE, msg.get_c());  // absent -> default
+  EXPECT_FALSE(msg.has_a());
+}
+
+// A field set to a non-default value round-trips and a default-valued absent
+// field stays at its default after a round trip.
+TEST(EditionsDefaults, round_trip)
+{
+  DefaultsMessage msg;
+  msg.set_a(100);
+  msg.set_c(DefaultColor::DC_GREEN);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
+  for(uint32_t i = 0; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+
+  DefaultsMessage result;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result.deserialize(read_buffer));
+  EXPECT_EQ(100, result.get_a());
+  EXPECT_EQ(DefaultColor::DC_GREEN, result.get_c());
+  // b/f/big were never set: they keep their defaults.
+  EXPECT_TRUE(result.get_b());
+  EXPECT_FLOAT_EQ(1.5F, result.get_f());
+}
+
 } // End of namespace test_EmbeddedAMS_editions

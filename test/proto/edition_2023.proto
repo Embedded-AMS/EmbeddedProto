@@ -40,3 +40,20 @@ message PresenceMessage {
   uint32 implicit_field = 2 [features.field_presence = IMPLICIT];
   uint32 required_field = 3 [features.field_presence = LEGACY_REQUIRED];
 }
+
+// Custom default values (ED-3). Editions allow defaults only on explicit-presence
+// fields (the edition 2023 default), so the value is what the getter returns while
+// the field is absent.
+enum DefaultColor {
+  DC_RED = 0;
+  DC_GREEN = 1;
+  DC_BLUE = 2;
+}
+
+message DefaultsMessage {
+  int32 a = 1 [default = 42];
+  bool b = 2 [default = true];
+  float f = 3 [default = 1.5];
+  DefaultColor c = 4 [default = DC_BLUE];
+  int64 big = 5 [default = -9000000000];
+}
