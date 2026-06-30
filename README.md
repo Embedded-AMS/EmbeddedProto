@@ -233,12 +233,53 @@ singular | Full
 repeated | Length fixed via template or custom option
 optional | Full
 
-All features mentioned above are based on proto3 behavior. At this moment, proto2 is not supported.
+At this moment, proto2 is not supported, and it is unlikely that Embedded Proto will support proto2 in the future.
 
-Protobuf editions are not yet fully supported. For files using `edition = "2023"` or newer, the plugin prints a warning and continues code generation with proto3 behavior as best as possible:
-> Warning: Protobuf Edition 2023 and newer are not yet supported. Code will be generated based on Proto3 as best as possible.
+## Protobuf editions
 
-For this reason, it is unlikely that Embedded Proto will support proto2 in the future.
+Embedded Proto supports Protobuf **editions** (`edition = "2023"` and `edition = "2024"`).
+Editions replace the `syntax = proto2/proto3` switch with per-element *features* that
+are overridable at file, message and field/enum scope. The full analysis behind the
+implementation lives in [doc/protobuf_editions.md](doc/protobuf_editions.md).
+
+| Editions feature | Support |
+| --- | --- |
+| `field_presence` (EXPLICIT / IMPLICIT / LEGACY_REQUIRED) | Full. EXPLICIT (the 2023 default) reuses the presence bitfield and generates `has_*()`. LEGACY_REQUIRED is always serialized (no presence bit, no absence enforcement). |
+| Custom default values | Scalar and enum fields. See limitations for string/bytes. |
+| `repeated_field_encoding` (PACKED / EXPANDED) | Full. Both forms are accepted on decode regardless of which form is emitted. |
+| `enum_type` (OPEN / CLOSED) | Full. CLOSED enums validate the decoded value and drop unknown values. |
+| `message_encoding` (LENGTH_PREFIXED / DELIMITED) | Full. DELIMITED uses group framing (`START_GROUP`/`END_GROUP`) which needs no length prefix, enabling single-pass encoding. |
+| Edition 2024 | Cumulative on 2023; its additions are codegen/naming concerns with no runtime effect. |
+
+### DELIMITED for single-pass encoding
+
+A `LENGTH_PREFIXED` nested message must know its serialized length before its bytes,
+which forces a size pre-pass (the size calculator walks the sub-tree, then the encoder
+re-walks it). A `DELIMITED` field uses group framing instead, which carries no length, so
+the size pre-pass disappears and the message is encoded in a single pass:
+
+```proto
+edition = "2023";
+// Make every nested message in this file single-pass:
+option features.message_encoding = DELIMITED;
+```
+
+This is an *encode* win (and removes the need for the size up front when streaming). Decoding
+a group is marginally slower than a length-prefixed message because the reader scans for
+`END_GROUP` instead of jumping by a known length. Both peers must agree via the shared schema.
+
+### Explicit limitations
+
+* `utf8_validation = VERIFY` is treated as **NONE**; Embedded Proto performs no UTF-8 validation.
+* `json_format` is ignored (Embedded Proto has no JSON support).
+* Unknown fields are not round-tripped. As a result CLOSED enums **drop** (rather than
+  preserve) unknown values.
+* Custom default values for **string and bytes** fields are not supported (the fixed-size
+  storage has no literal constructor); a warning is printed and the default is ignored.
+* In **partial (chunked) serialization** mode an unknown `DELIMITED` field is not skipped
+  across buffer boundaries (known DELIMITED fields are fully supported in both modes).
+* Edition 2024 files require a `protoc` that can parse edition 2024. The feature-resolution
+  layer already handles 2024 (cumulative on 2023); older `protoc` releases cap at edition 2023.
 
 
 # Development
