@@ -188,8 +188,10 @@ class MessageDefinition(TypeDefinition):
                 self.fields.append(new_field)
                 self.field_ids.append((new_field.variable_id, new_field.variable_id_name))
 
-                # Store for which fields presence needs to be tracked.
-                if f.proto3_optional:
+                # Store for which fields presence needs to be tracked. This now
+                # follows the resolved editions field_presence feature (EXPLICIT
+                # fields are optional) of which proto3_optional is a special case.
+                if new_field.optional:
                     self.optional_fields.append(new_field)
 
         # Store all the oneof definitions in this message.

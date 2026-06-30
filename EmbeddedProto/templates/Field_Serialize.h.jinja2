@@ -49,6 +49,12 @@ if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_va
 {
   return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, true);
 }
+{% elif field.always_serialize %}
+{# LEGACY_REQUIRED field: always serialize, even at the default value. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, true);
+}
 {% else %}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
@@ -59,6 +65,12 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {# Basic types and enums use serialize_with_id() #}
 {% if (field.optional or (field.oneof is not none)) %}
 if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
+{
+  return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, true);
+}
+{% elif field.always_serialize %}
+{# LEGACY_REQUIRED field: always serialize, even at the default value. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
   return_value = {{field.get_variable_name()}}.serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, true);
 }

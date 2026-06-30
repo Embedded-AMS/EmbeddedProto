@@ -30,6 +30,7 @@
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 from . import embedded_proto_options_pb2
+from .Features import FieldPresence
 import copy
 
 
@@ -54,8 +55,26 @@ class Field:
         else:
             self.resolved_features = None
 
-        # Is this field optional, so do we need to track the presence of the field.
-        self.optional = self.descriptor.proto3_optional
+        # Determine field presence from the resolved editions feature.
+        #   EXPLICIT        -> track presence with a bit and generate has_*()
+        #                      (reuse the existing proto3_optional infrastructure).
+        #   IMPLICIT        -> proto3 behavior (serialize only when != default).
+        #   LEGACY_REQUIRED -> always serialize, no presence bit, no absence check.
+        # Repeated fields and real oneof members never carry a presence bit
+        # (presence comes from the repetition / the oneof discriminator) so they
+        # keep the proto3 behavior regardless of the resolved feature.
+        self.always_serialize = False
+        is_repeated = (FieldDescriptorProto.LABEL_REPEATED == self.descriptor.label)
+        in_real_oneof = oneof is not None
+        if (self.resolved_features is not None) and (not is_repeated) and (not in_real_oneof):
+            presence = self.resolved_features["field_presence"]
+            if FieldPresence.LEGACY_REQUIRED == presence:
+                self.optional = self.descriptor.proto3_optional
+                self.always_serialize = True
+            else:
+                self.optional = (FieldPresence.EXPLICIT == presence) or self.descriptor.proto3_optional
+        else:
+            self.optional = self.descriptor.proto3_optional
 
         # If this field is part of an oneof this is the reference to it.
         self.oneof = oneof

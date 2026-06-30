@@ -53,10 +53,11 @@ else
 
 {% else %}
 {# ------------------------------------------------------------------------- #}
-{# Required LENGTH_DELIMITED field #}
+{# Implicit / LEGACY_REQUIRED LENGTH_DELIMITED field. LEGACY_REQUIRED is always #}
+{# serialized (force=true), implicit only when != default (force=false).      #}
 {# ------------------------------------------------------------------------- #}
 return_value = {{field.get_variable_name()}}.serialize_partial_as_field(
-    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, {{ "true" if field.always_serialize else "false" }});
 {% endif %}
 
 {% else %}
@@ -80,9 +81,10 @@ else
 
 {% else %}
 {# ------------------------------------------------------------------------- #}
-{# Required scalar field #}
+{# Implicit / LEGACY_REQUIRED scalar field. LEGACY_REQUIRED is always          #}
+{# serialized (force=true), implicit only when != default (force=false).       #}
 {# ------------------------------------------------------------------------- #}
 return_value = {{field.get_variable_name()}}.serialize_partial_with_id(
-    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, {{ "true" if field.always_serialize else "false" }});
 {% endif %}
 {% endif %}

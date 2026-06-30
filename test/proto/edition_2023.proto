@@ -33,3 +33,10 @@ edition = "2023";
 message Edition2023Message {
   uint32 value = 1;
 }
+
+// Field presence (ED-2). In edition 2023 plain scalars are EXPLICIT by default.
+message PresenceMessage {
+  uint32 explicit_field = 1;                                         // EXPLICIT (2023 default)
+  uint32 implicit_field = 2 [features.field_presence = IMPLICIT];
+  uint32 required_field = 3 [features.field_presence = LEGACY_REQUIRED];
+}
