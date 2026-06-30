@@ -119,11 +119,26 @@ class Scope:
 
 
 class TypeDefinition:
-    def __init__(self, proto_descriptor, parent_scope, template_filename):
+    def __init__(self, proto_descriptor, parent_scope, template_filename,
+                 feature_resolver=None, enclosing_features=None):
         self.descriptor = proto_descriptor
         self.name = proto_descriptor.name
         self.scope = Scope(self.name, parent_scope)
         self.template_file = template_filename
+
+        # Editions feature resolution. The resolver picks the edition profile; the
+        # enclosing features are the resolved feature set of the parent scope (file
+        # or enclosing message). This type's own explicit overrides are merged on
+        # top to obtain its resolved feature set. proto3 files use the proto3
+        # profile so this is always populated.
+        self.feature_resolver = feature_resolver
+        if feature_resolver is not None:
+            base = enclosing_features if enclosing_features is not None \
+                else feature_resolver.file_features
+            self.features = feature_resolver.merge(base, proto_descriptor.options,
+                                                   self.scope.get_scope_str())
+        else:
+            self.features = None
 
     def get_name(self):
         return self.name
@@ -137,8 +152,9 @@ class TypeDefinition:
 # -----------------------------------------------------------------------------
 
 class EnumDefinition(TypeDefinition):
-    def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope, "TypeDefEnum.h.jinja2")
+    def __init__(self, proto_descriptor, parent_scope, feature_resolver=None, enclosing_features=None):
+        super().__init__(proto_descriptor, parent_scope, "TypeDefEnum.h.jinja2",
+                         feature_resolver, enclosing_features)
 
     # Loop through the values defined in the enum.
     def values(self):
@@ -149,11 +165,14 @@ class EnumDefinition(TypeDefinition):
 # -----------------------------------------------------------------------------
 
 class MessageDefinition(TypeDefinition):
-    def __init__(self, proto_descriptor, parent_scope):
-        super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h.jinja2")
+    def __init__(self, proto_descriptor, parent_scope, feature_resolver=None, enclosing_features=None):
+        super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h.jinja2",
+                         feature_resolver, enclosing_features)
 
-        self.nested_enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
-        self.nested_msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.nested_type]
+        self.nested_enum_definitions = [EnumDefinition(enum, self.scope, self.feature_resolver, self.features)
+                                        for enum in self.descriptor.enum_type]
+        self.nested_msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.features)
+                                       for msg in self.descriptor.nested_type]
 
         # Store the id numbers of all the fields to create the ID enum.
         self.field_ids = []

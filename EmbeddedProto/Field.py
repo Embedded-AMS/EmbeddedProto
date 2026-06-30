@@ -42,6 +42,18 @@ class Field:
         # A reference to the parent message in which this field is defined.
         self.parent = parent_msg
 
+        # Editions feature resolution. The parent message holds the resolver and
+        # its own resolved feature set; this field merges its own explicit
+        # overrides on top to obtain the resolved feature set for this field. The
+        # resolved values are consumed by the individual feature tickets; ED-1 only
+        # makes them available.
+        self.feature_resolver = getattr(parent_msg, "feature_resolver", None)
+        if self.feature_resolver is not None:
+            self.resolved_features = self.feature_resolver.merge(
+                parent_msg.features, self.descriptor.options, self.descriptor.name)
+        else:
+            self.resolved_features = None
+
         # Is this field optional, so do we need to track the presence of the field.
         self.optional = self.descriptor.proto3_optional
 

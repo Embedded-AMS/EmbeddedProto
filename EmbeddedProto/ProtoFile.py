@@ -29,6 +29,7 @@
 #
 
 from .TypeDefinitions import *
+from .Features import FeatureResolver
 import os
 import sys
 from toposort import CircularDependencyError, toposort_flatten
@@ -80,7 +81,11 @@ class ProtoFile:
         if "proto2" == proto_descriptor.syntax:
             raise Exception(proto_descriptor.name + ": Sorry, proto2 is not supported, please use proto3.")
 
-        self.warn_if_unsupported_edition(proto_descriptor)
+        # Select the edition feature profile for this file and resolve the
+        # file-scope feature set. proto3 maps to the proto3 profile so the existing
+        # generation path is a special case of the same machinery.
+        self.feature_resolver = FeatureResolver(proto_descriptor)
+        self.file_features = self.feature_resolver.file_features
 
         # These file names are the ones used for creating the C++ files.
         self.filename_with_folder = os.path.splitext(proto_descriptor.name)[0]
@@ -96,8 +101,10 @@ class ProtoFile:
             for package in package_list[1:]:
                 self.scope = Scope(package, self.scope)
 
-        self.enum_definitions = [EnumDefinition(enum, self.scope) for enum in self.descriptor.enum_type]
-        self.msg_definitions = [MessageDefinition(msg, self.scope) for msg in self.descriptor.message_type]
+        self.enum_definitions = [EnumDefinition(enum, self.scope, self.feature_resolver, self.file_features)
+                                 for enum in self.descriptor.enum_type]
+        self.msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.file_features)
+                                for msg in self.descriptor.message_type]
 
         self.all_parameters_registered = False
 
@@ -138,31 +145,6 @@ class ProtoFile:
             raise Exception("There are possible circular dependencies in the message definitions of "
                             + proto_descriptor.name + ". Embedded Proto is not able to support this. "
                             "Please remove these dependencies.")
-
-    def warn_if_unsupported_edition(self, proto_descriptor):
-        warning_message = "Warning: Protobuf Edition 2023 and newer are not yet supported. Code will be generated based on Proto3 as best as possible."
-
-        if "editions" != proto_descriptor.syntax:
-            return
-
-        edition_name = None
-        if hasattr(descriptor_pb2, "Edition"):
-            try:
-                edition_name = descriptor_pb2.Edition.Name(proto_descriptor.edition)
-            except ValueError:
-                edition_name = None
-
-        if edition_name and edition_name.startswith("EDITION_"):
-            edition_suffix = edition_name.replace("EDITION_", "")
-            if edition_suffix.isdigit():
-                if 2023 <= int(edition_suffix):
-                    print(proto_descriptor.name + ": " + warning_message, file=sys.stderr)
-                return
-
-            if edition_suffix in ("PROTO2", "PROTO3", "LEGACY", "UNKNOWN"):
-                return
-
-        print(proto_descriptor.name + ": " + warning_message, file=sys.stderr)
 
     def get_dependencies(self):
         imported_dependencies = []
