@@ -183,6 +183,9 @@ class MessageInterface : public ::EmbeddedProto::Field
     Error skip_fixed64(::EmbeddedProto::ReadBufferInterface& buffer) const;
     Error skip_length_delimited(::EmbeddedProto::ReadBufferInterface& buffer) const;
 
+    //! Skip an unknown DELIMITED (group) field up to its matching END_GROUP.
+    Error skip_group(::EmbeddedProto::ReadBufferInterface& buffer) const;
+
 };
 
 } // End of namespace EmbeddedProto

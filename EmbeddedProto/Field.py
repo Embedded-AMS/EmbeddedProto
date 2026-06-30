@@ -707,7 +707,8 @@ class FieldMessage(Field):
         return self.render("FieldMsg_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        rendered = self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        return rendered.rstrip()
 
     def uses_serialize_len(self):
         return True

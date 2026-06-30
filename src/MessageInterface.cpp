@@ -230,11 +230,44 @@ namespace EmbeddedProto
         return_value = skip_fixed32(buffer);
         break;
 
+      case ::EmbeddedProto::WireFormatter::WireType::START_GROUP:
+        // An unknown DELIMITED field: skip the whole group up to its END_GROUP.
+        return_value = skip_group(buffer);
+        break;
+
       default:
         // We should never get here. DeserializeTag catches this case.
         break;
     }
 
+    return return_value;
+  }
+
+  Error MessageInterface::skip_group(::EmbeddedProto::ReadBufferInterface& buffer) const
+  {
+    // The opening START_GROUP tag has already been consumed. Read and discard
+    // fields until the matching END_GROUP. Nested groups are skipped recursively
+    // (skip_unknown_field routes START_GROUP back here), so the first END_GROUP
+    // seen at this level is the matching one.
+    Error return_value = Error::NO_ERRORS;
+    bool done = false;
+    while((!done) && (Error::NO_ERRORS == return_value))
+    {
+      ::EmbeddedProto::WireFormatter::WireType wire_type;
+      uint32_t id = 0;
+      return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, wire_type, id);
+      if(Error::NO_ERRORS == return_value)
+      {
+        if(::EmbeddedProto::WireFormatter::WireType::END_GROUP == wire_type)
+        {
+          done = true;
+        }
+        else
+        {
+          return_value = skip_unknown_field(buffer, wire_type);
+        }
+      }
+    }
     return return_value;
   }
 

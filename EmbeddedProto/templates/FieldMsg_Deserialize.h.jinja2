@@ -30,4 +30,10 @@ Postal address:
 {% if field.optional %}
 presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
+{% if field.is_delimited() %}
+{# DELIMITED message_encoding: the START_GROUP tag has been read; decode the inner
+   fields until the matching END_GROUP (consumed by the nested deserialize). #}
+return_value = {{field.get_variable_name()}}.deserialize(buffer);
+{% else %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, deserialize_wire_type_);
+{% endif %}

@@ -94,3 +94,16 @@ message Inner {
 message DelimitedMessage {
   Inner sub = 3 [features.message_encoding = DELIMITED];
 }
+
+// LENGTH_PREFIXED twin of DelimitedMessage (same field number / inner type) used
+// to prove both framings decode to the same field values.
+message LengthPrefixedMessage {
+  Inner sub = 3;
+}
+
+// Used to verify unknown DELIMITED (group) fields are skipped while surrounding
+// known fields decode. Field number 3 is intentionally absent.
+message GroupSkipMessage {
+  int32 before = 1;
+  int32 after = 5;
+}

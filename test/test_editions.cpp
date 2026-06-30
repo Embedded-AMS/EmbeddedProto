@@ -416,4 +416,76 @@ TEST(EditionsDelimited, encode_empty_group)
   EXPECT_EQ(expected[1], buffer.get_data()[1]);
 }
 
+// ED-7 message_encoding = DELIMITED: decode + group skip --------------------
+
+// A DELIMITED buffer decodes back to the original message.
+TEST(EditionsDelimited, decode_round_trip)
+{
+  DelimitedMessage msg;
+  msg.mutable_sub().set_x(150);
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
+  for(uint32_t i = 0; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+
+  DelimitedMessage result;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result.deserialize(read_buffer));
+  EXPECT_TRUE(result.has_sub());
+  EXPECT_EQ(150, result.get_sub().get_x());
+}
+
+// A DELIMITED-encoded message and its LENGTH_PREFIXED twin decode to the same
+// field values.
+TEST(EditionsDelimited, cross_encoding_equivalence)
+{
+  // DELIMITED bytes for sub.x = 150.
+  ::EmbeddedProto::ReadBufferFixedSize<8> delimited({0x1B, 0x08, 0x96, 0x01, 0x1C});
+  DelimitedMessage from_group;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, from_group.deserialize(delimited));
+
+  // LENGTH_PREFIXED bytes for the same field number 3: tag 0x1A, len 3, inner.
+  ::EmbeddedProto::ReadBufferFixedSize<8> length_prefixed({0x1A, 0x03, 0x08, 0x96, 0x01});
+  LengthPrefixedMessage from_len;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, from_len.deserialize(length_prefixed));
+
+  EXPECT_EQ(from_group.get_sub().get_x(), from_len.get_sub().get_x());
+  EXPECT_EQ(150, from_group.get_sub().get_x());
+}
+
+// An unknown DELIMITED field is skipped; known fields around it still decode.
+TEST(EditionsDelimited, unknown_group_is_skipped)
+{
+  // before(1)=7, unknown group field 3 with an inner field, after(5)=9.
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
+      {0x08, 0x07,                   // before = 7
+       0x1B, 0x08, 0x96, 0x01, 0x1C, // unknown group (field 3)
+       0x28, 0x09});                 // after = 9
+  GroupSkipMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(7, msg.get_before());
+  EXPECT_EQ(9, msg.get_after());
+}
+
+// Nested unknown groups are skipped to the correct matching END_GROUP.
+TEST(EditionsDelimited, nested_unknown_groups_skipped)
+{
+  // before(1)=7, group(3){ group(4){ x=1 } }, after(5)=9.
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer(
+      {0x08, 0x07,             // before = 7
+       0x1B,                   // START_GROUP field 3
+         0x23,                 // START_GROUP field 4
+           0x08, 0x01,         // inner field 1 = 1
+         0x24,                 // END_GROUP field 4
+       0x1C,                   // END_GROUP field 3
+       0x28, 0x09});           // after = 9
+  GroupSkipMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(7, msg.get_before());
+  EXPECT_EQ(9, msg.get_after());
+}
+
 } // End of namespace test_EmbeddedAMS_editions

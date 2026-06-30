@@ -577,6 +577,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       bool continue_deserializing = ::EmbeddedProto::Error::NO_ERRORS == return_value;
       while(continue_deserializing)
       {
+        // A DELIMITED (group) message terminates at its matching END_GROUP tag,
+        // which has just been consumed. For a normal message this never occurs.
+        if(::EmbeddedProto::WireFormatter::WireType::END_GROUP == deserialize_wire_type_)
+        {
+          deserialize_id_number_ = 0;
+          break;
+        }
+
         id_tag = static_cast<FieldNumber>(deserialize_id_number_);
         switch(id_tag)
         {
