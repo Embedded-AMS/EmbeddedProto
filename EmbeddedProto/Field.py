@@ -220,6 +220,11 @@ class Field:
     def is_message_type(self):
         return False
 
+    # Returns True when this message field uses DELIMITED (group) message encoding
+    # (editions message_encoding feature). Only message fields can be delimited.
+    def is_delimited(self):
+        return False
+
     def render_serialize(self, jinja_env):
         return self.render("Field_Serialize.h.jinja2", jinja_environment=jinja_env)
 
@@ -713,6 +718,13 @@ class FieldMessage(Field):
     def is_message_type(self):
         """Returns True if this field is a nested message type (not string/bytes)."""
         return True
+
+    def is_delimited(self):
+        # Honor the resolved editions message_encoding feature for this field.
+        from .Features import MessageEncoding
+        if self.resolved_features is not None:
+            return MessageEncoding.DELIMITED == self.resolved_features["message_encoding"]
+        return False
 
     def get_storage_base_type(self):
         return "::EmbeddedProto::MessageInterface"

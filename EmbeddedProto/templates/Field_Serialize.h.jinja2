@@ -56,13 +56,28 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {% elif (field.optional or (field.oneof is not none)) %}
 if(has_{{field.get_name()}}() && (::EmbeddedProto::Error::NO_ERRORS == return_value))
 {
+{% if field.is_delimited() %}
+{# DELIMITED message_encoding: single-pass group framing, no size pre-pass. #}
+  return_value = {{field.get_variable_name()}}.serialize_as_group(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
+{% else %}
   return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, true);
+{% endif %}
 }
 {% elif field.always_serialize %}
 {# LEGACY_REQUIRED field: always serialize, even at the default value. #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
+{% if field.is_delimited() %}
+  return_value = {{field.get_variable_name()}}.serialize_as_group(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
+{% else %}
   return_value = {{field.get_variable_name()}}.serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_size_expression()}}, buffer, true);
+{% endif %}
+}
+{% elif field.is_delimited() %}
+{# DELIMITED message_encoding on an implicit-presence message field. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  return_value = {{field.get_variable_name()}}.serialize_as_group(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
 }
 {% else %}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)

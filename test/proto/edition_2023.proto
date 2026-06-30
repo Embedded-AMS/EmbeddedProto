@@ -83,3 +83,14 @@ message EnumTypeMessage {
   OpenEnum open_field = 1;
   ClosedEnum closed_field = 2;
 }
+
+// Message encoding (ED-6/7/8). A DELIMITED nested message field is framed with
+// START_GROUP / END_GROUP tags instead of a length prefix, enabling single-pass
+// encoding (no size pre-pass).
+message Inner {
+  int32 x = 1;
+}
+
+message DelimitedMessage {
+  Inner sub = 3 [features.message_encoding = DELIMITED];
+}

@@ -62,7 +62,34 @@ class MessageInterface : public ::EmbeddedProto::Field
         The defaults are to be set according to the Protobuf standard.
     */
     void clear() override = 0;
-    
+
+    //! Serialize this message as a delimited group (editions message_encoding =
+    //! DELIMITED).
+    /*!
+        Writes a START_GROUP tag, this message's fields inline, then an END_GROUP
+        tag. Because group framing carries no length prefix there is no size
+        pre-pass, which enables single-pass encoding of (nested) messages.
+
+        \param field_number The field number for the START/END group tags.
+        \param buffer The buffer to write to.
+        \return Error::NO_ERRORS when successful.
+    */
+    Error serialize_as_group(const uint32_t field_number, WriteBufferInterface& buffer) const
+    {
+      Error return_value = WireFormatter::SerializeVarint(
+          WireFormatter::MakeTag(field_number, WireFormatter::WireType::START_GROUP), buffer);
+      if(Error::NO_ERRORS == return_value)
+      {
+        return_value = this->serialize(buffer);
+      }
+      if(Error::NO_ERRORS == return_value)
+      {
+        return_value = WireFormatter::SerializeVarint(
+            WireFormatter::MakeTag(field_number, WireFormatter::WireType::END_GROUP), buffer);
+      }
+      return return_value;
+    }
+
 #ifdef PARTIAL_SERIALIZATION_ENABLED
     //! Deserialize message with partial state support.
     /*!

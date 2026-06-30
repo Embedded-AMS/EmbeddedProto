@@ -368,4 +368,52 @@ TEST(EditionsEnum, round_trip_valid)
   EXPECT_EQ(ClosedEnum::CE_B, result.get_closed_field());
 }
 
+// ED-6 message_encoding = DELIMITED: single-pass encode --------------------
+
+// A DELIMITED nested message is framed with START_GROUP / END_GROUP, no length.
+TEST(EditionsDelimited, encode_group_framing)
+{
+  DelimitedMessage msg;
+  msg.mutable_sub().set_x(150);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  // START_GROUP(field 3) = 0x1B, inner x=1 (field 1) = 0x08 0x96 0x01,
+  // END_GROUP(field 3) = 0x1C.
+  const std::array<uint8_t, 5> expected = { 0x1B, 0x08, 0x96, 0x01, 0x1C };
+  ASSERT_EQ(expected.size(), buffer.get_size());
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]);
+  }
+}
+
+// serialized_size() accounts for the group framing (START + END tags).
+TEST(EditionsDelimited, serialized_size_matches)
+{
+  DelimitedMessage msg;
+  msg.mutable_sub().set_x(150);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+  EXPECT_EQ(buffer.get_size(), msg.serialized_size());
+}
+
+// An empty (present) delimited message is a START_GROUP immediately followed by
+// END_GROUP.
+TEST(EditionsDelimited, encode_empty_group)
+{
+  DelimitedMessage msg;
+  msg.mutable_sub().clear();  // present but empty
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  const std::array<uint8_t, 2> expected = { 0x1B, 0x1C };
+  ASSERT_EQ(expected.size(), buffer.get_size());
+  EXPECT_EQ(expected[0], buffer.get_data()[0]);
+  EXPECT_EQ(expected[1], buffer.get_data()[1]);
+}
+
 } // End of namespace test_EmbeddedAMS_editions
