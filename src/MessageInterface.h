@@ -160,9 +160,96 @@ class MessageInterface : public ::EmbeddedProto::Field
       return return_value;
     }
 
+    //! Serialize this message as a delimited group with partial state support.
+    /*!
+        DELIMITED (group) framing has no length prefix, so there is no SIZE phase.
+        The phases used are TAG (write START_GROUP) -> DATA (stream the child) ->
+        SIZE (reused to write END_GROUP) -> COMPLETE. Each tag is written
+        atomically; on a full buffer the phase is left unchanged so the call
+        resumes from the same point with a fresh buffer.
+
+        \param field_number The field number for the START/END group tags.
+        \param buffer The (possibly small) write buffer.
+        \param state The state for this group field; state.child streams the body.
+        \return Error::NO_ERRORS when complete, Error::BUFFER_FULL to resume.
+    */
+    Error serialize_partial_as_group(uint32_t field_number,
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state) const
+    {
+      Error return_value = Error::NO_ERRORS;
+
+      // Phase TAG: write the START_GROUP tag.
+      if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
+      {
+        const uint32_t tag = WireFormatter::MakeTag(field_number, WireFormatter::WireType::START_GROUP);
+        if(buffer.get_available_size() >= WireFormatter::VarintSize(tag))
+        {
+          return_value = WireFormatter::SerializeVarint(tag, buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
+          }
+        }
+        else
+        {
+          return_value = Error::BUFFER_FULL;
+        }
+      }
+
+      // Phase DATA: stream the child message's fields.
+      if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+      {
+        if(nullptr != state.child)
+        {
+          return_value = this->serialize_partial(buffer, *state.child);
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+          {
+            // Body complete; the END_GROUP tag still has to be written. Reuse the
+            // (otherwise unused) SIZE phase to mark "END_GROUP pending".
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::SIZE;
+          }
+        }
+        else
+        {
+          return_value = Error::NESTING_TOO_DEEP;
+        }
+      }
+
+      // Phase SIZE (reused): write the END_GROUP tag.
+      if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
+      {
+        const uint32_t tag = WireFormatter::MakeTag(field_number, WireFormatter::WireType::END_GROUP);
+        if(buffer.get_available_size() >= WireFormatter::VarintSize(tag))
+        {
+          return_value = WireFormatter::SerializeVarint(tag, buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            state.bytes_remaining = 0U;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          }
+        }
+        else
+        {
+          return_value = Error::BUFFER_FULL;
+        }
+      }
+
+      return return_value;
+    }
+
     //! \see Field::deserialize_partial_as_field()
     Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                        MessageState& state) override;
+
+    //! Deserialize a delimited (group) message field with partial state support.
+    /*!
+        The opening START_GROUP tag has been consumed by the caller (phase DATA).
+        The child is streamed until it consumes its matching END_GROUP, at which
+        point the child reports completion and this field is marked COMPLETE.
+    */
+    Error deserialize_partial_as_group(ReadBufferInterface& buffer,
+                                       MessageState& state);
 
     //! When partially deserializing skip bytes in the buffer of an unknown field.
     Error skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,

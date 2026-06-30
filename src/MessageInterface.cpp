@@ -102,6 +102,38 @@ namespace EmbeddedProto
     return return_value;
   }
 
+  Error MessageInterface::deserialize_partial_as_group(::EmbeddedProto::ReadBufferInterface& buffer,
+                                                       MessageState& state)
+  {
+    Error return_value = Error::NO_ERRORS;
+
+    // Groups have no SIZE phase. The caller consumed the START_GROUP tag and set
+    // the phase to DATA.
+    if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+    {
+      if(nullptr != state.child)
+      {
+        // Stream the child's fields directly from the buffer. The child's partial
+        // deserialize stops (reporting completion) when it consumes its matching
+        // END_GROUP; otherwise it returns END_OF_BUFFER to resume later with the
+        // child state preserved.
+        return_value = this->deserialize_partial(buffer, *state.child);
+        if((Error::NO_ERRORS == return_value)
+           && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          state.child->reset();
+        }
+      }
+      else
+      {
+        return_value = Error::NESTING_TOO_DEEP;
+      }
+    }
+
+    return return_value;
+  }
+
   Error MessageInterface::skip_unknown_field_partial(::EmbeddedProto::ReadBufferInterface& buffer,
                                                      MessageState& state) const
   {

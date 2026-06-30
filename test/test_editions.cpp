@@ -488,4 +488,77 @@ TEST(EditionsDelimited, nested_unknown_groups_skipped)
   EXPECT_EQ(9, msg.get_after());
 }
 
+// ED-8 message_encoding = DELIMITED: partial state machine ------------------
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+
+// Partial-serialize a DELIMITED message through a tiny (chunked) buffer; the
+// reassembled output equals the full-mode golden bytes.
+TEST(EditionsDelimitedPartial, serialize_chunked)
+{
+  DelimitedMessage msg;
+  msg.mutable_sub().set_x(150);
+
+  DelimitedMessage::StateStack state;
+  std::array<uint8_t, 8> out = {0};
+  uint32_t out_len = 0;
+  ::EmbeddedProto::Error r = ::EmbeddedProto::Error::BUFFER_FULL;
+  uint32_t guard = 0;
+  while((::EmbeddedProto::Error::BUFFER_FULL == r) && (guard++ < 32))
+  {
+    // Small enough to split the group across calls (here the END_GROUP tag lands
+    // in a later chunk), but at least as large as the widest atomic scalar field.
+    ::EmbeddedProto::WriteBufferFixedSize<4> chunk;
+    r = msg.serialize_partial(chunk, state.root());
+    for(uint32_t i = 0; i < chunk.get_size(); ++i)
+    {
+      out[out_len++] = chunk.get_data()[i];
+    }
+  }
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, r);
+
+  const std::array<uint8_t, 5> expected = { 0x1B, 0x08, 0x96, 0x01, 0x1C };
+  ASSERT_EQ(expected.size(), out_len);
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], out[i]);
+  }
+}
+
+// Partial-deserialize a DELIMITED message fed one byte at a time.
+TEST(EditionsDelimitedPartial, deserialize_chunked)
+{
+  const std::array<uint8_t, 5> bytes = { 0x1B, 0x08, 0x96, 0x01, 0x1C };
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer;
+  DelimitedMessage result;
+  DelimitedMessage::StateStack state;
+  ::EmbeddedProto::Error r = ::EmbeddedProto::Error::END_OF_BUFFER;
+  for(uint32_t i = 0; i < bytes.size(); ++i)
+  {
+    buffer.push(bytes[i]);
+    r = result.deserialize_partial(buffer, state.root());
+  }
+  // After all bytes the parent waits for more input -> END_OF_BUFFER, but the
+  // group has been fully decoded.
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, r);
+  EXPECT_TRUE(result.has_sub());
+  EXPECT_EQ(150, result.get_sub().get_x());
+}
+
+// A group nested deeper than the available state stack returns NESTING_TOO_DEEP
+// instead of crashing.
+TEST(EditionsDelimitedPartial, nesting_too_deep)
+{
+  // DelimitedMessage needs depth 2 (itself + Inner). A depth-1 stack has no child
+  // state for the group body.
+  ::EmbeddedProto::MessageStateStack<1> shallow;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer({0x1B, 0x08, 0x96, 0x01, 0x1C});
+  DelimitedMessage result;
+  EXPECT_EQ(::EmbeddedProto::Error::NESTING_TOO_DEEP,
+            result.deserialize_partial(buffer, shallow.root()));
+}
+
+#endif // PARTIAL_SERIALIZATION_ENABLED
+
 } // End of namespace test_EmbeddedAMS_editions

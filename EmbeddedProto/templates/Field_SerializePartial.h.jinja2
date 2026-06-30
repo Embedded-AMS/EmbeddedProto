@@ -43,14 +43,25 @@ Postal address:
 {# ------------------------------------------------------------------------- #}
 if(has_{{field.get_name()}}())
 {
+{% if field.is_delimited() %}
+  return_value = {{field.get_variable_name()}}.serialize_partial_as_group(
+      static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state);
+{% else %}
   return_value = {{field.get_variable_name()}}.serialize_partial_as_field(
       static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, true);
+{% endif %}
 }
 else
 {
   state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
 }
 
+{% elif field.is_delimited() %}
+{# ------------------------------------------------------------------------- #}
+{# Implicit / LEGACY_REQUIRED DELIMITED message field. #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_as_group(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state);
 {% else %}
 {# ------------------------------------------------------------------------- #}
 {# Implicit / LEGACY_REQUIRED LENGTH_DELIMITED field. LEGACY_REQUIRED is always #}

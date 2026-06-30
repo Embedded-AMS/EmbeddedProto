@@ -232,6 +232,13 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, state.wire_type, state.field_id);
           if(::EmbeddedProto::Error::NO_ERRORS == return_value)
           {
+            if(::EmbeddedProto::WireFormatter::WireType::END_GROUP == state.wire_type)
+            {
+              // End of a DELIMITED (group) message. Signal completion to the caller
+              // (deserialize_partial_as_group); the END_GROUP tag is consumed.
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              return ::EmbeddedProto::Error::NO_ERRORS;
+            }
             state.phase = (::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
               ? ::EmbeddedProto::FieldProcessingPhase::SIZE
               : ::EmbeddedProto::FieldProcessingPhase::DATA;
