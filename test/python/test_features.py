@@ -137,6 +137,33 @@ class OverridePrecedence(unittest.TestCase):
         self.assertEqual(resolved["field_presence"], FieldPresence.EXPLICIT)
 
 
+class Edition2024(unittest.TestCase):
+    """Edition 2024 is cumulative on 2023: it shares every 2023 feature handler and
+    only adds codegen-only features."""
+
+    def test_2024_inherits_2023_feature_handling(self):
+        resolver = FeatureResolver(_file(EDITION_2024))
+        # A DELIMITED message_encoding override (a 2023 feature) resolves the same
+        # way in a 2024 file.
+        opts = descriptor_pb2.FieldOptions()
+        opts.features.message_encoding = MessageEncoding.DELIMITED
+        resolved = resolver.resolve(opts)
+        self.assertEqual(resolved["message_encoding"], MessageEncoding.DELIMITED)
+
+    def test_2024_only_feature_is_legal_in_2024(self):
+        fd = _file(EDITION_2024)
+        fd.options.features.default_symbol_visibility = 1
+        # Must not raise.
+        FeatureResolver(fd)
+
+    def test_same_usage_resolves_equally_in_2023_and_2024(self):
+        opts = descriptor_pb2.FieldOptions()
+        opts.features.field_presence = FieldPresence.IMPLICIT
+        r2023 = FeatureResolver(_file(EDITION_2023)).resolve(opts)
+        r2024 = FeatureResolver(_file(EDITION_2024)).resolve(opts)
+        self.assertEqual(r2023, r2024)
+
+
 class Legality(unittest.TestCase):
     def test_2024_only_feature_rejected_in_2023(self):
         fd = _file(EDITION_2023)
