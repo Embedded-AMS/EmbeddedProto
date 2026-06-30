@@ -161,6 +161,23 @@ class EnumDefinition(TypeDefinition):
         for value in self.descriptor.value:
             yield value
 
+    # Whether this enum is CLOSED (editions enum_type feature). Closed enums
+    # validate decoded values and drop unknown ones; open enums store any value.
+    def is_closed(self):
+        from .Features import EnumType
+        if self.features is not None:
+            return EnumType.CLOSED == self.features["enum_type"]
+        return False
+
+    # The distinct value numbers declared in this enum (aliases collapsed), used to
+    # generate the CLOSED-enum validation helper without duplicate switch labels.
+    def unique_value_numbers(self):
+        seen = []
+        for value in self.descriptor.value:
+            if value.number not in seen:
+                seen.append(value.number)
+        return seen
+
 
 # -----------------------------------------------------------------------------
 

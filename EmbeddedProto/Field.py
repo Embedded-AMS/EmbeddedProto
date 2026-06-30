@@ -564,11 +564,21 @@ class FieldEnum(Field):
         if not found:
             raise Exception("Unable to find the definition of this enum: " + self.name)
 
+    # Whether the referenced enum is CLOSED (editions enum_type feature). Closedness
+    # is a property of the enum definition's scope, not of the field, so it is read
+    # from the resolved enum definition.
+    def is_closed(self):
+        from .Features import EnumType
+        if (self.definition is not None) and (self.definition.features is not None):
+            return EnumType.CLOSED == self.definition.features["enum_type"]
+        return False
+
     def render_get_set(self, jinja_env):
         return self.render("FieldEnum_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        rendered = self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        return rendered.rstrip()
 
 # -----------------------------------------------------------------------------
 

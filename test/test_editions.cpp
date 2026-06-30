@@ -308,4 +308,64 @@ TEST(EditionsRepeated, decode_accepts_both_forms)
   EXPECT_EQ(3, result2.expanded_values(2).get());
 }
 
+// ED-5 enum_type (OPEN / CLOSED) --------------------------------------------
+
+// A CLOSED enum stores a declared value.
+TEST(EditionsEnum, closed_accepts_declared_value)
+{
+  // field 2 (VARINT) value 2 == CE_C.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x10, 0x02});
+
+  EnumTypeMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_TRUE(msg.has_closed_field());
+  EXPECT_EQ(ClosedEnum::CE_C, msg.get_closed_field());
+}
+
+// A CLOSED enum drops an undeclared value: the field stays unset / at its default.
+TEST(EditionsEnum, closed_drops_unknown_value)
+{
+  // field 2 (VARINT) value 5 is not a declared ClosedEnum value.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x10, 0x05});
+
+  EnumTypeMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_FALSE(msg.has_closed_field());
+  EXPECT_EQ(ClosedEnum::CE_A, msg.get_closed_field());  // default
+}
+
+// An OPEN enum (control) stores any value, including undeclared ones.
+TEST(EditionsEnum, open_stores_unknown_value)
+{
+  // field 1 (VARINT) value 5 is not a declared OpenEnum value.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x08, 0x05});
+
+  EnumTypeMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_TRUE(msg.has_open_field());
+  EXPECT_EQ(5U, static_cast<uint32_t>(msg.get_open_field()));
+}
+
+// Both enums round-trip a valid value.
+TEST(EditionsEnum, round_trip_valid)
+{
+  EnumTypeMessage msg;
+  msg.set_open_field(OpenEnum::OE_B);
+  msg.set_closed_field(ClosedEnum::CE_B);
+
+  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> read_buffer;
+  for(uint32_t i = 0; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+
+  EnumTypeMessage result;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result.deserialize(read_buffer));
+  EXPECT_EQ(OpenEnum::OE_B, result.get_open_field());
+  EXPECT_EQ(ClosedEnum::CE_B, result.get_closed_field());
+}
+
 } // End of namespace test_EmbeddedAMS_editions

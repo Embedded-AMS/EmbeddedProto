@@ -64,3 +64,22 @@ message RepeatedEncodingMessage {
   repeated int32 packed_values = 1;                                            // PACKED (default)
   repeated int32 expanded_values = 2 [features.repeated_field_encoding = EXPANDED];
 }
+
+// Enum type (ED-5). OPEN (default) stores any decoded value; CLOSED validates the
+// decoded value against the declared enumerators and drops unknown values.
+enum OpenEnum {
+  OE_A = 0;
+  OE_B = 1;
+}
+
+enum ClosedEnum {
+  option features.enum_type = CLOSED;
+  CE_A = 0;
+  CE_B = 1;
+  CE_C = 2;
+}
+
+message EnumTypeMessage {
+  OpenEnum open_field = 1;
+  ClosedEnum closed_field = 2;
+}
