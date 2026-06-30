@@ -818,10 +818,27 @@ class FieldRepeated(Field):
         return self.get_variable_name() + ".serialized_size_packed()"
 
     def is_packed(self):
-        # Packed if NOT a message or string/bytes type
-        return not (self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_MESSAGE or
-                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_STRING or
-                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_BYTES)
+        # Message, string and bytes elements are length-delimited and can never be
+        # packed, regardless of the resolved feature.
+        if self.element_is_length_delimited():
+            return False
+
+        # For packable scalar / enum element types honor the resolved editions
+        # repeated_field_encoding feature. proto3 maps to the proto3 profile whose
+        # default is PACKED, preserving the historical behavior.
+        if self.resolved_features is not None:
+            from .Features import RepeatedFieldEncoding
+            return RepeatedFieldEncoding.PACKED == self.resolved_features["repeated_field_encoding"]
+
+        return True
+
+    # True when the repeated element type is serialized as a length-delimited field
+    # (message, string, bytes). Such elements always use the expanded (one
+    # tag+length per element) form.
+    def element_is_length_delimited(self):
+        return self.actual_type.descriptor.type in (FieldDescriptorProto.TYPE_MESSAGE,
+                                                     FieldDescriptorProto.TYPE_STRING,
+                                                     FieldDescriptorProto.TYPE_BYTES)
 
 # -----------------------------------------------------------------------------
 

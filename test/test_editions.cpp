@@ -231,4 +231,81 @@ TEST(EditionsDefaults, round_trip)
   EXPECT_FLOAT_EQ(1.5F, result.get_f());
 }
 
+// ED-4 repeated_field_encoding ----------------------------------------------
+
+// PACKED (edition 2023 default): a single length-delimited block.
+TEST(EditionsRepeated, packed_emits_single_block)
+{
+  RepeatedEncodingMessage<10, 10> msg;
+  msg.add_packed_values(1);
+  msg.add_packed_values(2);
+  msg.add_packed_values(3);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  // field 1, LEN (0x0A), length 3, then 01 02 03.
+  const std::array<uint8_t, 5> expected = { 0x0A, 0x03, 0x01, 0x02, 0x03 };
+  ASSERT_EQ(expected.size(), buffer.get_size());
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]);
+  }
+}
+
+// EXPANDED: one tag+value per element.
+TEST(EditionsRepeated, expanded_emits_tag_per_element)
+{
+  RepeatedEncodingMessage<10, 10> msg;
+  msg.add_expanded_values(1);
+  msg.add_expanded_values(2);
+  msg.add_expanded_values(3);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  // field 2, VARINT (0x10), repeated per element.
+  const std::array<uint8_t, 6> expected = { 0x10, 0x01, 0x10, 0x02, 0x10, 0x03 };
+  ASSERT_EQ(expected.size(), buffer.get_size());
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], buffer.get_data()[i]);
+  }
+}
+
+// The decoder accepts both forms for either field. An EXPANDED-emitted buffer and
+// a PACKED buffer for the same field both decode to the same vector.
+TEST(EditionsRepeated, decode_accepts_both_forms)
+{
+  // Expanded round trip.
+  RepeatedEncodingMessage<10, 10> msg;
+  msg.add_expanded_values(1);
+  msg.add_expanded_values(2);
+  msg.add_expanded_values(3);
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
+  for(uint32_t i = 0; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+  RepeatedEncodingMessage<10, 10> result;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result.deserialize(read_buffer));
+  ASSERT_EQ(3U, result.get_expanded_values().get_length());
+  EXPECT_EQ(1, result.expanded_values(0).get());
+  EXPECT_EQ(2, result.expanded_values(1).get());
+  EXPECT_EQ(3, result.expanded_values(2).get());
+
+  // Feed a PACKED buffer for the EXPANDED field (field 2, LEN 0x12); it must
+  // decode to the same vector.
+  ::EmbeddedProto::ReadBufferFixedSize<8> packed_for_expanded(
+      {0x12, 0x03, 0x01, 0x02, 0x03});
+  RepeatedEncodingMessage<10, 10> result2;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, result2.deserialize(packed_for_expanded));
+  ASSERT_EQ(3U, result2.get_expanded_values().get_length());
+  EXPECT_EQ(1, result2.expanded_values(0).get());
+  EXPECT_EQ(3, result2.expanded_values(2).get());
+}
+
 } // End of namespace test_EmbeddedAMS_editions

@@ -57,3 +57,10 @@ message DefaultsMessage {
   DefaultColor c = 4 [default = DC_BLUE];
   int64 big = 5 [default = -9000000000];
 }
+
+// Repeated field encoding (ED-4). PACKED is the edition 2023 default; EXPANDED
+// emits one tag+value per element.
+message RepeatedEncodingMessage {
+  repeated int32 packed_values = 1;                                            // PACKED (default)
+  repeated int32 expanded_values = 2 [features.repeated_field_encoding = EXPANDED];
+}

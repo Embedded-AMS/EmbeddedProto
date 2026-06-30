@@ -191,12 +191,33 @@ namespace EmbeddedProto
       Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                    const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
       {
-        Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
-                             ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-        if(Error::NO_ERRORS == return_value)
+        const bool is_length_delimited =
+            ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type;
+        Error return_value = Error::NO_ERRORS;
+
+        if(REPEATED_FIELD_IS_PACKED)
         {
-          return_value = this->deserialize(buffer);
+          // Scalar / enum elements may be received either as a single packed block
+          // (length-delimited) or as expanded one-tag-per-element values (the
+          // element's own wire type). Both forms are accepted regardless of which
+          // form this side emits (repeated_field_encoding feature).
+          if(is_length_delimited)
+          {
+            return_value = deserialize_packed(buffer);
+          }
+          else
+          {
+            return_value = deserialize_unpacked(buffer);
+          }
         }
+        else
+        {
+          // Message / string / bytes elements are always length-delimited, one per
+          // tag.
+          return_value = is_length_delimited ? deserialize_unpacked(buffer)
+                                             : Error::INVALID_WIRETYPE;
+        }
+
         return return_value;
       }
 

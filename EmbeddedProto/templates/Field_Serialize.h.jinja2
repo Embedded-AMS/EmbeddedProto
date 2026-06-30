@@ -35,13 +35,22 @@ Postal address:
 #}
 {% if field.uses_serialize_len() %}
 {# Field types that use serialize_len(): messages, strings, bytes, repeated #}
-{% if field.is_packed is defined and not field.is_packed() %}
-{# Unpacked repeated field - iterate over elements. Use true for optional so empty elements are still serialized. #}
+{% if field.is_packed is defined and not field.is_packed() and field.element_is_length_delimited() %}
+{# Unpacked repeated message/string/bytes field - iterate over elements. Use true for optional so empty elements are still serialized. #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
   for(uint32_t i = 0; (i < {{field.get_variable_name()}}.get_length()) && (::EmbeddedProto::Error::NO_ERRORS == return_value); ++i)
   {
     return_value = {{field.get_variable_name()}}.get_const(i).serialize_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), {{field.get_variable_name()}}.get_const(i).serialized_size(), buffer, true);
+  }
+}
+{% elif field.is_packed is defined and not field.is_packed() %}
+{# Expanded (EXPANDED feature) repeated scalar/enum field - one tag+value per element. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  for(uint32_t i = 0; (i < {{field.get_variable_name()}}.get_length()) && (::EmbeddedProto::Error::NO_ERRORS == return_value); ++i)
+  {
+    return_value = {{field.get_variable_name()}}.get_const(i).serialize_with_id(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, true);
   }
 }
 {% elif (field.optional or (field.oneof is not none)) %}
