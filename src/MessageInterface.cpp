@@ -53,7 +53,7 @@ namespace EmbeddedProto
     return return_value;
   }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
   Error MessageInterface::deserialize_partial_as_field(::EmbeddedProto::ReadBufferInterface& buffer,
                                                        MessageState& state)
   {
@@ -68,12 +68,29 @@ namespace EmbeddedProto
     {
       if(nullptr != state.child)
       {
+        // The section is clamped to what is currently in the buffer, which may be
+        // less than the declared nested message size. Track progress against the
+        // declared size using the number of bytes actually consumed.
         ::EmbeddedProto::ReadBufferSection section(buffer, state.bytes_remaining);
+        const uint32_t section_size_before = section.get_max_size();
         return_value = this->deserialize_partial(section, *state.child);
-        state.bytes_remaining = section.get_size();
-        if((Error::NO_ERRORS == return_value) && (0U == state.bytes_remaining))
+        const uint32_t bytes_consumed = section_size_before - section.get_size();
+        state.bytes_remaining -= bytes_consumed;
+
+        if(0U == state.bytes_remaining)
         {
-          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          // The whole nested message has been consumed. The child reports
+          // END_OF_BUFFER once its bounded section runs out; for a fully received
+          // nested message that simply means it is complete.
+          if(Error::END_OF_BUFFER == return_value)
+          {
+            return_value = Error::NO_ERRORS;
+          }
+          if(Error::NO_ERRORS == return_value)
+          {
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            state.child->reset();
+          }
         }
       }
       else

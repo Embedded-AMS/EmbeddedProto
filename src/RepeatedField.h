@@ -200,7 +200,7 @@ namespace EmbeddedProto
         return return_value;
       }
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
       Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                          MessageState& state) override
       {
@@ -271,57 +271,54 @@ namespace EmbeddedProto
 
           if(Error::NO_ERRORS == return_value)
           {
-            uint32_t index = state.element_index;
-            if(index > this->get_length())
+            if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
             {
-              return_value = Error::STATE_MISMATCH;
-            }
-            else
-            {
-              const bool is_new_element = (index == this->get_length());
-              if(is_new_element && (this->get_max_length() <= index))
+              // Non-packed repeated string/bytes/message element. Each wire
+              // occurrence is a separate tag/size/data cycle, and the message loop
+              // resets element_index to zero between occurrences. Elements are
+              // therefore accumulated based on the current array length rather than
+              // element_index. element_index is reused purely as a per-occurrence
+              // flag marking that the slot for the current element has already been
+              // reserved, so an element split across buffers is not appended twice.
+              if(0U == state.element_index)
               {
-                return_value = Error::ARRAY_FULL;
-              }
-              else
-              {
-                if(is_new_element)
+                if(this->get_max_length() <= this->get_length())
                 {
-                  // Reserve a slot for this element.
-                  (void)this->get(index);
-                }
-
-                if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
-                {
-                  return_value = this->get(index).deserialize_partial_as_field(buffer, state);
+                  return_value = Error::ARRAY_FULL;
                 }
                 else
                 {
-                  if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
-                  {
-                    return_value = Error::STATE_MISMATCH;
-                  }
-                  else
-                  {
-                    DATA_TYPE value;
-                    return_value = value.deserialize_partial_check_type(
-                      buffer,
-                      state,
-                      fieldtemplate_wire_type<DATA_TYPE>::value);
-                    if(Error::NO_ERRORS == return_value)
-                    {
-                      return_value = this->add(value);
-                      if(Error::NO_ERRORS != return_value)
-                      {
-                        return_value = Error::ARRAY_FULL;
-                      }
-                    }
-                  }
+                  // Reserve a slot for this new element.
+                  (void)this->get(this->get_length());
+                  state.element_index = 1U;
                 }
+              }
 
-                if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
+              if(Error::NO_ERRORS == return_value)
+              {
+                return_value = this->get(this->get_length() - 1U).deserialize_partial_as_field(buffer, state);
+              }
+            }
+            else
+            {
+              if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+              {
+                return_value = Error::STATE_MISMATCH;
+              }
+              else
+              {
+                DATA_TYPE value;
+                return_value = value.deserialize_partial_check_type(
+                  buffer,
+                  state,
+                  fieldtemplate_wire_type<DATA_TYPE>::value);
+                if(Error::NO_ERRORS == return_value)
                 {
-                  state.element_index = index + 1U;
+                  return_value = this->add(value);
+                  if(Error::NO_ERRORS != return_value)
+                  {
+                    return_value = Error::ARRAY_FULL;
+                  }
                 }
               }
             }

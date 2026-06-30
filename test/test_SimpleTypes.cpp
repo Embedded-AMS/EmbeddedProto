@@ -317,12 +317,13 @@ TEST(SimpleTypes, deserialize_one)
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
-TEST(SimpleTypes, deserialize_one_partial_clean) 
+TEST(SimpleTypes, deserialize_one_partial_clean)
 {
   ::EmbeddedProto::ReadBufferFixedSize<75> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // Setup the first part of the test data
   constexpr uint32_t Na = 12;
@@ -335,7 +336,7 @@ TEST(SimpleTypes, deserialize_one_partial_clean)
   for(const auto& a: refereeA){ buffer.push(a); }
 
   // Deserialize the first part. We expect that we reached the end of the buffer an need more data.
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Setup the second part of the test data.
   constexpr uint32_t Nb = 46;
@@ -350,11 +351,12 @@ TEST(SimpleTypes, deserialize_one_partial_clean)
   for(const auto& b: refereeB){ buffer.push(b); }
 
   // Deserialize the second part.
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
-  EXPECT_EQ(1, msg.get_a_int32());   
-  EXPECT_EQ(1, msg.get_a_int64());     
-  EXPECT_EQ(1U, msg.get_a_uint32());    
+  EXPECT_EQ(1, msg.get_a_int32());
+  EXPECT_EQ(1, msg.get_a_int64());
+  EXPECT_EQ(1U, msg.get_a_uint32());
   EXPECT_EQ(1U, msg.get_a_uint64());
   EXPECT_EQ(1, msg.get_a_sint32());
   EXPECT_EQ(1, msg.get_a_sint64());
@@ -364,14 +366,15 @@ TEST(SimpleTypes, deserialize_one_partial_clean)
   EXPECT_EQ(1, msg.get_a_sfixed64());
   EXPECT_EQ(1.0, msg.get_a_double());
   EXPECT_EQ(1U, msg.get_a_fixed32());
-  EXPECT_EQ(1, msg.get_a_sfixed32()); 
+  EXPECT_EQ(1, msg.get_a_sfixed32());
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
-TEST(SimpleTypes, deserialize_one_partial_halfway_through_field) 
+TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
 {
   ::EmbeddedProto::ReadBufferFixedSize<75> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // Setup the first part of the test data
   constexpr uint32_t Na = 20;
@@ -389,7 +392,7 @@ TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
   for(const auto& a: refereeA){ buffer.push(a); }
 
   // Deserialize the first part. We expect that we reached the end of the buffer an need more data.
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Setup the second part of the test data.
   constexpr uint32_t Nb = 38;
@@ -402,11 +405,12 @@ TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
   for(const auto& b: refereeB){ buffer.push(b); }
 
   // Deserialize the second part.
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
-  EXPECT_EQ(1, msg.get_a_int32());   
-  EXPECT_EQ(1, msg.get_a_int64());     
-  EXPECT_EQ(1U, msg.get_a_uint32());    
+  EXPECT_EQ(1, msg.get_a_int32());
+  EXPECT_EQ(1, msg.get_a_int64());
+  EXPECT_EQ(1U, msg.get_a_uint32());
   EXPECT_EQ(1U, msg.get_a_uint64());
   EXPECT_EQ(1, msg.get_a_sint32());
   EXPECT_EQ(1, msg.get_a_sint64());
@@ -416,7 +420,7 @@ TEST(SimpleTypes, deserialize_one_partial_halfway_through_field)
   EXPECT_EQ(1, msg.get_a_sfixed64());
   EXPECT_EQ(1.0, msg.get_a_double());
   EXPECT_EQ(1U, msg.get_a_fixed32());
-  EXPECT_EQ(1, msg.get_a_sfixed32()); 
+  EXPECT_EQ(1, msg.get_a_sfixed32());
   EXPECT_EQ(1.0F, msg.get_a_float());
 }
 
@@ -424,16 +428,18 @@ TEST(SimpleTypes, PartialDeserialize_VarintSplitInData)
 {
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_int64 = 300 -> tag 0x10, value 0xAC 0x02
   buffer.push(0x10);
   buffer.push(0xAC);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Continue varint value without repeating the tag.
   buffer.push(0x02);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(300, msg.get_a_int64());
 }
@@ -442,18 +448,20 @@ TEST(SimpleTypes, PartialDeserialize_Fixed32SplitInData)
 {
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_fixed32 = 1 -> tag 0x65 followed by 4 bytes.
   buffer.push(0x65);
   buffer.push(0x01);
   buffer.push(0x00);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Continue fixed-width payload without repeating the tag.
   buffer.push(0x00);
   buffer.push(0x00);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1U, msg.get_a_fixed32());
 }
@@ -462,19 +470,21 @@ TEST(SimpleTypes, PartialDeserialize_EnumLargeValue_SplitInData)
 {
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_enum = TWOBILLION -> tag 0x40 + value 0x80 0xA8 0xD6 0xB9 0x07
   buffer.push(0x40);
   buffer.push(0x80);
   buffer.push(0xA8);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Continue enum varint payload without repeating the tag.
   buffer.push(0xD6);
   buffer.push(0xB9);
   buffer.push(0x07);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(Test_Enum::TWOBILLION, msg.get_a_enum());
 }
@@ -483,19 +493,42 @@ TEST(SimpleTypes, PartialDeserialize_TagOnlyThenValue)
 {
   ::EmbeddedProto::ReadBufferFixedSize<10> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_bool tag only.
   buffer.push(0x38);
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   // Continue with only the value.
   buffer.push(0x01);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_TRUE(msg.get_a_bool());
 }
 
-#endif // PARTIAL_DESERIALIZATION_ENABLED
+TEST(SimpleTypes, PartialDeserialize_InvalidFieldId)
+{
+  // A tag that decodes to field number 0 is invalid protobuf.
+  ::EmbeddedProto::ReadBufferFixedSize<2> buffer({0x00});
+  ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
+
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_FIELD_ID, msg.deserialize_partial(buffer, state.root()));
+}
+
+TEST(SimpleTypes, PartialDeserialize_InvalidWireType)
+{
+  // a_int32 (field 1) expects a VARINT, but here it is tagged as FIXED32
+  // (tag = (1 << 3) | 5 = 0x0D).
+  ::EmbeddedProto::ReadBufferFixedSize<5> buffer({0x0D, 0x00, 0x00, 0x00, 0x00});
+  ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
+
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize_partial(buffer, state.root()));
+}
+
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(SimpleTypes, deserialize_10_byte_int32)
 {
@@ -728,7 +761,7 @@ TEST(SimpleTypes, to_string)
 //==============================================================================
 
 
-#if (EP_SERIALIZATION_MODE_PARTIAL == EP_SERIALIZATION_MODE)
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 TEST(SimpleTypes, PartialSerialize_SingleVarintField_SufficientBuffer)
 {
   // Test 14.3.1: Single varint field with sufficient buffer
@@ -1259,20 +1292,22 @@ TEST(SimpleTypes, PartialDeserialize_Fixed64SplitInData)
 {
   ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   buffer.push(0x49);
   buffer.push(0x01);
   buffer.push(0x00);
   buffer.push(0x00);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x00);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1U, msg.get_a_fixed64());
 }
@@ -1281,20 +1316,22 @@ TEST(SimpleTypes, PartialDeserialize_DoubleSplitInData)
 {
   ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   buffer.push(0x59);
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x00);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0xF0);
   buffer.push(0x3F);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1.0, msg.get_a_double());
 }
@@ -1303,24 +1340,26 @@ TEST(SimpleTypes, PartialDeserialize_SFixed32AndFloat_MultiFieldProgress)
 {
   ::EmbeddedProto::ReadBufferFixedSize<20> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_sfixed32 = 1 and a_float = 1.0F
   buffer.push(0x6D);
   buffer.push(0x01);
   buffer.push(0x00);
 
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x00);
   buffer.push(0x00);
   buffer.push(0x75);
   buffer.push(0x00);
-  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
 
   buffer.push(0x00);
   buffer.push(0x80);
   buffer.push(0x3F);
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_EQ(1, msg.get_a_sfixed32());
   EXPECT_EQ(1.0F, msg.get_a_float());
@@ -1330,6 +1369,7 @@ TEST(SimpleTypes, PartialDeserialize_FatalOverlongVarint)
 {
   ::EmbeddedProto::ReadBufferFixedSize<16> buffer;
   ::Test_Simple_Types msg;
+  ::Test_Simple_Types::StateStack state;
 
   // a_int64 tag + overlong varint payload
   buffer.push(0x10);
@@ -1344,8 +1384,8 @@ TEST(SimpleTypes, PartialDeserialize_FatalOverlongVarint)
   buffer.push(0xFF);
   buffer.push(0xFF);
 
-  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::OVERLONG_VARINT, msg.deserialize_partial(buffer, state.root()));
 }
 
-#endif // EP_SERIALIZATION_MODE_PARTIAL
+#endif // PARTIAL_SERIALIZATION_ENABLED
 } // End of namespace test_EmbeddedAMS_SimpleTypes

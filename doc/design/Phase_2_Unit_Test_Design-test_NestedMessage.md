@@ -484,7 +484,7 @@ Tests should be wrapped in appropriate preprocessor guards:
 // Partial serialization tests
 #endif
 
-#ifdef PARTIAL_DESERIALIZATION_ENABLED
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 // Partial deserialization tests
 #endif
 ```
