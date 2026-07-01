@@ -353,6 +353,28 @@ TEST(EditionsEnum, closed_nonzero_drop_resets_to_default)
   EXPECT_EQ(ClosedNonZeroEnum::CNZ_A, msg.get_e());  // dropped -> default
 }
 
+// A CLOSED enum oneof member accepts a declared value (control).
+TEST(EditionsEnum, closed_oneof_accepts_declared_value)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x08, 0x02});  // ce = CE_C
+  ClosedEnumOneofMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_TRUE(msg.has_ce());
+  EXPECT_EQ(ClosedEnum::CE_C, msg.get_ce());
+}
+
+// Dropping an unknown value on a CLOSED enum oneof member leaves the oneof unset
+// rather than reporting the member as present.
+TEST(EditionsEnum, closed_oneof_drop_leaves_oneof_unset)
+{
+  // field 1 (VARINT) value 5 is not a declared ClosedEnum value.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x08, 0x05});
+  ClosedEnumOneofMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_FALSE(msg.has_ce());
+  EXPECT_EQ(ClosedEnumOneofMessage::FieldNumber::NOT_SET, msg.get_which_choice());
+}
+
 // An OPEN enum (control) stores any value, including undeclared ones.
 TEST(EditionsEnum, open_stores_unknown_value)
 {

@@ -84,6 +84,15 @@ message EnumTypeMessage {
   ClosedEnum closed_field = 2;
 }
 
+// A CLOSED enum as a oneof member. Dropping an unknown value must leave the
+// oneof unset instead of reporting the member as present with a default value.
+message ClosedEnumOneofMessage {
+  oneof choice {
+    ClosedEnum ce = 1;
+    int32 num = 2;
+  }
+}
+
 // A CLOSED enum whose first declared enumerator is non-zero. Its default value
 // (used while the field is absent and when an unknown value is dropped) must be
 // that first enumerator, not a raw zero that is not even a member of the enum.

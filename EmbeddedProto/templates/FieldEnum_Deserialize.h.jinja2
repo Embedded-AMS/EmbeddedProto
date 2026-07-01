@@ -42,6 +42,11 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   else
   {
     {{field.get_variable_name()}} = {{field.get_default_value()}};
+{% if field.oneof is not none %}
+    {# The unknown value is dropped, so this oneof member was not really set;
+       leave the oneof unset instead of reporting it present with a default. #}
+    {{field.get_which_oneof()}} = FieldNumber::NOT_SET;
+{% endif %}
   }
 }
 {% else %}
