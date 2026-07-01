@@ -456,6 +456,17 @@ TEST(EditionsDelimited, cross_encoding_equivalence)
   EXPECT_EQ(150, from_group.get_sub().get_x());
 }
 
+// A DELIMITED field that arrives with the wrong wire type (LENGTH_PREFIXED
+// instead of START_GROUP) is rejected instead of misreading the length prefix
+// as group content.
+TEST(EditionsDelimited, wrong_wire_type_rejected)
+{
+  // Field 3 as LENGTH_DELIMITED (tag 0x1A) although the schema marks it DELIMITED.
+  ::EmbeddedProto::ReadBufferFixedSize<8> length_prefixed({0x1A, 0x03, 0x08, 0x96, 0x01});
+  DelimitedMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::INVALID_WIRETYPE, msg.deserialize(length_prefixed));
+}
+
 // An unknown DELIMITED field is skipped; known fields around it still decode.
 TEST(EditionsDelimited, unknown_group_is_skipped)
 {
