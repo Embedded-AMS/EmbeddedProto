@@ -334,6 +334,25 @@ TEST(EditionsEnum, closed_drops_unknown_value)
   EXPECT_EQ(ClosedEnum::CE_A, msg.get_closed_field());  // default
 }
 
+// A CLOSED enum whose first enumerator is non-zero defaults to that enumerator,
+// not a raw zero (which is not a member of the enum).
+TEST(EditionsEnum, closed_nonzero_default_is_first_enumerator)
+{
+  ClosedDefaultMessage msg;
+  EXPECT_EQ(ClosedNonZeroEnum::CNZ_A, msg.get_e());
+}
+
+// Dropping an unknown value on such a field leaves it at the first enumerator.
+TEST(EditionsEnum, closed_nonzero_drop_resets_to_default)
+{
+  // field 1 (VARINT) value 7 is not a declared ClosedNonZeroEnum value.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x08, 0x07});
+  ClosedDefaultMessage msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_FALSE(msg.has_e());
+  EXPECT_EQ(ClosedNonZeroEnum::CNZ_A, msg.get_e());  // dropped -> default
+}
+
 // An OPEN enum (control) stores any value, including undeclared ones.
 TEST(EditionsEnum, open_stores_unknown_value)
 {

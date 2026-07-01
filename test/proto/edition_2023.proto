@@ -84,6 +84,19 @@ message EnumTypeMessage {
   ClosedEnum closed_field = 2;
 }
 
+// A CLOSED enum whose first declared enumerator is non-zero. Its default value
+// (used while the field is absent and when an unknown value is dropped) must be
+// that first enumerator, not a raw zero that is not even a member of the enum.
+enum ClosedNonZeroEnum {
+  option features.enum_type = CLOSED;
+  CNZ_A = 1;
+  CNZ_B = 2;
+}
+
+message ClosedDefaultMessage {
+  ClosedNonZeroEnum e = 1;
+}
+
 // Message encoding (ED-6/7/8). A DELIMITED nested message field is framed with
 // START_GROUP / END_GROUP tags instead of a length prefix, enabling single-pass
 // encoding (no size pre-pass).

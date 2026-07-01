@@ -41,7 +41,7 @@ if(::EmbeddedProto::Error::NO_ERRORS == return_value)
   }
   else
   {
-    {{field.get_variable_name()}}.clear();
+    {{field.get_variable_name()}} = {{field.get_default_value()}};
   }
 }
 {% else %}

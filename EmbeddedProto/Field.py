@@ -551,10 +551,22 @@ class FieldEnum(Field):
 
     def get_default_value(self):
         # A custom (editions) default is the qualified enumerator, e.g.
-        # Color::BLUE. Without one, fall back to the zero-initialised enum.
+        # Color::BLUE.
         if self.has_default():
             return self.get_type_as_defined() + "::" + self.descriptor.default_value
+        # A CLOSED enum defaults to its first declared enumerator, which may be
+        # non-zero (and a raw zero is not necessarily a member of the enum). OPEN
+        # enums keep the historical zero-initialised default.
+        if self.is_closed() and (self.definition is not None):
+            first_enumerator = self.definition.descriptor.value[0].name
+            return self.get_type_as_defined() + "::" + first_enumerator
         return "static_cast<" + self.get_type_as_defined() + ">(0)"
+
+    # True when clearing this enum field must assign an explicit default value
+    # rather than a plain .clear() (which resets to zero): a custom default or a
+    # CLOSED enum whose default is its first (possibly non-zero) enumerator.
+    def assign_default_on_clear(self):
+        return self.has_default() or self.is_closed()
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
