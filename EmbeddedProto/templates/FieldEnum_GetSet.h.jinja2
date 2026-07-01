@@ -65,7 +65,11 @@ inline bool has_{{field.get_name()}}() const
 inline void clear_{{field.get_name()}}()
 {
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] &= ~(presence::mask(presence::fields::{{field.get_name().upper()}}));
+{% if field.assign_default_on_clear() %}
+  {{field.get_variable_name()}} = {{field.get_default_value()}};
+{% else %}
   {{field.get_variable_name()}}.clear();
+{% endif %}
 }
 inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value)
 {
@@ -78,7 +82,11 @@ inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& val
   {{field.get_variable_name()}} = value;
 }
 {% else %}
+{% if field.assign_default_on_clear() %}
+inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}} = {{field.get_default_value()}}; }
+{% else %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
+{% endif %}
 inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value) { {{field.get_variable_name()}} = value; }
 inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& value) { {{field.get_variable_name()}} = value; }
 {% endif %}

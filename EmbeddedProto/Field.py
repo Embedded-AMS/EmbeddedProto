@@ -30,7 +30,9 @@
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 from . import embedded_proto_options_pb2
+from .Features import FieldPresence
 import copy
+import sys
 
 
 # This class is the base class for any kind of field used in protobuf messages.
@@ -42,8 +44,38 @@ class Field:
         # A reference to the parent message in which this field is defined.
         self.parent = parent_msg
 
-        # Is this field optional, so do we need to track the presence of the field.
-        self.optional = self.descriptor.proto3_optional
+        # Editions feature resolution. The parent message holds the resolver and
+        # its own resolved feature set; this field merges its own explicit
+        # overrides on top to obtain the resolved feature set for this field. The
+        # resolved values are consumed by the individual feature tickets; ED-1 only
+        # makes them available.
+        self.feature_resolver = getattr(parent_msg, "feature_resolver", None)
+        if self.feature_resolver is not None:
+            self.resolved_features = self.feature_resolver.merge(
+                parent_msg.features, self.descriptor.options, self.descriptor.name)
+        else:
+            self.resolved_features = None
+
+        # Determine field presence from the resolved editions feature.
+        #   EXPLICIT        -> track presence with a bit and generate has_*()
+        #                      (reuse the existing proto3_optional infrastructure).
+        #   IMPLICIT        -> proto3 behavior (serialize only when != default).
+        #   LEGACY_REQUIRED -> always serialize, no presence bit, no absence check.
+        # Repeated fields and real oneof members never carry a presence bit
+        # (presence comes from the repetition / the oneof discriminator) so they
+        # keep the proto3 behavior regardless of the resolved feature.
+        self.always_serialize = False
+        is_repeated = (FieldDescriptorProto.LABEL_REPEATED == self.descriptor.label)
+        in_real_oneof = oneof is not None
+        if (self.resolved_features is not None) and (not is_repeated) and (not in_real_oneof):
+            presence = self.resolved_features["field_presence"]
+            if FieldPresence.LEGACY_REQUIRED == presence:
+                self.optional = self.descriptor.proto3_optional
+                self.always_serialize = True
+            else:
+                self.optional = (FieldPresence.EXPLICIT == presence) or self.descriptor.proto3_optional
+        else:
+            self.optional = self.descriptor.proto3_optional
 
         # If this field is part of an oneof this is the reference to it.
         self.oneof = oneof
@@ -116,6 +148,12 @@ class Field:
     def get_default_value(self):
         return ""
 
+    # Returns True when the field carries a custom (editions) default value, e.g.
+    # int32 x = 1 [default = 42];. Custom defaults are only legal on fields with
+    # explicit presence; protoc rejects them on implicit-presence fields.
+    def has_default(self):
+        return self.descriptor.HasField("default_value")
+
     def get_name(self):
         return self.name
 
@@ -180,6 +218,11 @@ class Field:
 
     # Returns True if this field is a nested message type (not string/bytes)
     def is_message_type(self):
+        return False
+
+    # Returns True when this message field uses DELIMITED (group) message encoding
+    # (editions message_encoding feature). Only message fields can be delimited.
+    def is_delimited(self):
         return False
 
     def render_serialize(self, jinja_env):
@@ -271,8 +314,51 @@ class FieldBasic(Field):
     def get_cstdint_type(self):
         return self.type_to_cstdint[self.descriptor.type]
 
+    # A suffix to make a numeric literal the correct C++ type for the field's
+    # storage type. Only used when emitting a custom (editions) default value; the
+    # zero-default path keeps its historical formatting unchanged.
+    type_to_literal_suffix = {FieldDescriptorProto.TYPE_INT64:    "LL",
+                              FieldDescriptorProto.TYPE_SINT64:   "LL",
+                              FieldDescriptorProto.TYPE_SFIXED64: "LL",
+                              FieldDescriptorProto.TYPE_UINT64:   "ULL",
+                              FieldDescriptorProto.TYPE_FIXED64:  "ULL",
+                              FieldDescriptorProto.TYPE_UINT32:   "U",
+                              FieldDescriptorProto.TYPE_FIXED32:  "U",
+                              FieldDescriptorProto.TYPE_INT32:    "",
+                              FieldDescriptorProto.TYPE_SINT32:   "",
+                              FieldDescriptorProto.TYPE_SFIXED32: ""}
+
     def get_default_value(self):
-        return self.type_to_default_value[self.descriptor.type]
+        # Without a custom default keep the historical zero literal unchanged so
+        # proto3 generation is byte-for-byte identical.
+        if not self.has_default():
+            return self.type_to_default_value[self.descriptor.type]
+        return self._format_default_literal(self.descriptor.default_value)
+
+    def _format_default_literal(self, value):
+        field_type = self.descriptor.type
+        if FieldDescriptorProto.TYPE_BOOL == field_type:
+            return value  # protobuf gives "true" / "false"
+        if field_type in (FieldDescriptorProto.TYPE_FLOAT, FieldDescriptorProto.TYPE_DOUBLE):
+            return self._format_floating_literal(value, field_type)
+        # Integer types: append the suffix matching the storage type.
+        return value + self.type_to_literal_suffix[field_type]
+
+    @staticmethod
+    def _format_floating_literal(value, field_type):
+        is_float = (FieldDescriptorProto.TYPE_FLOAT == field_type)
+        cpp_type = "float" if is_float else "double"
+        # protobuf encodes non-finite defaults as inf / -inf / nan.
+        if "inf" == value:
+            return "std::numeric_limits<" + cpp_type + ">::infinity()"
+        if "-inf" == value:
+            return "-std::numeric_limits<" + cpp_type + ">::infinity()"
+        if "nan" == value:
+            return "std::numeric_limits<" + cpp_type + ">::quiet_NaN()"
+        # Ensure a valid C++ floating point literal (e.g. "2" -> "2.0").
+        if not any(ch in value for ch in (".", "e", "E")):
+            value += ".0"
+        return value + "F" if is_float else value
 
     def render_get_set(self, jinja_env):
         return self.render("FieldBasic_GetSet.h.jinja2", jinja_environment=jinja_env)
@@ -288,6 +374,14 @@ class FieldBasic(Field):
 class BaseStringBytes(Field):
     def __init__(self, proto_descriptor, parent_msg, oneof=None):
         super().__init__(proto_descriptor, parent_msg, "FieldString.h.jinja2", oneof)
+
+        # Custom default values for string and bytes fields are not supported: the
+        # fixed-size storage has no literal constructor to initialise from. Warn so
+        # the silently-ignored default is not mistaken for working behavior.
+        if self.has_default():
+            print(parent_msg.name + "." + self.name + ": Warning: custom default values "
+                  "for string and bytes fields are not supported and will be ignored.",
+                  file=sys.stderr)
 
         # This is the name given to the template parameter for the length.
         self.template_param_str = self.parent.name + "_" + self.variable_name + "LENGTH"
@@ -456,7 +550,23 @@ class FieldEnum(Field):
         return "uint32_t"
 
     def get_default_value(self):
+        # A custom (editions) default is the qualified enumerator, e.g.
+        # Color::BLUE.
+        if self.has_default():
+            return self.get_type_as_defined() + "::" + self.descriptor.default_value
+        # A CLOSED enum defaults to its first declared enumerator, which may be
+        # non-zero (and a raw zero is not necessarily a member of the enum). OPEN
+        # enums keep the historical zero-initialised default.
+        if self.is_closed() and (self.definition is not None):
+            first_enumerator = self.definition.descriptor.value[0].name
+            return self.get_type_as_defined() + "::" + first_enumerator
         return "static_cast<" + self.get_type_as_defined() + ">(0)"
+
+    # True when clearing this enum field must assign an explicit default value
+    # rather than a plain .clear() (which resets to zero): a custom default or a
+    # CLOSED enum whose default is its first (possibly non-zero) enumerator.
+    def assign_default_on_clear(self):
+        return self.has_default() or self.is_closed()
 
     def match_field_with_definitions(self, all_types_definitions):
         found = False
@@ -471,11 +581,21 @@ class FieldEnum(Field):
         if not found:
             raise Exception("Unable to find the definition of this enum: " + self.name)
 
+    # Whether the referenced enum is CLOSED (editions enum_type feature). Closedness
+    # is a property of the enum definition's scope, not of the field, so it is read
+    # from the resolved enum definition.
+    def is_closed(self):
+        from .Features import EnumType
+        if (self.definition is not None) and (self.definition.features is not None):
+            return EnumType.CLOSED == self.definition.features["enum_type"]
+        return False
+
     def render_get_set(self, jinja_env):
         return self.render("FieldEnum_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        rendered = self.render("FieldEnum_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        return rendered.rstrip()
 
 # -----------------------------------------------------------------------------
 
@@ -599,7 +719,8 @@ class FieldMessage(Field):
         return self.render("FieldMsg_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
-        return self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        rendered = self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+        return rendered.rstrip()
 
     def uses_serialize_len(self):
         return True
@@ -610,6 +731,13 @@ class FieldMessage(Field):
     def is_message_type(self):
         """Returns True if this field is a nested message type (not string/bytes)."""
         return True
+
+    def is_delimited(self):
+        # Honor the resolved editions message_encoding feature for this field.
+        from .Features import MessageEncoding
+        if self.resolved_features is not None:
+            return MessageEncoding.DELIMITED == self.resolved_features["message_encoding"]
+        return False
 
     def get_storage_base_type(self):
         return "::EmbeddedProto::MessageInterface"
@@ -725,10 +853,27 @@ class FieldRepeated(Field):
         return self.get_variable_name() + ".serialized_size_packed()"
 
     def is_packed(self):
-        # Packed if NOT a message or string/bytes type
-        return not (self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_MESSAGE or
-                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_STRING or
-                    self.actual_type.descriptor.type == FieldDescriptorProto.TYPE_BYTES)
+        # Message, string and bytes elements are length-delimited and can never be
+        # packed, regardless of the resolved feature.
+        if self.element_is_length_delimited():
+            return False
+
+        # For packable scalar / enum element types honor the resolved editions
+        # repeated_field_encoding feature. proto3 maps to the proto3 profile whose
+        # default is PACKED, preserving the historical behavior.
+        if self.resolved_features is not None:
+            from .Features import RepeatedFieldEncoding
+            return RepeatedFieldEncoding.PACKED == self.resolved_features["repeated_field_encoding"]
+
+        return True
+
+    # True when the repeated element type is serialized as a length-delimited field
+    # (message, string, bytes). Such elements always use the expanded (one
+    # tag+length per element) form.
+    def element_is_length_delimited(self):
+        return self.actual_type.descriptor.type in (FieldDescriptorProto.TYPE_MESSAGE,
+                                                     FieldDescriptorProto.TYPE_STRING,
+                                                     FieldDescriptorProto.TYPE_BYTES)
 
 # -----------------------------------------------------------------------------
 

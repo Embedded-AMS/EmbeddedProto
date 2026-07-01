@@ -33,3 +33,20 @@ enum class {{ typedef.name }} : uint32_t
   {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
   {% endfor %}
 };
+{%- if typedef.is_closed() %}
+
+
+// CLOSED enum (editions enum_type feature): returns true only for declared values.
+static inline bool {{ typedef.name }}_is_valid(const uint32_t value)
+{
+  switch(value)
+  {
+    {% for number in typedef.unique_value_numbers() %}
+    case {{ number }}U:
+    {% endfor %}
+      return true;
+    default:
+      return false;
+  }
+}
+{%- endif %}

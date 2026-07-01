@@ -27,7 +27,25 @@ Postal address:
   1627 LE, Hoorn
   the Netherlands
 #}
+{% if field.is_delimited() %}
+{# DELIMITED message_encoding: the field must arrive framed as a START_GROUP tag.
+   Reject any other wire type instead of misreading the bytes as group content.
+   When valid, the inner fields are decoded until the matching END_GROUP (consumed
+   by the nested deserialize). #}
+if(::EmbeddedProto::WireFormatter::WireType::START_GROUP == deserialize_wire_type_)
+{
+{% if field.optional %}
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+{% endif %}
+  return_value = {{field.get_variable_name()}}.deserialize(buffer);
+}
+else
+{
+  return_value = ::EmbeddedProto::Error::INVALID_WIRETYPE;
+}
+{% else %}
 {% if field.optional %}
 presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, deserialize_wire_type_);
+{% endif %}

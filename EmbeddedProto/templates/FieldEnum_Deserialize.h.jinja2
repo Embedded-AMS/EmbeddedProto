@@ -27,7 +27,31 @@ Postal address:
   1627 LE, Hoorn
   the Netherlands
 #}
+{% if field.is_closed() %}
+{# CLOSED enum: decode, then validate. Unknown values are dropped (the field is
+   left at its default / unset) because EmbeddedProto keeps no unknown-field set. #}
+return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, deserialize_wire_type_);
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  if({{field.get_type_as_defined()}}_is_valid(static_cast<uint32_t>({{field.get_variable_name()}}.get())))
+  {
+{% if field.optional %}
+    presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+{% endif %}
+  }
+  else
+  {
+    {{field.get_variable_name()}} = {{field.get_default_value()}};
+{% if field.oneof is not none %}
+    {# The unknown value is dropped, so this oneof member was not really set;
+       leave the oneof unset instead of reporting it present with a default. #}
+    {{field.get_which_oneof()}} = FieldNumber::NOT_SET;
+{% endif %}
+  }
+}
+{% else %}
 {% if field.optional %}
 presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
 return_value = {{field.get_variable_name()}}.deserialize_check_type(buffer, deserialize_wire_type_);
+{% endif %}

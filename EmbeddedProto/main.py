@@ -147,7 +147,7 @@ def configure_response_features(response):
 
     if hasattr(descriptor_pb2, "Edition"):
         response.minimum_edition = descriptor_pb2.Edition.Value("EDITION_2023")
-        response.maximum_edition = descriptor_pb2.Edition.Value("EDITION_MAX")
+        response.maximum_edition = descriptor_pb2.Edition.Value("EDITION_2024")
 
 
 def main_plugin():

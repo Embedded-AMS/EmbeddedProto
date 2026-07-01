@@ -232,6 +232,13 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
           return_value = ::EmbeddedProto::WireFormatter::DeserializeTag(buffer, state.wire_type, state.field_id);
           if(::EmbeddedProto::Error::NO_ERRORS == return_value)
           {
+            if(::EmbeddedProto::WireFormatter::WireType::END_GROUP == state.wire_type)
+            {
+              // End of a DELIMITED (group) message. Signal completion to the caller
+              // (deserialize_partial_as_group); the END_GROUP tag is consumed.
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              return ::EmbeddedProto::Error::NO_ERRORS;
+            }
             state.phase = (::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == state.wire_type)
               ? ::EmbeddedProto::FieldProcessingPhase::SIZE
               : ::EmbeddedProto::FieldProcessingPhase::DATA;
@@ -577,6 +584,14 @@ class {{ typedef.get_name() }} final: public ::EmbeddedProto::MessageInterface
       bool continue_deserializing = ::EmbeddedProto::Error::NO_ERRORS == return_value;
       while(continue_deserializing)
       {
+        // A DELIMITED (group) message terminates at its matching END_GROUP tag,
+        // which has just been consumed. For a normal message this never occurs.
+        if(::EmbeddedProto::WireFormatter::WireType::END_GROUP == deserialize_wire_type_)
+        {
+          deserialize_id_number_ = 0;
+          break;
+        }
+
         id_tag = static_cast<FieldNumber>(deserialize_id_number_);
         switch(id_tag)
         {

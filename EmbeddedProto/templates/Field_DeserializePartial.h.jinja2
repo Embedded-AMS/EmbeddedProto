@@ -30,7 +30,9 @@ Postal address:
 {% if field.optional %}
 presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
 {% endif %}
-{% if field.uses_serialize_len() %}
+{% if field.is_delimited() %}
+return_value = {{field.get_variable_name()}}.deserialize_partial_as_group(buffer, state);
+{% elif field.uses_serialize_len() %}
 return_value = {{field.get_variable_name()}}.deserialize_partial_as_field(buffer, state);
 {% else %}
 return_value = {{field.get_variable_name()}}.deserialize_partial_check_type(
