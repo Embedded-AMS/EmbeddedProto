@@ -545,6 +545,42 @@ TEST(EditionsDelimitedPartial, deserialize_chunked)
   EXPECT_EQ(150, result.get_sub().get_x());
 }
 
+// ED-4 repeated_field_encoding = EXPANDED must be honored by *partial*
+// serialization as well. The chunked output must equal the full-mode expanded
+// golden bytes (one tag+value per element), not a single packed block.
+TEST(EditionsRepeatedPartial, expanded_serialize_chunked)
+{
+  RepeatedEncodingMessage<10, 10> msg;
+  msg.add_expanded_values(1);
+  msg.add_expanded_values(2);
+  msg.add_expanded_values(3);
+
+  RepeatedEncodingMessage<10, 10>::StateStack state;
+  std::array<uint8_t, 16> out = {0};
+  uint32_t out_len = 0;
+  ::EmbeddedProto::Error r = ::EmbeddedProto::Error::BUFFER_FULL;
+  uint32_t guard = 0;
+  while((::EmbeddedProto::Error::BUFFER_FULL == r) && (guard++ < 64))
+  {
+    // Small enough to split the expanded elements across multiple calls.
+    ::EmbeddedProto::WriteBufferFixedSize<4> chunk;
+    r = msg.serialize_partial(chunk, state.root());
+    for(uint32_t i = 0; i < chunk.get_size(); ++i)
+    {
+      out[out_len++] = chunk.get_data()[i];
+    }
+  }
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, r);
+
+  // field 2, VARINT (0x10), one tag+value per element -- NOT a packed block.
+  const std::array<uint8_t, 6> expected = { 0x10, 0x01, 0x10, 0x02, 0x10, 0x03 };
+  ASSERT_EQ(expected.size(), out_len);
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], out[i]);
+  }
+}
+
 // A group nested deeper than the available state stack returns NESTING_TOO_DEEP
 // instead of crashing.
 TEST(EditionsDelimitedPartial, nesting_too_deep)

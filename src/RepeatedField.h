@@ -354,88 +354,74 @@ namespace EmbeddedProto
                                      MessageState& state,
                                      bool optional) const override
       {
-        Error return_value = Error::NO_ERRORS;
-
         // Skip serializing empty non-optional repeated fields (proto3 default behavior).
         if((!optional) && (0U == this->get_length()))
         {
           state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-          return return_value;
+          return Error::NO_ERRORS;
         }
 
-        if(REPEATED_FIELD_IS_PACKED)
+        return REPEATED_FIELD_IS_PACKED
+                 ? serialize_partial_packed(field_number, buffer, state, optional)
+                 : serialize_partial_unpacked(field_number, buffer, state);
+      }
+
+      //! Serialize a repeated scalar/enum field in EXPANDED form with partial state
+      //! support, regardless of the element type's default packing.
+      /*!
+          Used for the editions repeated_field_encoding = EXPANDED feature so that
+          chunked (partial) serialization emits the same one-tag-per-element bytes
+          as full serialization instead of a single packed block.
+      */
+      Error serialize_partial_as_field_expanded(uint32_t field_number,
+                                                WriteBufferInterface& buffer,
+                                                MessageState& state,
+                                                bool optional) const
+      {
+        // Skip serializing empty non-optional repeated fields (proto3 default behavior).
+        if((!optional) && (0U == this->get_length()))
         {
-          // Packed repeated field: TAG->SIZE->DATA state machine
-          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
-          {
-            // Calculate total packed size
-            const uint32_t total_size = serialized_size_packed();
-            return_value = serialize_partial_tag_and_size(field_number, total_size, buffer, state, optional);
-          }
-
-          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
-          {
-            // Serialize elements sequentially
-            if(state.element_index < this->get_length())
-            {
-              const uint32_t initial_size = buffer.get_size();
-              return_value = this->get_const(state.element_index).serialize(buffer);
-              const uint32_t bytes_written = buffer.get_size() - initial_size;
-              state.bytes_remaining -= bytes_written;
-
-              if(Error::NO_ERRORS == return_value)
-              {
-                ++state.element_index;
-              }
-
-              if(0 == state.bytes_remaining)
-              {
-                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-              }
-            }
-            else
-            {
-              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-            }
-          }
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          return Error::NO_ERRORS;
         }
-        else
-        {
-          // Unpacked repeated field: Each element gets its own TAG->SIZE->DATA
-          if(state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE)
-          {
-            // All elements serialized
-            return return_value;
-          }
 
-          // Handle current element
+        return serialize_partial_unpacked(field_number, buffer, state);
+      }
+
+    private:
+      //! Packed partial serialization: TAG->SIZE->DATA over one length-delimited block.
+      Error serialize_partial_packed(uint32_t field_number,
+                                     WriteBufferInterface& buffer,
+                                     MessageState& state,
+                                     bool optional) const
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+        {
+          // Calculate total packed size
+          const uint32_t total_size = serialized_size_packed();
+          return_value = serialize_partial_tag_and_size(field_number, total_size, buffer, state, optional);
+        }
+
+        if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+        {
+          // Serialize elements sequentially
           if(state.element_index < this->get_length())
           {
-            const auto& element = this->get_const(state.element_index);
+            const uint32_t initial_size = buffer.get_size();
+            return_value = this->get_const(state.element_index).serialize(buffer);
+            const uint32_t bytes_written = buffer.get_size() - initial_size;
+            state.bytes_remaining -= bytes_written;
 
-            // Check if element is a Field-derived type (messages, strings, bytes) or scalar type
-            if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+            if(Error::NO_ERRORS == return_value)
             {
-              // Field-derived types (messages, strings, bytes) use serialize_partial_as_field
-              return_value = element.serialize_partial_as_field(field_number, buffer, state, true);
-            }
-            else
-            {
-              // Scalar types use serialize_partial_with_id
-              return_value = element.serialize_partial_with_id(field_number, buffer, state, true);
-            }
-
-            if((Error::NO_ERRORS == return_value) && (state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE))
-            {
-              // Element complete, move to next
               ++state.element_index;
-              // Reset child state for next element to avoid stale COMPLETE phase
-              // in nested message serialization.
-              if(nullptr != state.child)
-              {
-                state.child->reset();
-              }
-              state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG; // Reset for next element
+            }
+
+            if(0 == state.bytes_remaining)
+            {
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             }
           }
           else
@@ -446,6 +432,59 @@ namespace EmbeddedProto
 
         return return_value;
       }
+
+      //! Unpacked (expanded) partial serialization: each element gets its own tag.
+      Error serialize_partial_unpacked(uint32_t field_number,
+                                       WriteBufferInterface& buffer,
+                                       MessageState& state) const
+      {
+        Error return_value = Error::NO_ERRORS;
+
+        if(state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE)
+        {
+          // All elements serialized
+          return return_value;
+        }
+
+        // Handle current element
+        if(state.element_index < this->get_length())
+        {
+          const auto& element = this->get_const(state.element_index);
+
+          // Check if element is a Field-derived type (messages, strings, bytes) or scalar type
+          if constexpr(std::is_base_of<Field, DATA_TYPE>::value)
+          {
+            // Field-derived types (messages, strings, bytes) use serialize_partial_as_field
+            return_value = element.serialize_partial_as_field(field_number, buffer, state, true);
+          }
+          else
+          {
+            // Scalar types use serialize_partial_with_id
+            return_value = element.serialize_partial_with_id(field_number, buffer, state, true);
+          }
+
+          if((Error::NO_ERRORS == return_value) && (state.phase == ::EmbeddedProto::FieldProcessingPhase::COMPLETE))
+          {
+            // Element complete, move to next
+            ++state.element_index;
+            // Reset child state for next element to avoid stale COMPLETE phase
+            // in nested message serialization.
+            if(nullptr != state.child)
+            {
+              state.child->reset();
+            }
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG; // Reset for next element
+          }
+        }
+        else
+        {
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+        }
+
+        return return_value;
+      }
+
+    public:
 #endif
 
 

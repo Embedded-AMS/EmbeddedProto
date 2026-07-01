@@ -62,6 +62,13 @@ else
 {# ------------------------------------------------------------------------- #}
 return_value = {{field.get_variable_name()}}.serialize_partial_as_group(
     static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state);
+{% elif (field.is_packed is defined) and (not field.is_packed()) and (not field.element_is_length_delimited()) %}
+{# ------------------------------------------------------------------------- #}
+{# EXPANDED repeated scalar/enum field (editions repeated_field_encoding).    #}
+{# Force one-tag-per-element output so partial matches full serialization.    #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_as_field_expanded(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
 {% else %}
 {# ------------------------------------------------------------------------- #}
 {# Implicit / LEGACY_REQUIRED LENGTH_DELIMITED field. LEGACY_REQUIRED is always #}
