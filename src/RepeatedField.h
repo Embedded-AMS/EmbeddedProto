@@ -46,6 +46,34 @@
 namespace EmbeddedProto
 {
 
+  namespace internal
+  {
+    //! Trait describing whether DATA_TYPE is a packed fixed-width scalar field.
+    /*!
+        Fixed-width scalar fields (fixed32/sfixed32/float and
+        fixed64/sfixed64/double) use the FIXED32 or FIXED64 wire type and store
+        their value in little-endian layout on a little-endian target. The trait
+        exposes both the detection flag and the raw scalar type so the packed
+        serialization paths can batch these values into whole-block / per-element
+        buffer writes. For any other type the primary template reports false.
+    */
+    template<typename T>
+    struct PackedFixedTraits
+    {
+      static constexpr bool is_fixed_width = false;
+      using scalar_type = uint8_t;
+    };
+
+    template<Field::FieldTypes F, typename V, WireFormatter::WireType W, uint32_t S>
+    struct PackedFixedTraits<::EmbeddedProto::FieldTemplate<F, V, W, S>>
+    {
+      static constexpr bool is_fixed_width =
+          (::EmbeddedProto::WireFormatter::WireType::FIXED32 == W)
+          || (::EmbeddedProto::WireFormatter::WireType::FIXED64 == W);
+      using scalar_type = V;
+    };
+  } // namespace internal
+
   //! Class template that specifies the interface of an arry with the data type.
   template<class DATA_TYPE>
   class RepeatedField : public Field
@@ -158,7 +186,11 @@ namespace EmbeddedProto
       virtual void clear() override = 0;
 
       //! Serialize all elements in the array (used for packed serialization).
-      Error serialize(WriteBufferInterface& buffer) const final
+      /*!
+          Not final: RepeatedFieldFixedSize overrides this to batch packed
+          fixed-width payloads into a single whole-block buffer write.
+      */
+      Error serialize(WriteBufferInterface& buffer) const override
       {
         Error return_value = Error::NO_ERRORS;
         for(uint32_t i = 0; (i < this->get_length()) && (Error::NO_ERRORS == return_value); ++i)
@@ -389,6 +421,35 @@ namespace EmbeddedProto
       }
 
     private:
+      //! Serialize a single packed element, batching fixed-width values into one push.
+      /*!
+          For fixed-width scalars the element's bytes are written with a single
+          push(bytes, length) call (all-or-nothing). This keeps the resumable
+          partial path correct: when the value does not fit, nothing is written
+          so bytes_remaining / element_index stay untouched and the element is
+          retried cleanly on the next call. Other element types keep their
+          existing (byte-at-a-time) serialization.
+      */
+      Error serialize_packed_element(uint32_t index, WriteBufferInterface& buffer) const
+      {
+        return serialize_packed_element_(index, buffer,
+            std::integral_constant<bool, internal::PackedFixedTraits<DATA_TYPE>::is_fixed_width>{});
+      }
+
+      Error serialize_packed_element_(uint32_t index, WriteBufferInterface& buffer,
+                                      std::true_type) const
+      {
+        using VAR = typename internal::PackedFixedTraits<DATA_TYPE>::scalar_type;
+        const VAR value = this->get_const(index).get();
+        return WireFormatter::SerializeFixedArrayNoTag(&value, 1U, buffer);
+      }
+
+      Error serialize_packed_element_(uint32_t index, WriteBufferInterface& buffer,
+                                      std::false_type) const
+      {
+        return this->get_const(index).serialize(buffer);
+      }
+
       //! Packed partial serialization: TAG->SIZE->DATA over one length-delimited block.
       Error serialize_partial_packed(uint32_t field_number,
                                      WriteBufferInterface& buffer,
@@ -410,7 +471,7 @@ namespace EmbeddedProto
           if(state.element_index < this->get_length())
           {
             const uint32_t initial_size = buffer.get_size();
-            return_value = this->get_const(state.element_index).serialize(buffer);
+            return_value = serialize_packed_element(state.element_index, buffer);
             const uint32_t bytes_written = buffer.get_size() - initial_size;
             state.bytes_remaining -= bytes_written;
 

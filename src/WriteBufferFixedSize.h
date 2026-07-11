@@ -85,7 +85,9 @@ namespace EmbeddedProto
       //! \see ::EmbeddedProto::WriteBufferInterface::push()
       bool push(const uint8_t* bytes, const uint32_t length) override
       {
-        bool return_value = BUFFER_SIZE > (write_index_ + length);
+        // Use >= so a block that exactly fills the remaining space still fits,
+        // matching the single-byte push() which allows filling up to BUFFER_SIZE.
+        bool return_value = BUFFER_SIZE >= (write_index_ + length);
         if(return_value)
         {
           memcpy(data_.data() + write_index_, bytes, length);
