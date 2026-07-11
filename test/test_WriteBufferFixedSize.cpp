@@ -85,6 +85,41 @@ namespace test_EmbeddedAMS_WriteBufferFixedSize
     EXPECT_EQ(1, buffer.get_available_size());
   }
 
+  // A block push that exactly fills the remaining space must succeed, matching
+  // the single-byte push() which allows filling up to BUFFER_SIZE. This keeps
+  // batched (whole-block) serialization byte-identical to the per-byte path.
+  TEST(WriteBufferFixedSize, push_c_array_exact_fill)
+  {
+    constexpr uint32_t BUFFER_SIZE = 4;
+    EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> buffer;
+
+    uint8_t data[BUFFER_SIZE] = {10, 11, 12, 13};
+
+    // Fill the whole buffer in one push.
+    EXPECT_TRUE(buffer.push(data, BUFFER_SIZE));
+    EXPECT_EQ(0, buffer.get_available_size());
+    for(uint32_t i = 0; i < BUFFER_SIZE; ++i)
+    {
+      EXPECT_EQ(data[i], *(buffer.get_data() + i));
+    }
+
+    // A further push of any length must now fail.
+    EXPECT_FALSE(buffer.push(data, 1));
+    EXPECT_EQ(0, buffer.get_available_size());
+  }
+
+  // Exact fill starting from a partially filled buffer.
+  TEST(WriteBufferFixedSize, push_c_array_exact_fill_partial)
+  {
+    constexpr uint32_t BUFFER_SIZE = 5;
+    EmbeddedProto::WriteBufferFixedSize<BUFFER_SIZE> buffer;
+
+    EXPECT_TRUE(buffer.push(0xAA));            // one byte used, 4 left
+    uint8_t data[4] = {1, 2, 3, 4};
+    EXPECT_TRUE(buffer.push(data, 4));         // exactly fills remaining 4
+    EXPECT_EQ(0, buffer.get_available_size());
+  }
+
   TEST(WriteBufferFixedSize, clear) 
   {
     constexpr uint32_t BUFFER_SIZE = 3;

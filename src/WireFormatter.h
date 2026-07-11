@@ -37,12 +37,33 @@
 #include "Errors.h"
 
 #include <cstdint>
-#include <math.h> 
+#include <cstring>
+#include <math.h>
 #include <type_traits>
 #include <limits>
 #include <type_traits>
 
-namespace EmbeddedProto 
+//! Determine whether the target stores multi-byte scalars little-endian.
+/*!
+    Protobuf fixed-width fields (fixed32/fixed64/sfixed/float/double) are
+    little-endian on the wire, which matches the in-memory representation on a
+    little-endian target. When that holds a packed payload can be copied to the
+    buffer in a single block; otherwise every value is emitted byte-by-byte so
+    the on-wire order stays little-endian. Define EMBEDDED_PROTO_LITTLE_ENDIAN
+    yourself (to 0 or 1) to override the automatic detection.
+*/
+#if !defined(EMBEDDED_PROTO_LITTLE_ENDIAN)
+  #if (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
+       && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) \
+      || defined(_WIN32) || defined(_M_IX86) || defined(_M_X64) \
+      || defined(_M_ARM) || defined(_M_ARM64)
+    #define EMBEDDED_PROTO_LITTLE_ENDIAN 1
+  #else
+    #define EMBEDDED_PROTO_LITTLE_ENDIAN 0
+  #endif
+#endif
+
+namespace EmbeddedProto
 {
 
   //! This class combines functions to serialize and deserialize messages.
@@ -203,6 +224,51 @@ namespace EmbeddedProto
         const auto* pVoid = static_cast<const void*>(&value);
         const auto* fixed = static_cast<const uint64_t*>(pVoid);
         return SerializeFixedNoTag(*fixed, buffer);
+      }
+
+      //! Serialize a contiguous array of fixed-width scalar values without tags.
+      /*!
+          Writes `count` values, each `sizeof(VAR_TYPE)` bytes wide, little-endian
+          on the wire (protobuf packed fixed32/fixed64 layout). On a little-endian
+          target the whole block is copied to the buffer with a single
+          push(bytes, length) call. On a big-endian target every value is emitted
+          byte-by-byte so the on-wire order stays little-endian.
+
+          This is used to batch packed repeated fixed32/sfixed32/float and
+          fixed64/sfixed64/double fields into as few buffer writes as possible.
+
+          \param[in] data   Pointer to the first value.
+          \param[in] count  The number of values to serialize.
+          \param[in] buffer The buffer to write to.
+          \return NO_ERRORS on success, BUFFER_FULL when the buffer ran out of space.
+      */
+      template<class VAR_TYPE>
+      static Error SerializeFixedArrayNoTag(const VAR_TYPE* data, const uint32_t count,
+                                            WriteBufferInterface& buffer)
+      {
+        static_assert((4U == sizeof(VAR_TYPE)) || (8U == sizeof(VAR_TYPE)),
+                      "SerializeFixedArrayNoTag only supports 32 and 64 bit values.");
+
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+        // The in-memory representation already equals the little-endian wire
+        // format, so the whole block can be pushed in one call.
+        const auto* const raw = reinterpret_cast<const uint8_t*>(data);
+        const uint32_t n_bytes = count * static_cast<uint32_t>(sizeof(VAR_TYPE));
+        return buffer.push(raw, n_bytes) ? Error::NO_ERRORS : Error::BUFFER_FULL;
+#else
+        // Big-endian fallback: emit every value in little-endian byte order.
+        using UINT_TYPE = typename std::conditional<4U == sizeof(VAR_TYPE),
+                                                    uint32_t, uint64_t>::type;
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0; (i < count) && (Error::NO_ERRORS == return_value); ++i)
+        {
+          UINT_TYPE bits = 0;
+          memcpy(&bits, reinterpret_cast<const uint8_t*>(data) + (i * sizeof(VAR_TYPE)),
+                 sizeof(VAR_TYPE));
+          return_value = SerializeFixedNoTag(bits, buffer);
+        }
+        return return_value;
+#endif
       }
       /** @} **/
 

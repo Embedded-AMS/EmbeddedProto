@@ -38,6 +38,7 @@
 #include <cstring>
 #include <algorithm>
 #include <array>
+#include <type_traits>
 
 
 namespace EmbeddedProto
@@ -181,13 +182,29 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      void clear() override 
+      void clear() override
       {
         for(auto& d : data_)
         {
           d.clear();
         }
         current_length_ = 0;
+      }
+
+      //! Serialize all elements (packed), batching fixed-width payloads.
+      /*!
+          For packed fixed-width scalar element types (fixed32/sfixed32/float and
+          fixed64/sfixed64/double) the contiguous backing array is written to the
+          buffer as a single whole-block push(bytes, length) on a little-endian
+          target instead of one virtual call per byte. All other element types
+          fall back to the element-by-element base implementation.
+      */
+      Error serialize(WriteBufferInterface& buffer) const override
+      {
+        return serialize_packed_(buffer,
+            std::integral_constant<bool,
+                RepeatedField<DATA_TYPE>::REPEATED_FIELD_IS_PACKED
+                && ::EmbeddedProto::internal::PackedFixedTraits<DATA_TYPE>::is_fixed_width>{});
       }
 
       //! Return a reference to the internal data storage array.
@@ -223,6 +240,24 @@ namespace EmbeddedProto
  
 
     private:
+
+      //! Whole-block batched serialize for packed fixed-width scalar elements.
+      Error serialize_packed_(WriteBufferInterface& buffer, std::true_type) const
+      {
+        using VAR = typename ::EmbeddedProto::internal::PackedFixedTraits<DATA_TYPE>::scalar_type;
+        static_assert(sizeof(DATA_TYPE) == sizeof(VAR),
+                      "Fixed-width field must be layout-compatible with its scalar type.");
+        static_assert(std::is_standard_layout<DATA_TYPE>::value,
+                      "Fixed-width field must be standard-layout for block serialization.");
+        const VAR* const raw = reinterpret_cast<const VAR*>(data_.data());
+        return WireFormatter::SerializeFixedArrayNoTag(raw, current_length_, buffer);
+      }
+
+      //! Fallback to the element-by-element base implementation.
+      Error serialize_packed_(WriteBufferInterface& buffer, std::false_type) const
+      {
+        return RepeatedField<DATA_TYPE>::serialize(buffer);
+      }
 
       //! Number of item in the data array.
       uint32_t current_length_ = 0;
