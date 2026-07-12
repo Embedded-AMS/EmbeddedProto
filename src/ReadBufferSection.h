@@ -107,6 +107,16 @@ namespace EmbeddedProto
       */
       bool pop(uint8_t& byte) override;
 
+      //! Copy a block of bytes from the parent buffer, respecting the section size.
+      /*!
+        All-or-nothing: nothing is copied and the section size is left unchanged
+        when length exceeds the number of bytes remaining in this section. This
+        keeps a fixed-width element that straddles the section boundary from being
+        half-consumed.
+        \return True when length bytes were available within the section and copied.
+      */
+      bool pop(uint8_t* dest, const uint32_t length) override;
+
     private:
 
       //! A reference to the buffer containing the actual data.

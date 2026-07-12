@@ -108,4 +108,18 @@ namespace EmbeddedProto
     return result;
   }
 
+  bool ReadBufferSection::pop(uint8_t* dest, const uint32_t length)
+  {
+    bool result = length <= size_;
+    if(result)
+    {
+      result = buffer_.pop(dest, length);
+      if(result)
+      {
+        size_ -= length;
+      }
+    }
+    return result;
+  }
+
 } // End of namespace EmbeddedProto

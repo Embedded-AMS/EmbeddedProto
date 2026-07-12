@@ -572,7 +572,57 @@ namespace EmbeddedProto
         return result;
       }
 
-      static Error DeserializeBool(ReadBufferInterface& buffer, bool& value) 
+      //! Deserialize a contiguous array of fixed-width scalar values without tags.
+      /*!
+          Reads `count` values, each `sizeof(VAR_TYPE)` bytes wide, from the packed
+          little-endian on-wire layout (protobuf fixed32/fixed64). On a
+          little-endian target the whole block is copied out of the buffer with a
+          single pop(bytes, length) call. On a big-endian target every value is
+          read individually so the little-endian wire order is honoured.
+
+          The operation is all-or-nothing: when the buffer holds fewer than
+          `count * sizeof(VAR_TYPE)` bytes nothing is consumed and END_OF_BUFFER is
+          returned, mirroring DeserializeFixed(). This is the receive-side
+          counterpart of SerializeFixedArrayNoTag() and is used to batch packed
+          repeated fixed-width fields into as few buffer reads as possible.
+
+          \param[out] dest  Pointer to the first value to fill.
+          \param[in] count  The number of values to deserialize.
+          \param[in] buffer The buffer to read from.
+          \return NO_ERRORS on success, END_OF_BUFFER when too few bytes are available.
+      */
+      template<class VAR_TYPE>
+      static Error DeserializeFixedArrayNoTag(VAR_TYPE* dest, const uint32_t count,
+                                              ReadBufferInterface& buffer)
+      {
+        static_assert((4U == sizeof(VAR_TYPE)) || (8U == sizeof(VAR_TYPE)),
+                      "DeserializeFixedArrayNoTag only supports 32 and 64 bit values.");
+
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+        // The little-endian wire layout equals the in-memory representation, so
+        // the whole block can be popped in one call.
+        auto* const raw = reinterpret_cast<uint8_t*>(dest);
+        const uint32_t n_bytes = count * static_cast<uint32_t>(sizeof(VAR_TYPE));
+        return buffer.pop(raw, n_bytes) ? Error::NO_ERRORS : Error::END_OF_BUFFER;
+#else
+        // Big-endian fallback: read every value from its little-endian byte order.
+        using UINT_TYPE = typename std::conditional<4U == sizeof(VAR_TYPE),
+                                                    uint32_t, uint64_t>::type;
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0; (i < count) && (Error::NO_ERRORS == return_value); ++i)
+        {
+          UINT_TYPE bits = 0;
+          return_value = DeserializeFixed(buffer, bits);
+          if(Error::NO_ERRORS == return_value)
+          {
+            memcpy(dest + i, &bits, sizeof(VAR_TYPE));
+          }
+        }
+        return return_value;
+#endif
+      }
+
+      static Error DeserializeBool(ReadBufferInterface& buffer, bool& value)
       {
         uint8_t byte;
         Error result = Error::NO_ERRORS;
