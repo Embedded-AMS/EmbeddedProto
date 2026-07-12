@@ -33,6 +33,7 @@
 
 #include "ReadBufferInterface.h"
 #include <array>
+#include <cstring>
 #include <initializer_list>
 
 namespace EmbeddedProto 
@@ -124,6 +125,19 @@ namespace EmbeddedProto
         {
           byte = data_[read_index_];
           ++read_index_;
+        }
+        return return_value;
+      }
+
+      //! \see ::EmbeddedProto::ReadBufferInterface::pop(uint8_t*, const uint32_t)
+      bool pop(uint8_t* dest, const uint32_t length) override
+      {
+        // All-or-nothing: only copy and advance when the whole block is present.
+        const bool return_value = (write_index_ - read_index_) >= length;
+        if(return_value)
+        {
+          memcpy(dest, data_.data() + read_index_, length);
+          read_index_ += length;
         }
         return return_value;
       }

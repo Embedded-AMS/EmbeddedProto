@@ -207,6 +207,23 @@ namespace EmbeddedProto
                 && ::EmbeddedProto::internal::PackedFixedTraits<DATA_TYPE>::is_fixed_width>{});
       }
 
+      //! Deserialize all elements, batching packed fixed-width payloads into one read.
+      /*!
+          Reuses the existing Field::deserialize vtable slot (no new virtual). For
+          packed fixed-width scalar element types the whole little-endian block is
+          read straight into the contiguous backing array with a single batched
+          pop, instead of one virtual call per byte. Misaligned / oversized /
+          truncated blocks, and non-fixed-width / non-packed element types, fall
+          back to the base implementation so their existing behaviour is preserved.
+      */
+      Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
+      {
+        return deserialize_(buffer,
+            std::integral_constant<bool,
+                RepeatedField<DATA_TYPE>::REPEATED_FIELD_IS_PACKED
+                && ::EmbeddedProto::internal::PackedFixedTraits<DATA_TYPE>::is_fixed_width>{});
+      }
+
       //! Return a reference to the internal data storage array.
       const std::array<DATA_TYPE, MAX_LENGTH>& get_data_const() const { return data_; }
 
@@ -237,9 +254,59 @@ namespace EmbeddedProto
       }
 
 
- 
-
     private:
+
+      //! Whole-block batched deserialize for packed fixed-width scalar elements.
+      Error deserialize_(::EmbeddedProto::ReadBufferInterface& buffer, std::true_type)
+      {
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+        using VAR = typename ::EmbeddedProto::internal::PackedFixedTraits<DATA_TYPE>::scalar_type;
+        static_assert(sizeof(DATA_TYPE) == sizeof(VAR),
+                      "Fixed-width field must be layout-compatible with its scalar type.");
+        static_assert(std::is_standard_layout<DATA_TYPE>::value,
+                      "Fixed-width field must be standard-layout for block deserialization.");
+
+        uint32_t size = 0;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, size);
+        const uint32_t count = size / BYTES_PER_ELEMENT;
+
+        // Fast path: a whole, correctly sized block that fits in the array and is
+        // entirely present in the buffer is read in a single batched pop. Values
+        // are appended after any already-decoded elements (repeated packed fields
+        // may appear more than once and concatenate).
+        if((Error::NO_ERRORS == return_value)
+           && (0U == (size % BYTES_PER_ELEMENT))
+           && ((current_length_ + count) <= MAX_LENGTH)
+           && (buffer.get_size() >= size))
+        {
+          VAR* const raw = reinterpret_cast<VAR*>(data_.data()) + current_length_;
+          return_value = WireFormatter::DeserializeFixedArrayNoTag(raw, count, buffer);
+          if(Error::NO_ERRORS == return_value)
+          {
+            current_length_ += count;
+          }
+        }
+        else
+        {
+          // Misaligned / oversized / truncated block: defer to the base loop which
+          // preserves the previous lenient handling of such input.
+          ReadBufferSection section(buffer, size);
+          return_value = this->deserialize_packed_section(section);
+        }
+        return return_value;
+#else
+        // Qualified base call (non-virtual) reads the size varint fresh and runs
+        // the element-by-element loop; no recursion back into this override.
+        return RepeatedField<DATA_TYPE>::deserialize(buffer);
+#endif
+      }
+
+      //! Non-fixed-width / non-packed element types keep the base implementation.
+      Error deserialize_(::EmbeddedProto::ReadBufferInterface& buffer, std::false_type)
+      {
+        // Qualified base call (non-virtual): no recursion into this override.
+        return RepeatedField<DATA_TYPE>::deserialize(buffer);
+      }
 
       //! Whole-block batched serialize for packed fixed-width scalar elements.
       Error serialize_packed_(WriteBufferInterface& buffer, std::true_type) const

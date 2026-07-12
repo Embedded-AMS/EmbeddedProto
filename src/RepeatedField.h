@@ -203,10 +203,13 @@ namespace EmbeddedProto
       //! Function to deserialize this array.
       /*!
           From a buffer of data fill this array with data.
+          Not final: RepeatedFieldFixedSize overrides this to read a packed
+          fixed-width payload out of the buffer in a single batched block read
+          instead of one virtual call per byte.
           \param buffer [in]  The memory from which the message is obtained.
-          \return Error::NO_ERRORS when every was successful. 
+          \return Error::NO_ERRORS when every was successful.
       */
-      Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) final
+      Error deserialize(::EmbeddedProto::ReadBufferInterface& buffer) override
       {
         Error return_value = Error::NO_ERRORS;
         if(REPEATED_FIELD_IS_PACKED)
@@ -235,7 +238,9 @@ namespace EmbeddedProto
           // form this side emits (repeated_field_encoding feature).
           if(is_length_delimited)
           {
-            return_value = deserialize_packed(buffer);
+            // Route through the virtual deserialize() so RepeatedFieldFixedSize's
+            // whole-block fast path is reached on the generated receive path.
+            return_value = this->deserialize(buffer);
           }
           else
           {
@@ -276,7 +281,7 @@ namespace EmbeddedProto
             ReadBufferSection section(buffer, state.bytes_remaining);
             const uint32_t section_size_before = section.get_size();
             DATA_TYPE element;
-            Error element_result = element.deserialize(section);
+            Error element_result = deserialize_packed_partial_element(element, section);
 
             while(Error::NO_ERRORS == element_result)
             {
@@ -284,7 +289,7 @@ namespace EmbeddedProto
               if(Error::NO_ERRORS == return_value)
               {
                 ++state.element_index;
-                element_result = element.deserialize(section);
+                element_result = deserialize_packed_partial_element(element, section);
               }
               else
               {
@@ -643,20 +648,44 @@ namespace EmbeddedProto
         return return_value;
       }
 
+    protected:
+
+      //! Deserialize one packed length-delimited block into this array.
+      /*!
+          Non-virtual helper (no vtable slot): the fixed-width whole-block fast
+          path lives in RepeatedFieldFixedSize's deserialize() override, which
+          reuses the existing Field::deserialize slot.
+      */
       Error deserialize_packed(ReadBufferInterface& buffer)
       {
         uint32_t size = 0;
         Error return_value = WireFormatter::DeserializeVarint(buffer, size);
         ReadBufferSection bufferSection(buffer, size);
+        return_value = deserialize_packed_section(bufferSection);
+        return return_value;
+      }
+
+      //! Element-by-element loop over an already length-bounded packed section.
+      /*!
+          The caller must pass a buffer bounded to the packed block (a
+          ReadBufferSection); the loop reads elements until it is exhausted
+          (END_OF_BUFFER, the expected clean end, mapped back to NO_ERRORS) or an
+          error occurs. Takes the base ReadBufferInterface: the boundary is
+          enforced by the section object through virtual dispatch, so the concrete
+          type is not needed here. Shared with the fixed-width override for its
+          fall-back cases.
+      */
+      Error deserialize_packed_section(ReadBufferInterface& buffer)
+      {
         DATA_TYPE x;
-        
-        return_value = x.deserialize(bufferSection);
+
+        Error return_value = x.deserialize(buffer);
         while(Error::NO_ERRORS == return_value)
         {
           return_value = this->add(x);
           if(Error::NO_ERRORS == return_value)
           {
-            return_value = x.deserialize(bufferSection);
+            return_value = x.deserialize(buffer);
           }
         }
 
@@ -668,6 +697,8 @@ namespace EmbeddedProto
 
         return return_value;
       }
+
+    private:
 
       Error deserialize_unpacked(ReadBufferInterface& buffer)
       {
@@ -702,6 +733,31 @@ namespace EmbeddedProto
 
         return return_value;
       }
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+      //! Read one packed element, batching fixed-width scalars into a single read.
+      /*!
+          For fixed-width scalar element types the whole element is read with one
+          batched pop (via DeserializeFixedArrayNoTag) instead of a per-byte peek
+          loop. The read is all-or-nothing against the section boundary: an element
+          that is not fully present in the current section leaves the element and
+          the section untouched and returns END_OF_BUFFER, so the resumable partial
+          path continues at the same element/bytes_remaining on the next buffer
+          refill. All other element types keep their existing deserialization.
+      */
+      Error deserialize_packed_partial_element(DATA_TYPE& element, ReadBufferSection& section)
+      {
+        if constexpr(internal::PackedFixedTraits<DATA_TYPE>::is_fixed_width)
+        {
+          using VAR = typename internal::PackedFixedTraits<DATA_TYPE>::scalar_type;
+          return WireFormatter::DeserializeFixedArrayNoTag<VAR>(&element.get(), 1U, section);
+        }
+        else
+        {
+          return element.deserialize(section);
+        }
+      }
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
   };
 
