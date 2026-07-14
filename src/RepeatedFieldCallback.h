@@ -227,13 +227,92 @@ namespace EmbeddedProto
         return return_value;
       }
 
+      //! Guard against packed / size-pass serialization of a streaming field.
+      /*!
+          The base RepeatedField::serialize() writes the packed element payload
+          with no tags, and is also what a size pass reaches via
+          Field::serialized_size() (serialize into a counting buffer). A callback
+          field owns no elements to pack and must not be pulled twice, so it only
+          ever emits EXPANDED through serialize_expanded(). Any call here means the
+          field was placed where a length-delimited (LEN) framing is required
+          (e.g. as a packed field or under a LEN ancestor), which is unsupported
+          for streaming storage: report CALLBACK_SEQUENCE instead of silently
+          draining the source. See design section 16.3.
+      */
+      Error serialize(WriteBufferInterface& buffer) const override
+      {
+        static_cast<void>(buffer);
+        return Error::CALLBACK_SEQUENCE;
+      }
+
+      //! Pull elements from the bound source and emit them EXPANDED.
+      /*!
+          One tag+value is written per element (the same wire form as an EXPANDED
+          repeated scalar field), so no field-level size prefix is needed and the
+          source is drained exactly once in a single pass. Production ends when the
+          source callback returns false. With no source bound nothing is emitted
+          (NO_ERRORS), unless strict mode is on, in which case CALLBACK_NOT_SET is
+          returned. A re-entrant call (the field being pulled while already
+          pulling, e.g. a stray size pass) returns CALLBACK_SEQUENCE rather than
+          double-pulling the stream.
+
+          \param field_number The field number written in each element's tag.
+          \param buffer        The destination buffer.
+      */
+      Error serialize_expanded(uint32_t field_number, WriteBufferInterface& buffer) const
+      {
+        Error return_value = Error::NO_ERRORS;
+        if(pulling_)
+        {
+          return_value = Error::CALLBACK_SEQUENCE;
+        }
+        else if(!source_.is_set())
+        {
+          if(strict_)
+          {
+            return_value = Error::CALLBACK_NOT_SET;
+          }
+          // Not strict: no source bound, emit nothing.
+        }
+        else
+        {
+          pulling_ = true;
+          bool more = true;
+          while(more && (Error::NO_ERRORS == return_value))
+          {
+            bool produced = false;
+            transient_ = DATA_TYPE();
+            static_cast<void>(source_.invoke(produced, transient_));
+            if(produced)
+            {
+              return_value = transient_.serialize_with_id(field_number, buffer, true);
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++length_;
+              }
+            }
+            else
+            {
+              more = false;
+            }
+          }
+          pulling_ = false;
+        }
+        return return_value;
+      }
+
       //! Reset the streaming state (the element counter). Bindings are kept.
       void clear() override { length_ = 0U; }
 
     private:
 
-      //! Running count of elements streamed through this field.
-      uint32_t length_ = 0U;
+      //! Running count of elements streamed through this field. Mutable because
+      //! serialize is const yet advances the counter as elements are pulled.
+      mutable uint32_t length_ = 0U;
+
+      //! Set while serialize_expanded() is draining the source, so a re-entrant
+      //! call (e.g. a stray size pass) is rejected instead of double-pulling.
+      mutable bool pulling_ = false;
 
       //! When true, streaming without a bound callback is an error rather than a
       //! silent drain/no-op.

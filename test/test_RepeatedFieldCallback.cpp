@@ -33,10 +33,14 @@
 #include <Fields.h>
 #include <RepeatedField.h>
 #include <RepeatedFieldCallback.h>
+#include <RepeatedFieldFixedSize.h>
 #include <ReadBufferFixedSize.h>
+#include <WriteBufferFixedSize.h>
 #include <WireFormatter.h>
 #include <Errors.h>
 
+#include <cstddef>
+#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -231,6 +235,105 @@ TEST(RepeatedFieldCallback, deserialize_strict_without_sink_errors)
   ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x01U, 0x02U, 0x03U});
   EXPECT_EQ(Error::CALLBACK_NOT_SET,
             field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
+  EXPECT_EQ(0U, field.get_length());
+}
+
+// --- Step 3: serialize (pull) as EXPANDED + sequence guard -----------------
+
+//! Source that yields a fixed list of values, then signals end-of-stream.
+struct Producer
+{
+  std::vector<int32_t> values;
+  std::size_t index = 0U;
+  bool operator()(int32& element)
+  {
+    const bool produced = index < values.size();
+    if(produced)
+    {
+      element.set(values[index]);
+      ++index;
+    }
+    return produced;
+  }
+};
+
+//! Serialize a resident field EXPANDED the same way the generator does: one
+//! serialize_with_id() per element. Used as the reference byte stream.
+static void serialize_reference_expanded(const ::EmbeddedProto::RepeatedField<int32>& field,
+                                         uint32_t field_number,
+                                         ::EmbeddedProto::WriteBufferInterface& buffer)
+{
+  for(uint32_t i = 0U; i < field.get_length(); ++i)
+  {
+    (void)field.get_const(i).serialize_with_id(field_number, buffer, true);
+  }
+}
+
+TEST(RepeatedFieldCallback, serialize_expanded_matches_resident_field)
+{
+  const uint32_t field_number = 5U;
+
+  // Reference: a resident field holding {1, 2, 3} serialized EXPANDED.
+  ::EmbeddedProto::RepeatedFieldFixedSize<int32, 3> resident;
+  for(int32_t v : {1, 2, 3})
+  {
+    int32 value;
+    value.set(v);
+    (void)resident.add(value);
+  }
+  ::EmbeddedProto::WriteBufferFixedSize<32> expected;
+  serialize_reference_expanded(resident, field_number, expected);
+
+  // Actual: a callback field pulling the same values from a source.
+  Producer producer{{1, 2, 3}};
+  Callback::SourceCallback source;
+  source.set(producer);
+
+  Callback field;
+  field.set_source(source);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> actual;
+  EXPECT_EQ(Error::NO_ERRORS, field.serialize_expanded(field_number, actual));
+
+  ASSERT_EQ(expected.get_size(), actual.get_size());
+  EXPECT_EQ(0, std::memcmp(expected.get_data(), actual.get_data(), expected.get_size()));
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, serialize_expanded_without_source_emits_nothing)
+{
+  Callback field; // no source bound, not strict
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(Error::NO_ERRORS, field.serialize_expanded(7U, buffer));
+  EXPECT_EQ(0U, buffer.get_size());
+  EXPECT_EQ(0U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, serialize_expanded_strict_without_source_errors)
+{
+  Callback field;
+  field.set_strict(true);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.serialize_expanded(7U, buffer));
+  EXPECT_EQ(0U, buffer.get_size());
+}
+
+TEST(RepeatedFieldCallback, packed_or_size_pass_is_rejected)
+{
+  // The base serialize() is what a packed serialize and a size pass reach; a
+  // streaming field must refuse it rather than drain the source twice.
+  Producer producer{{1, 2, 3}};
+  Callback::SourceCallback source;
+  source.set(producer);
+
+  Callback field;
+  field.set_source(source);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  EXPECT_EQ(Error::CALLBACK_SEQUENCE, field.serialize(buffer));
+  EXPECT_EQ(0U, buffer.get_size());
   EXPECT_EQ(0U, field.get_length());
 }
 
