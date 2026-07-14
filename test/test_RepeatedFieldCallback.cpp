@@ -37,6 +37,7 @@
 #include <ReadBufferFixedSize.h>
 #include <WriteBufferFixedSize.h>
 #include <WireFormatter.h>
+#include <MessageState.h>
 #include <Errors.h>
 
 #include <array>
@@ -367,5 +368,115 @@ TEST(RepeatedFieldCallback, packed_or_size_pass_is_rejected)
   EXPECT_EQ(0U, buffer.get_size());
   EXPECT_EQ(0U, field.get_length());
 }
+
+// --- Step 4: partial (resumable) streaming ---------------------------------
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+
+using ::EmbeddedProto::FieldProcessingPhase;
+using ::EmbeddedProto::MessageState;
+
+TEST(RepeatedFieldCallback, deserialize_partial_streams_each_element_once)
+{
+  Collector<8> collector;
+  Callback::SinkCallback sink;
+  sink.set(collector);
+
+  Callback field;
+  field.set_sink(sink);
+
+  MessageState state;
+  // Enter as the message loop would after reading the field tag.
+  state.phase = FieldProcessingPhase::SIZE;
+
+  // Packed block declares size=3, but only values 1 and 2 arrive in this buffer.
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer1({0x03U, 0x01U, 0x02U});
+  EXPECT_EQ(Error::END_OF_BUFFER, field.deserialize_partial_as_field(buffer1, state));
+
+  // The two present elements were streamed exactly once; one byte still pending.
+  expect_collected(collector, {1, 2});
+  EXPECT_EQ(FieldProcessingPhase::DATA, state.phase);
+  EXPECT_EQ(1U, state.bytes_remaining);
+  EXPECT_EQ(2U, field.get_length());
+
+  // The refill presents the final element; it must not re-push 1 or 2.
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer2({0x03U});
+  EXPECT_EQ(Error::NO_ERRORS, field.deserialize_partial_as_field(buffer2, state));
+
+  expect_collected(collector, {1, 2, 3});
+  EXPECT_EQ(FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, serialize_partial_resumes_without_double_pull)
+{
+  const uint32_t field_number = 5U;
+
+  // Reference: the same values serialized EXPANDED in one pass.
+  ::EmbeddedProto::RepeatedFieldFixedSize<int32, 3> resident;
+  for(int32_t v : {1, 2, 3})
+  {
+    int32 value;
+    value.set(v);
+    (void)resident.add(value);
+  }
+  ::EmbeddedProto::WriteBufferFixedSize<32> expected;
+  serialize_reference_expanded(resident, field_number, expected);
+
+  Producer<3> producer;
+  producer.values = {1, 2, 3};
+  producer.size = 3U;
+  Callback::SourceCallback source;
+  source.set(producer);
+
+  Callback field;
+  field.set_source(source);
+
+  // A buffer just large enough for one element's max size (int32 -> 6 bytes),
+  // so every element forces a BUFFER_FULL resume boundary.
+  ::EmbeddedProto::WriteBufferFixedSize<7> buffer;
+  MessageState state; // starts in the TAG (i.e. not COMPLETE) phase.
+
+  std::array<uint8_t, 32> accumulated{};
+  std::size_t total = 0U;
+  uint32_t guard = 0U;
+  while((FieldProcessingPhase::COMPLETE != state.phase) && (guard < 100U))
+  {
+    const Error result = field.serialize_partial_as_field_expanded(field_number, buffer, state, false);
+    EXPECT_TRUE((Error::NO_ERRORS == result) || (Error::BUFFER_FULL == result));
+    std::memcpy(accumulated.data() + total, buffer.get_data(), buffer.get_size());
+    total += buffer.get_size();
+    buffer.clear();
+    ++guard;
+  }
+
+  // Bytes streamed across all resumes equal the single-pass reference, and each
+  // element was produced exactly once (no double-pull).
+  ASSERT_EQ(expected.get_size(), total);
+  EXPECT_EQ(0, std::memcmp(expected.get_data(), accumulated.data(), total));
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, serialize_partial_as_field_is_rejected)
+{
+  // The packed/LEN partial path needs a size pass a callback field cannot serve.
+  Producer<3> producer;
+  producer.values = {1, 2, 3};
+  producer.size = 3U;
+  Callback::SourceCallback source;
+  source.set(producer);
+
+  Callback field;
+  field.set_source(source);
+
+  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  MessageState state;
+  EXPECT_EQ(Error::CALLBACK_SEQUENCE,
+            field.serialize_partial_as_field(7U, buffer, state, false));
+  EXPECT_EQ(0U, buffer.get_size());
+  EXPECT_EQ(0U, field.get_length());
+}
+
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 } // namespace test_EmbeddedAMS_RepeatedFieldCallback

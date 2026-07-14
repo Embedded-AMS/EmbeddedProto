@@ -301,6 +301,99 @@ namespace EmbeddedProto
         return return_value;
       }
 
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+      //! Resumable EXPANDED pull-serialize for the partial engine.
+      /*!
+          Emits one tag+value per element, pulling from the source, and survives a
+          write buffer that fills mid-stream. Before each element is pulled the
+          remaining buffer space is checked against the element's maximum
+          serialized size; when it does not fit, BUFFER_FULL is returned WITHOUT
+          pulling, so the not-yet-produced element stays in the source and the next
+          call resumes with it (all-or-nothing, no double-pull). The source's own
+          cursor is the resumable state; no in-flight element is stored in the
+          field (design section 8.2). The write buffer must be able to hold at
+          least one element's maximum size for the stream to make progress.
+      */
+      Error serialize_partial_as_field_expanded(uint32_t field_number,
+                                                WriteBufferInterface& buffer,
+                                                MessageState& state,
+                                                bool optional) const
+      {
+        static_cast<void>(optional);
+        Error return_value = Error::NO_ERRORS;
+        if(::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase)
+        {
+          // The stream was already fully drained on an earlier call.
+        }
+        else if(!source_.is_set())
+        {
+          if(strict_)
+          {
+            return_value = Error::CALLBACK_NOT_SET;
+          }
+          else
+          {
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          }
+        }
+        else
+        {
+          bool more = true;
+          while(more && (Error::NO_ERRORS == return_value))
+          {
+            if(buffer.get_available_size() < DATA_TYPE::max_serialized_size(field_number))
+            {
+              // Cannot guarantee the next element fits: stop before pulling and
+              // resume on the next call once the buffer has been flushed.
+              return_value = Error::BUFFER_FULL;
+            }
+            else
+            {
+              bool produced = false;
+              transient_ = DATA_TYPE();
+              static_cast<void>(source_.invoke(produced, transient_));
+              if(produced)
+              {
+                // Space was pre-checked, so this write always fits.
+                return_value = transient_.serialize_with_id(field_number, buffer, true);
+                if(Error::NO_ERRORS == return_value)
+                {
+                  ++length_;
+                }
+              }
+              else
+              {
+                more = false;
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              }
+            }
+          }
+        }
+        return return_value;
+      }
+
+      //! Guard the packed / LEN partial path.
+      /*!
+          A streaming field is emitted EXPANDED only (via
+          serialize_partial_as_field_expanded). The default
+          serialize_partial_as_field routes packed scalars through a length-prefixed
+          block that needs a size pass, which a callback field cannot provide
+          without draining its source twice. Reject it with CALLBACK_SEQUENCE
+          instead (design section 16.3).
+      */
+      Error serialize_partial_as_field(uint32_t field_number,
+                                       WriteBufferInterface& buffer,
+                                       MessageState& state,
+                                       bool optional) const override
+      {
+        static_cast<void>(field_number);
+        static_cast<void>(buffer);
+        static_cast<void>(state);
+        static_cast<void>(optional);
+        return Error::CALLBACK_SEQUENCE;
+      }
+#endif // PARTIAL_SERIALIZATION_ENABLED
+
       //! Reset the streaming state (the element counter). Bindings are kept.
       void clear() override { length_ = 0U; }
 
