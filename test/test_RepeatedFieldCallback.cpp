@@ -33,9 +33,12 @@
 #include <Fields.h>
 #include <RepeatedField.h>
 #include <RepeatedFieldCallback.h>
+#include <ReadBufferFixedSize.h>
+#include <WireFormatter.h>
 #include <Errors.h>
 
 #include <type_traits>
+#include <vector>
 
 namespace test_EmbeddedAMS_RepeatedFieldCallback
 {
@@ -151,6 +154,84 @@ TEST(RepeatedFieldCallback, clear_keeps_bindings)
   field.clear();
   EXPECT_EQ(0U, field.get_length());
   EXPECT_TRUE(field.is_sink_set());
+}
+
+// --- Step 2: deserialize (push) --------------------------------------------
+
+using ::EmbeddedProto::WireFormatter;
+
+//! Sink that records every element it receives, in order.
+struct Collector
+{
+  std::vector<int32_t> values;
+  Error operator()(const int32& element)
+  {
+    values.push_back(element.get());
+    return Error::NO_ERRORS;
+  }
+};
+
+TEST(RepeatedFieldCallback, deserialize_packed_streams_to_sink)
+{
+  Collector collector;
+  Callback::SinkCallback sink;
+  sink.set(collector);
+
+  Callback field;
+  field.set_sink(sink);
+
+  // Packed block: [size=3][1][2][3] (each value a single-byte varint).
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x01U, 0x02U, 0x03U});
+  EXPECT_EQ(Error::NO_ERRORS,
+            field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
+
+  EXPECT_EQ(std::vector<int32_t>({1, 2, 3}), collector.values);
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, deserialize_expanded_streams_to_sink)
+{
+  Collector collector;
+  Callback::SinkCallback sink;
+  sink.set(collector);
+
+  Callback field;
+  field.set_sink(sink);
+
+  // Expanded: the message loop calls deserialize_check_type once per element
+  // with the element's own (VARINT) wire type. Feed three single-byte varints.
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x0AU, 0x14U, 0x1EU});
+  for(uint32_t i = 0; i < 3U; ++i)
+  {
+    EXPECT_EQ(Error::NO_ERRORS,
+              field.deserialize_check_type(buffer, WireFormatter::WireType::VARINT));
+  }
+
+  EXPECT_EQ(std::vector<int32_t>({10, 20, 30}), collector.values);
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, deserialize_without_sink_discards)
+{
+  Callback field; // no sink bound, not strict
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x01U, 0x02U, 0x03U});
+  EXPECT_EQ(Error::NO_ERRORS,
+            field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
+
+  // Elements were drained (counted) but not stored anywhere.
+  EXPECT_EQ(3U, field.get_length());
+}
+
+TEST(RepeatedFieldCallback, deserialize_strict_without_sink_errors)
+{
+  Callback field;
+  field.set_strict(true);
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x01U, 0x02U, 0x03U});
+  EXPECT_EQ(Error::CALLBACK_NOT_SET,
+            field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
+  EXPECT_EQ(0U, field.get_length());
 }
 
 } // namespace test_EmbeddedAMS_RepeatedFieldCallback

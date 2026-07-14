@@ -100,6 +100,14 @@ namespace EmbeddedProto
       //! Check whether a sink (push) callback is bound.
       bool is_sink_set() const { return sink_.is_set(); }
 
+      //! Require a binding for the direction being used. When strict, streaming
+      //! without the relevant callback bound returns CALLBACK_NOT_SET instead of
+      //! silently discarding (deserialize) or emitting nothing (serialize).
+      void set_strict(bool strict) { strict_ = strict; }
+
+      //! Whether strict (require-binding) mode is enabled.
+      bool is_strict() const { return strict_; }
+
       // --- RepeatedField interface -------------------------------------------
 
       //! Number of elements streamed so far (a running counter, not a capacity).
@@ -153,13 +161,70 @@ namespace EmbeddedProto
         return Error::ARRAY_FULL;
       }
 
-      //! Append one element. Skeleton behaviour: count it and discard it. Later
-      //! steps forward the element to the bound sink.
+      //! Append one element: push it to the bound sink instead of storing it.
+      /*!
+          Every parsed element funnels through here (the base packed-decode loop
+          calls the virtual add(), and the expanded path is routed here by the
+          deserialize_check_type override below). With a sink bound, the element
+          is forwarded and the sink's Error is propagated. With no sink bound the
+          element is drained and discarded (NO_ERRORS), unless strict mode is on,
+          in which case CALLBACK_NOT_SET is returned. The element counter is
+          advanced only for an element that was accepted.
+      */
       Error add(const DATA_TYPE& value) override
       {
-        static_cast<void>(value);
-        ++length_;
-        return Error::NO_ERRORS;
+        Error return_value = Error::NO_ERRORS;
+        if(sink_.is_set())
+        {
+          Error sink_result = Error::NO_ERRORS;
+          static_cast<void>(sink_.invoke(sink_result, value));
+          return_value = sink_result;
+        }
+        else if(strict_)
+        {
+          return_value = Error::CALLBACK_NOT_SET;
+        }
+        else
+        {
+          // No sink bound and not strict: drain and discard.
+          static_cast<void>(value);
+        }
+
+        if(Error::NO_ERRORS == return_value)
+        {
+          ++length_;
+        }
+        return return_value;
+      }
+
+      //! Route deserialization through add() for both packed and expanded input.
+      /*!
+          Length-delimited (packed) input is handled by the base deserialize(),
+          whose element loop already calls the virtual add(). Expanded input
+          (one tag per element) would otherwise be routed to the random-access
+          get(index) slot this field lacks, so it is deserialized into a stack
+          local here and pushed through add() as well.
+      */
+      Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) override
+      {
+        Error return_value = Error::NO_ERRORS;
+        const bool is_length_delimited =
+            ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type;
+        if(is_length_delimited)
+        {
+          return_value = this->deserialize(buffer);
+        }
+        else
+        {
+          DATA_TYPE element;
+          return_value = element.deserialize_check_type(buffer, wire_type);
+          if(Error::NO_ERRORS == return_value)
+          {
+            return_value = this->add(element);
+          }
+        }
+        return return_value;
       }
 
       //! Reset the streaming state (the element counter). Bindings are kept.
@@ -169,6 +234,10 @@ namespace EmbeddedProto
 
       //! Running count of elements streamed through this field.
       uint32_t length_ = 0U;
+
+      //! When true, streaming without a bound callback is an error rather than a
+      //! silent drain/no-op.
+      bool strict_ = false;
 
       //! Single-element landing slot required by the reference-returning
       //! RepeatedField interface. It is not stream storage: the collection owns
