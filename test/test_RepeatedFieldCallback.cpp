@@ -39,10 +39,11 @@
 #include <WireFormatter.h>
 #include <Errors.h>
 
+#include <array>
 #include <cstddef>
 #include <cstring>
+#include <initializer_list>
 #include <type_traits>
-#include <vector>
 
 namespace test_EmbeddedAMS_RepeatedFieldCallback
 {
@@ -164,20 +165,43 @@ TEST(RepeatedFieldCallback, clear_keeps_bindings)
 
 using ::EmbeddedProto::WireFormatter;
 
-//! Sink that records every element it receives, in order.
+//! Sink that records every element it receives, in order, into a fixed buffer
+//! (no dynamic allocation, so it is representative of MCU usage).
+template<std::size_t N>
 struct Collector
 {
-  std::vector<int32_t> values;
+  std::array<int32_t, N> values{};
+  std::size_t count = 0U;
   Error operator()(const int32& element)
   {
-    values.push_back(element.get());
-    return Error::NO_ERRORS;
+    Error return_value = Error::ARRAY_FULL;
+    if(count < N)
+    {
+      values[count] = element.get();
+      ++count;
+      return_value = Error::NO_ERRORS;
+    }
+    return return_value;
   }
 };
 
+//! Assert a Collector received exactly the expected values, in order.
+template<std::size_t N>
+static void expect_collected(const Collector<N>& collector,
+                             std::initializer_list<int32_t> expected)
+{
+  ASSERT_EQ(expected.size(), collector.count);
+  std::size_t i = 0U;
+  for(int32_t value : expected)
+  {
+    EXPECT_EQ(value, collector.values[i]);
+    ++i;
+  }
+}
+
 TEST(RepeatedFieldCallback, deserialize_packed_streams_to_sink)
 {
-  Collector collector;
+  Collector<8> collector;
   Callback::SinkCallback sink;
   sink.set(collector);
 
@@ -189,13 +213,13 @@ TEST(RepeatedFieldCallback, deserialize_packed_streams_to_sink)
   EXPECT_EQ(Error::NO_ERRORS,
             field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
 
-  EXPECT_EQ(std::vector<int32_t>({1, 2, 3}), collector.values);
+  expect_collected(collector, {1, 2, 3});
   EXPECT_EQ(3U, field.get_length());
 }
 
 TEST(RepeatedFieldCallback, deserialize_expanded_streams_to_sink)
 {
-  Collector collector;
+  Collector<8> collector;
   Callback::SinkCallback sink;
   sink.set(collector);
 
@@ -211,7 +235,7 @@ TEST(RepeatedFieldCallback, deserialize_expanded_streams_to_sink)
               field.deserialize_check_type(buffer, WireFormatter::WireType::VARINT));
   }
 
-  EXPECT_EQ(std::vector<int32_t>({10, 20, 30}), collector.values);
+  expect_collected(collector, {10, 20, 30});
   EXPECT_EQ(3U, field.get_length());
 }
 
@@ -240,14 +264,17 @@ TEST(RepeatedFieldCallback, deserialize_strict_without_sink_errors)
 
 // --- Step 3: serialize (pull) as EXPANDED + sequence guard -----------------
 
-//! Source that yields a fixed list of values, then signals end-of-stream.
+//! Source that yields a fixed list of values, then signals end-of-stream. Uses
+//! a statically sized buffer (no dynamic allocation), like MCU code would.
+template<std::size_t N>
 struct Producer
 {
-  std::vector<int32_t> values;
+  std::array<int32_t, N> values{};
+  std::size_t size = 0U;
   std::size_t index = 0U;
   bool operator()(int32& element)
   {
-    const bool produced = index < values.size();
+    const bool produced = index < size;
     if(produced)
     {
       element.set(values[index]);
@@ -285,7 +312,9 @@ TEST(RepeatedFieldCallback, serialize_expanded_matches_resident_field)
   serialize_reference_expanded(resident, field_number, expected);
 
   // Actual: a callback field pulling the same values from a source.
-  Producer producer{{1, 2, 3}};
+  Producer<3> producer;
+  producer.values = {1, 2, 3};
+  producer.size = 3U;
   Callback::SourceCallback source;
   source.set(producer);
 
@@ -324,7 +353,9 @@ TEST(RepeatedFieldCallback, packed_or_size_pass_is_rejected)
 {
   // The base serialize() is what a packed serialize and a size pass reach; a
   // streaming field must refuse it rather than drain the source twice.
-  Producer producer{{1, 2, 3}};
+  Producer<3> producer;
+  producer.values = {1, 2, 3};
+  producer.size = 3U;
   Callback::SourceCallback source;
   source.set(producer);
 
