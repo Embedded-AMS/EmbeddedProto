@@ -76,6 +76,18 @@ class CallbackStorageOption(unittest.TestCase):
             '[(EmbeddedProto.options).callbackStorage = true]; }')
         self.assertEqual(0, result.returncode, result.stderr)
 
+    def test_singular_bytes_is_accepted(self):
+        result = run_generator(
+            'message M { bytes x = 1 '
+            '[(EmbeddedProto.options).callbackStorage = true]; }')
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_singular_string_is_accepted(self):
+        result = run_generator(
+            'message M { string x = 1 '
+            '[(EmbeddedProto.options).callbackStorage = true]; }')
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_oneof_member_is_rejected(self):
         result = run_generator(
             'message M { oneof o { int32 x = 1 '
@@ -88,14 +100,21 @@ class CallbackStorageOption(unittest.TestCase):
             'message M { int32 x = 1 '
             '[(EmbeddedProto.options).callbackStorage = true]; }')
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("only supported on repeated fields", result.stderr)
+        self.assertIn("singular scalar field is not supported", result.stderr)
 
-    def test_explicit_presence_singular_is_rejected(self):
+    def test_explicit_presence_singular_scalar_is_rejected(self):
         result = run_generator(
             'message M { optional int32 x = 1 '
             '[(EmbeddedProto.options).callbackStorage = true]; }')
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("only supported on repeated fields", result.stderr)
+        self.assertIn("singular scalar field is not supported", result.stderr)
+
+    def test_explicit_presence_bytes_is_rejected(self):
+        result = run_generator(
+            'message M { optional bytes x = 1 '
+            '[(EmbeddedProto.options).callbackStorage = true]; }')
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("explicit-presence", result.stderr)
 
     def test_repeated_string_is_rejected(self):
         result = run_generator(

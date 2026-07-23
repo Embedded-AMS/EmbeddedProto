@@ -35,8 +35,8 @@ Postal address:
 #}
 {% if field.uses_serialize_len() %}
 {# Field types that use serialize_len(): messages, strings, bytes, repeated #}
-{% if field.has_callback_storage() %}
-{# Callback storage: pull elements from the bound source and emit each EXPANDED (one tag+value per element) in a single call. #}
+{% if field.callback_is_expanded() %}
+{# Repeated callback storage: pull elements from the bound source and emit each EXPANDED (one tag+value per element) in a single call. #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
   return_value = {{field.get_variable_name()}}.serialize_expanded(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);

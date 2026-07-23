@@ -129,6 +129,22 @@ namespace EmbeddedProto
       //! Whether strict (require-binding) mode is enabled.
       bool is_strict() const { return strict_; }
 
+      //! Copy the bindings from another callback field (used by the generated message copy/assignment).
+      /*!
+        A callback field owns no payload to copy, so copying it copies the size,
+        source and sink handles: the copy streams through the same user callbacks.
+
+        \return Always NO_ERRORS, for signature compatibility with FieldStringBytes::set().
+      */
+      Error set(const BytesStringCallback<DATA_TYPE>& rhs)
+      {
+        size_ = rhs.size_;
+        source_ = rhs.source_;
+        sink_ = rhs.sink_;
+        strict_ = rhs.strict_;
+        return Error::NO_ERRORS;
+      }
+
       // --- FieldStringBytes-shaped interface ---------------------------------
 
       //! The payload length written as the LEN prefix, taken from the size callback (0 when unbound).

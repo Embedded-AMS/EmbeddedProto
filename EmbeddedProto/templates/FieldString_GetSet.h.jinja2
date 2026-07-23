@@ -83,4 +83,6 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs) { {{field.get_variable_name()}}.set(rhs); }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+{% if not field.has_callback_storage() %}
 inline const char* {{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }
+{% endif %}
