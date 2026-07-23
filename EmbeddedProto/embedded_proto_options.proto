@@ -27,6 +27,12 @@ message Options {
                                   // matching base class (RepeatedField, BaseStringBytes or
                                   // MessageInterface). Takes precedence over maxLength and
                                   // generates no size template parameter.
+  bool callbackStorage = 4;       // When set the field streams its elements through user callbacks
+                                  // instead of storing them. The generator emits a concrete
+                                  // ::EmbeddedProto::RepeatedFieldCallback<T> and serializes the
+                                  // field EXPANDED (one tag per element). Currently limited to
+                                  // repeated scalar/enum fields; rejected on oneof members and
+                                  // singular fields.
 }
 
 extend google.protobuf.FieldOptions { 
