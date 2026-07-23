@@ -69,12 +69,10 @@ namespace EmbeddedProto
   {
     public:
 
-      //! Pull callback used during serialize: fill \p element, return true when a
-      //! value was produced, false to signal the end of the stream.
+      //! Pull callback used during serialize: fill \p element, return true when a value was produced, false to signal the end of the stream.
       using SourceCallback = Functional<bool(DATA_TYPE&)>;
 
-      //! Push callback used during deserialize: consume one parsed \p element,
-      //! return an Error (NO_ERRORS to continue).
+      //! Push callback used during deserialize: consume one parsed \p element, return an Error (NO_ERRORS to continue).
       using SinkCallback = Functional<Error(const DATA_TYPE&)>;
 
       RepeatedFieldCallback() = default;
@@ -100,9 +98,12 @@ namespace EmbeddedProto
       //! Check whether a sink (push) callback is bound.
       bool is_sink_set() const { return sink_.is_set(); }
 
-      //! Require a binding for the direction being used. When strict, streaming
-      //! without the relevant callback bound returns CALLBACK_NOT_SET instead of
-      //! silently discarding (deserialize) or emitting nothing (serialize).
+      //! Require a binding for the direction being used. 
+      /*! 
+        When strict, streaming without the relevant callback bound returns 
+        CALLBACK_NOT_SET instead of silently discarding (deserialize) or 
+        emitting nothing (serialize).
+      */
       void set_strict(bool strict) { strict_ = strict; }
 
       //! Whether strict (require-binding) mode is enabled.
@@ -113,8 +114,7 @@ namespace EmbeddedProto
       //! Number of elements streamed so far (a running counter, not a capacity).
       uint32_t get_length() const override { return length_; }
 
-      //! Streaming is effectively unbounded; report a large sentinel so the
-      //! engine's "array full" checks never fire.
+      //! Streaming is effectively unbounded; report a large sentinel so the engine's "array full" checks never fire.
       uint32_t get_max_length() const override { return UINT32_MAX; }
 
       //! No elements are stored, so no bytes are resident.
@@ -399,21 +399,19 @@ namespace EmbeddedProto
 
     private:
 
-      //! Running count of elements streamed through this field. Mutable because
-      //! serialize is const yet advances the counter as elements are pulled.
+      //! Running count of elements streamed through this field. Mutable because serialize is const yet advances the counter as elements are pulled.
       mutable uint32_t length_ = 0U;
 
-      //! Set while serialize_expanded() is draining the source, so a re-entrant
-      //! call (e.g. a stray size pass) is rejected instead of double-pulling.
+      //! Set while serialize_expanded() is draining the source, so a re-entrant call (e.g. a stray size pass) is rejected instead of double-pulling.
       mutable bool pulling_ = false;
 
-      //! When true, streaming without a bound callback is an error rather than a
-      //! silent drain/no-op.
+      //! When true, streaming without a bound callback is an error rather than a silent drain/no-op.
       bool strict_ = false;
 
-      //! Single-element landing slot required by the reference-returning
-      //! RepeatedField interface. It is not stream storage: the collection owns
-      //! no per-element buffer.
+      //! Single-element landing slot required by the reference-returning RepeatedField interface. 
+      /*! 
+        It is not stream storage: the collection owns no per-element buffer.
+      */
       mutable DATA_TYPE transient_ = {};
 
       //! Pull callback invoked to produce elements while serializing.

@@ -166,8 +166,7 @@ TEST(RepeatedFieldCallback, clear_keeps_bindings)
 
 using ::EmbeddedProto::WireFormatter;
 
-//! Sink that records every element it receives, in order, into a fixed buffer
-//! (no dynamic allocation, so it is representative of MCU usage).
+//! Sink that records every element it receives, in order, into a fixed buffer (no dynamic allocation, so it is representative of MCU usage).
 template<std::size_t N>
 struct Collector
 {
@@ -265,8 +264,7 @@ TEST(RepeatedFieldCallback, deserialize_strict_without_sink_errors)
 
 // --- Step 3: serialize (pull) as EXPANDED + sequence guard -----------------
 
-//! Source that yields a fixed list of values, then signals end-of-stream. Uses
-//! a statically sized buffer (no dynamic allocation), like MCU code would.
+//! Source that yields a fixed list of values, then signals end-of-stream. Uses a statically sized buffer (no dynamic allocation), like MCU code would.
 template<std::size_t N>
 struct Producer
 {
@@ -285,8 +283,7 @@ struct Producer
   }
 };
 
-//! Serialize a resident field EXPANDED the same way the generator does: one
-//! serialize_with_id() per element. Used as the reference byte stream.
+//! Serialize a resident field EXPANDED the same way the generator does: one serialize_with_id() per element. Used as the reference byte stream.
 static void serialize_reference_expanded(const ::EmbeddedProto::RepeatedField<int32>& field,
                                          uint32_t field_number,
                                          ::EmbeddedProto::WriteBufferInterface& buffer)
