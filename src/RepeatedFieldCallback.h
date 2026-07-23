@@ -123,8 +123,19 @@ namespace EmbeddedProto
       //! Streaming is effectively unbounded.
       uint32_t get_max_size() const override { return UINT32_MAX; }
 
-      //! Random access is unsupported; return the transient slot as a landing
-      //! area for the engine (its contents are not retained).
+      //! Required of a customStorage repeated type. 
+      /*! 
+        A stream has no finite serialized size, so report the unbounded sentinel 
+        (consistent with get_max_length/get_max_size). A message with a callback field 
+        therefore cannot be statically buffer-sized, which is inherent.
+      */
+      static constexpr uint32_t max_serialized_size(const uint32_t field_number)
+      {
+        static_cast<void>(field_number);
+        return UINT32_MAX;
+      }
+
+      //! Random access is unsupported; return the transient slot as a landing area for the engine (its contents are not retained).
       DATA_TYPE& get(uint32_t index) override
       {
         static_cast<void>(index);
