@@ -49,13 +49,19 @@ PROTO_HEADER = (
     'package cbtest;\n'
 )
 
+EDITION_HEADER = (
+    'edition = "2023";\n'
+    'import "embedded_proto_options.proto";\n'
+    'package cbtest;\n'
+)
 
-def run_generator(message_definition):
+
+def run_generator(message_definition, header=PROTO_HEADER):
     # Write a proto with the given message to a temporary directory and run the generator on it.
     with tempfile.TemporaryDirectory() as tmp_dir:
         proto_path = os.path.join(tmp_dir, "case.proto")
         with open(proto_path, "w") as proto_file:
-            proto_file.write(PROTO_HEADER + message_definition + "\n")
+            proto_file.write(header + message_definition + "\n")
 
         command = [
             sys.executable, "-m", "grpc_tools.protoc",
@@ -122,6 +128,24 @@ class CallbackStorageOption(unittest.TestCase):
             '[(EmbeddedProto.options).callbackStorage = true]; }')
         self.assertNotEqual(0, result.returncode)
         self.assertIn("not yet supported", result.stderr)
+
+    def test_repeated_message_delimited_is_accepted(self):
+        result = run_generator(
+            'message Inner { int32 a = 1; } '
+            'message M { repeated Inner x = 1 ['
+            'features.message_encoding = DELIMITED, '
+            '(EmbeddedProto.options).callbackStorage = true]; }',
+            header=EDITION_HEADER)
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_repeated_message_without_delimited_is_rejected(self):
+        result = run_generator(
+            'message Inner { int32 a = 1; } '
+            'message M { repeated Inner x = 1 '
+            '[(EmbeddedProto.options).callbackStorage = true]; }',
+            header=EDITION_HEADER)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("DELIMITED", result.stderr)
 
 
 if __name__ == "__main__":

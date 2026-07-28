@@ -37,7 +37,16 @@ Postal address:
 {# Field types that use LENGTH_DELIMITED: messages, strings, bytes, repeated #}
 {# ======================================================================= #}
 
-{% if (field.optional or (field.oneof is not none)) %}
+{% if field.callback_is_expanded() %}
+{# ------------------------------------------------------------------------- #}
+{# Repeated callback storage: pull each element from the bound source and emit #}
+{# it EXPANDED (one tag+value or one group per element), resuming across a     #}
+{# full buffer without pulling any element twice.                             #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_as_field_expanded(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+
+{% elif (field.optional or (field.oneof is not none)) %}
 {# ------------------------------------------------------------------------- #}
 {# Optional or oneof LENGTH_DELIMITED field #}
 {# ------------------------------------------------------------------------- #}

@@ -119,6 +119,10 @@ class Field:
     def callback_is_expanded(self):
         return False
 
+    # Returns true when a callbackStorage field streams a repeated message (through MessageCallback).
+    def callback_is_message(self):
+        return False
+
     # Raise a generator error when callbackStorage is set on a field kind that is not yet supported.
     def reject_unsupported_callback_storage(self, is_repeated, in_real_oneof):
         location = self.parent.name + "." + self.descriptor.name
@@ -128,11 +132,21 @@ class Field:
         if in_real_oneof:
             raise Exception(location + ": callbackStorage cannot be used on oneof members.")
         elif is_repeated:
-            # Repeated storage streams through RepeatedFieldCallback, which handles scalar/enum
-            # elements only; repeated message/string/bytes streaming is not built yet.
-            if is_message or is_string_or_bytes:
-                raise Exception(location + ": callbackStorage on repeated message, string or bytes "
-                                "fields is not yet supported; only repeated scalar and enum fields are.")
+            if is_message:
+                # Repeated message streaming uses MessageCallback, which frames each element
+                # DELIMITED (a group carries no size prefix, so there is no size pre-pass). Require
+                # the field to be DELIMITED-encoded; a LEN element would need the pre-pass a stream
+                # cannot provide.
+                from .Features import MessageEncoding
+                is_delimited = (self.resolved_features is not None) and \
+                    (MessageEncoding.DELIMITED == self.resolved_features["message_encoding"])
+                if not is_delimited:
+                    raise Exception(location + ": callbackStorage on a repeated message field requires "
+                                    "features.message_encoding = DELIMITED.")
+            elif is_string_or_bytes:
+                # Repeated string/bytes streaming is not built yet.
+                raise Exception(location + ": callbackStorage on repeated string or bytes fields is not "
+                                "yet supported; only repeated scalar, enum and message fields are.")
         elif is_string_or_bytes:
             # Singular bytes/string streams through BytesStringCallback. Presence-on-bind for an
             # explicit-presence (optional) field is a later extension, so reject it for now.
@@ -831,6 +845,10 @@ class FieldRepeated(Field):
         # element type. Unlike customStorage this is not a template parameter; the element type is
         # known at generation time and no maximum length applies.
         if self.has_callback_storage():
+            # A repeated message streams through MessageCallback (DELIMITED groups); scalar/enum
+            # elements stream through RepeatedFieldCallback (EXPANDED tag+value per element).
+            if self.callback_is_message():
+                return "::EmbeddedProto::MessageCallback<" + self.actual_type.get_type() + ">"
             return "::EmbeddedProto::RepeatedFieldCallback<" + self.actual_type.get_type() + ">"
 
         # When the user supplies the storage type, use the plain template parameter as the field type. No size is
@@ -918,6 +936,12 @@ class FieldRepeated(Field):
         return self.render("FieldRepeated_GetSet.h.jinja2", jinja_environment=jinja_env)
 
     def render_deserialize(self, jinja_env):
+        # A repeated message callback arrives as a START_GROUP framed element; route it through the
+        # message template (which dispatches on the group wire type to deserialize()) rather than the
+        # basic deserialize_check_type path, which is LEN-only for a message and would reject a group.
+        if self.callback_is_message():
+            rendered = self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+            return rendered.rstrip()
         str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
         return str.rstrip()
 
@@ -929,9 +953,21 @@ class FieldRepeated(Field):
         # Unpacked mode is handled separately in the template
         return self.get_variable_name() + ".serialized_size_packed()"
 
-    # Repeated scalar/enum callback storage serializes EXPANDED (one tag per element).
+    # Repeated scalar/enum/message callback storage serializes EXPANDED (one tag or group per element).
     def callback_is_expanded(self):
         return self.has_callback_storage()
+
+    # True when this is a repeated message field streamed through MessageCallback.
+    def callback_is_message(self):
+        return self.has_callback_storage() and \
+            (FieldDescriptorProto.TYPE_MESSAGE == self.actual_type.descriptor.type)
+
+    # A repeated message callback streams each element as a DELIMITED group; every other repeated
+    # field keeps the length-prefixed / expanded encoding selected elsewhere.
+    def is_delimited(self):
+        if self.callback_is_message():
+            return self.actual_type.is_delimited()
+        return False
 
     def is_packed(self):
         # A callback field streams one element at a time and cannot run the length

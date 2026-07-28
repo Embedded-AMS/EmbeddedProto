@@ -28,11 +28,14 @@
  *    the Netherlands
  */
 
-// Element sub-message streamed through a MessageCallback. The outer message with
-// the callbackStorage repeated-message field is added alongside once the generator
-// emits MessageCallback for it.
+// Element sub-message streamed through a MessageCallback, and the outer message
+// carrying the repeated-message callbackStorage field. The field must be DELIMITED
+// (group) encoded: a group carries no size prefix, so the stream is written in a
+// single pass without a serialized_size() pre-pass.
 
-syntax = "proto3";
+edition = "2023";
+
+import "embedded_proto_options.proto";
 
 package callback_storage_message;
 
@@ -40,4 +43,12 @@ message Point
 {
   int32 x = 1;
   int32 y = 2;
+}
+
+message PointStreamMsg
+{
+  repeated Point points = 1 [
+    features.message_encoding = DELIMITED,
+    (EmbeddedProto.options).callbackStorage = true
+  ];
 }
