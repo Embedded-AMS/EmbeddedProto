@@ -58,22 +58,27 @@ using ::EmbeddedProto::Error;
 using ::EmbeddedProto::int32;
 
 //! The same generated message, once with resident storage (to produce bytes) and once with callback storage (to consume them). Both satisfy the customStorage static_assert.
-using ResidentMsg = callback_storage::CallbackStorageMsg<::EmbeddedProto::RepeatedFieldFixedSize<int32, 8>>;
-using CallbackMsg = callback_storage::CallbackStorageMsg<::EmbeddedProto::RepeatedFieldCallback<int32>>;
-using SinkCallback = ::EmbeddedProto::RepeatedFieldCallback<int32>::SinkCallback;
+using ResidentMsg = callback_storage::CallbackStorageMsg<
+    ::EmbeddedProto::RepeatedFieldFixedSize<int32, 8>,
+    ::EmbeddedProto::RepeatedFieldFixedSize<callback_storage::Status, 8>>;
+using CallbackMsg = callback_storage::CallbackStorageMsg<
+    ::EmbeddedProto::RepeatedFieldCallback<int32>,
+    ::EmbeddedProto::RepeatedFieldCallback<callback_storage::Status>>;
+using IntSinkCallback = ::EmbeddedProto::RepeatedFieldCallback<int32>::SinkCallback;
+using StatusSinkCallback = ::EmbeddedProto::RepeatedFieldCallback<callback_storage::Status>::SinkCallback;
 
 //! Sink recording received elements into a fixed buffer (no dynamic allocation).
-template<std::size_t N>
+template<typename T, std::size_t N>
 struct Collector
 {
-  std::array<int32_t, N> values{};
+  std::array<T, N> values{};
   std::size_t count = 0U;
-  Error operator()(const int32& element)
+  Error operator()(const T& element)
   {
     Error return_value = Error::ARRAY_FULL;
     if(count < N)
     {
-      values[count] = element.get();
+      values[count] = element;
       ++count;
       return_value = Error::NO_ERRORS;
     }
@@ -81,20 +86,20 @@ struct Collector
   }
 };
 
-template<std::size_t N>
-static void expect_collected(const Collector<N>& collector, std::initializer_list<int32_t> expected)
+template<typename T, std::size_t N>
+static void expect_collected(const Collector<T, N>& collector, std::initializer_list<T> expected)
 {
   ASSERT_EQ(expected.size(), collector.count);
   std::size_t i = 0U;
-  for(int32_t value : expected)
+  for(const T& value : expected)
   {
     EXPECT_EQ(value, collector.values[i]);
     ++i;
   }
 }
 
-//! Serialize {10, 20, 30} through a resident-storage instance of the message.
-static void serialize_reference(::EmbeddedProto::WriteBufferInterface& buffer)
+//! Serialize int32 values {10, 20, 30} through a resident-storage instance of the message.
+static void serialize_int_reference(::EmbeddedProto::WriteBufferInterface& buffer)
 {
   ResidentMsg out;
   (void)out.mutable_values().add(10);
@@ -103,13 +108,23 @@ static void serialize_reference(::EmbeddedProto::WriteBufferInterface& buffer)
   ASSERT_EQ(Error::NO_ERRORS, out.serialize(buffer));
 }
 
-TEST(CallbackStorageE2E, deserialize_streams_to_sink)
+//! Serialize Status enum values {STATUS_OFF, STATUS_ON, STATUS_ERROR} through a resident-storage instance of the message.
+static void serialize_enum_reference(::EmbeddedProto::WriteBufferInterface& buffer)
+{
+  ResidentMsg out;
+  (void)out.mutable_statuses().add(callback_storage::Status::STATUS_OFF);
+  (void)out.mutable_statuses().add(callback_storage::Status::STATUS_ON);
+  (void)out.mutable_statuses().add(callback_storage::Status::STATUS_ERROR);
+  ASSERT_EQ(Error::NO_ERRORS, out.serialize(buffer));
+}
+
+TEST(CallbackStorageE2E, deserialize_int_streams_to_sink)
 {
   ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
-  serialize_reference(buffer);
+  serialize_int_reference(buffer);
 
-  Collector<8> collector;
-  SinkCallback sink;
+  Collector<int32, 8> collector;
+  IntSinkCallback sink;
   sink.set(collector);
 
   CallbackMsg in;
@@ -127,10 +142,10 @@ TEST(CallbackStorageE2E, deserialize_streams_to_sink)
   EXPECT_EQ(3U, in.values().get_length());
 }
 
-TEST(CallbackStorageE2E, deserialize_without_sink_discards)
+TEST(CallbackStorageE2E, deserialize_int_without_sink_discards)
 {
   ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
-  serialize_reference(buffer);
+  serialize_int_reference(buffer);
 
   CallbackMsg in; // no sink bound
 
@@ -145,17 +160,44 @@ TEST(CallbackStorageE2E, deserialize_without_sink_discards)
   EXPECT_EQ(3U, in.values().get_length());
 }
 
-#ifdef PARTIAL_SERIALIZATION_ENABLED
-
-TEST(CallbackStorageE2E, partial_deserialize_streams_to_sink_across_split)
+TEST(CallbackStorageE2E, deserialize_enum_streams_to_sink)
 {
   ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
-  serialize_reference(buffer);
+  serialize_enum_reference(buffer);
+
+  Collector<callback_storage::Status, 8> collector;
+  StatusSinkCallback sink;
+  sink.set(collector);
+
+  CallbackMsg in;
+  in.mutable_statuses().set_sink(sink);
+
+  ::EmbeddedProto::ReadBufferFixedSize<64> read_buffer;
+  for(uint32_t i = 0U; i < buffer.get_size(); ++i)
+  {
+    read_buffer.push(buffer.get_data()[i]);
+  }
+
+  ASSERT_EQ(Error::NO_ERRORS, in.deserialize(read_buffer));
+
+  expect_collected(collector, {
+      callback_storage::Status::STATUS_OFF,
+      callback_storage::Status::STATUS_ON,
+      callback_storage::Status::STATUS_ERROR});
+  EXPECT_EQ(3U, in.statuses().get_length());
+}
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+
+TEST(CallbackStorageE2E, partial_deserialize_int_streams_to_sink_across_split)
+{
+  ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
+  serialize_int_reference(buffer);
   const uint32_t total = buffer.get_size();
   ASSERT_LT(3U, total); // need at least a few bytes to split
 
-  Collector<8> collector;
-  SinkCallback sink;
+  Collector<int32, 8> collector;
+  IntSinkCallback sink;
   sink.set(collector);
 
   CallbackMsg in;

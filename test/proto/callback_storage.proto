@@ -38,7 +38,15 @@ import "embedded_proto_options.proto";
 
 package callback_storage;
 
+enum Status
+{
+  STATUS_OFF = 0;
+  STATUS_ON = 1;
+  STATUS_ERROR = 2;
+}
+
 message CallbackStorageMsg
 {
   repeated int32 values = 1 [(EmbeddedProto.options).customStorage = true];
+  repeated Status statuses = 2 [(EmbeddedProto.options).customStorage = true];
 }
