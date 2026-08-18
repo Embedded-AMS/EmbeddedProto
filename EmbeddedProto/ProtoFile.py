@@ -62,7 +62,9 @@ def toposort_add_msg(msg, namespace, dependency_data):
 
     for f in msg.field:
         if ((FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type)) \
-                and (f.type_name not in local_definitions):
+                and (f.type_name not in local_definitions) \
+                and not f.type_name.startswith(local_namespace + ".") \
+                and not f.type_name.startswith(".google.protobuf."):
             dependencies.add(f.type_name)
 
     # If we have any dependencies add them
