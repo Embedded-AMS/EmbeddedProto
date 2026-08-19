@@ -37,6 +37,17 @@ from google.protobuf import descriptor_pb2
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 
 
+# Proto files for which no C++ code is generated. Our own options file only carries generator settings. The google
+# descriptor file only carries the definitions required to declare custom options, those definitions are used by protoc
+# and other plugins, not by the embedded target.
+EXCLUDED_PROTO_FILES = ("embedded_proto_options.proto", "google/protobuf/descriptor.proto")
+
+
+# Return true if no C++ code should be generated for the given proto file name.
+def is_excluded_proto_file(proto_filename):
+    return any(excluded in proto_filename for excluded in EXCLUDED_PROTO_FILES)
+
+
 # -----------------------------------------------------------------------------
 
 def toposort_add_msg(msg, namespace, dependency_data):
@@ -63,8 +74,7 @@ def toposort_add_msg(msg, namespace, dependency_data):
     for f in msg.field:
         if ((FieldDescriptorProto.TYPE_MESSAGE == f.type) or (FieldDescriptorProto.TYPE_ENUM == f.type)) \
                 and (f.type_name not in local_definitions) \
-                and not f.type_name.startswith(local_namespace + ".") \
-                and not f.type_name.startswith(".google.protobuf."):
+                and not f.type_name.startswith(local_namespace + "."):
             dependencies.add(f.type_name)
 
     # If we have any dependencies add them
@@ -152,7 +162,7 @@ class ProtoFile:
         imported_dependencies = []
         if self.descriptor.dependency:
             imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in
-                                     self.descriptor.dependency if "embedded_proto_options.proto" not in dependency]
+                                     self.descriptor.dependency if not is_excluded_proto_file(dependency)]
         return imported_dependencies
 
     def get_namespaces(self):

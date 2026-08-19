@@ -38,156 +38,148 @@ _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto
+from google.protobuf import descriptor_pb2
+from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto, FileDescriptorProto
+from toposort import CircularDependencyError, toposort_flatten
 from EmbeddedProto.ProtoFile import toposort_add_msg
+
+
+def add_message_field(msg, name, type_name):
+    field = msg.field.add()
+    field.name = name
+    field.type = FieldDescriptorProto.TYPE_MESSAGE
+    field.type_name = type_name
+    return field
 
 
 class TestToposortAddMsg(unittest.TestCase):
     """Tests for the toposort_add_msg function to ensure it handles circular dependencies."""
 
-    def test_excludes_google_protobuf_types(self):
-        """Test that google.protobuf.* types are excluded from dependencies."""
+    def test_includes_types_of_other_files(self):
+        """Types defined in another file are a real dependency and must be kept."""
         msg = DescriptorProto()
         msg.name = "TestMessage"
+        add_message_field(msg, "duration_field", ".google.protobuf.Duration")
 
-        # Add a field referencing a google.protobuf type
-        field = msg.field.add()
-        field.name = "options_field"
-        field.type = FieldDescriptorProto.TYPE_MESSAGE
-        field.type_name = ".google.protobuf.FieldOptions"
+        result = toposort_add_msg(msg, ".test", {})
 
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
-
-        # The google.protobuf type should NOT be in dependencies
-        self.assertNotIn(".google.protobuf.FieldOptions", result.get(".test.TestMessage", set()))
-        # Should only have the namespace dependency
-        self.assertEqual(result.get(".test.TestMessage"), {".test"})
-
-    def test_excludes_same_namespace_types(self):
-        """Test that types in the same namespace are excluded from dependencies."""
-        msg = DescriptorProto()
-        msg.name = "TestMessage"
-
-        # Add a field referencing a type in the same namespace
-        field = msg.field.add()
-        field.name = "nested_field"
-        field.type = FieldDescriptorProto.TYPE_MESSAGE
-        field.type_name = ".test.TestMessage.NestedType"
-
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
-
-        # The same-namespace type should NOT be in dependencies
-        self.assertNotIn(".test.TestMessage.NestedType", result.get(".test.TestMessage", set()))
-        # Should only have the namespace dependency
-        self.assertEqual(result.get(".test.TestMessage"), {".test"})
+        self.assertEqual(result.get(".test.TestMessage"), {".test", ".google.protobuf.Duration"})
 
     def test_includes_different_namespace_types(self):
         """Test that types from different namespaces are included as dependencies."""
         msg = DescriptorProto()
         msg.name = "TestMessage"
+        add_message_field(msg, "other_field", ".other.SomeType")
 
-        # Add a field referencing a type in a different namespace
-        field = msg.field.add()
-        field.name = "other_field"
-        field.type = FieldDescriptorProto.TYPE_MESSAGE
-        field.type_name = ".other.SomeType"
+        result = toposort_add_msg(msg, ".test", {})
 
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
-
-        # The different-namespace type SHOULD be in dependencies
-        self.assertIn(".other.SomeType", result.get(".test.TestMessage", set()))
-        # Should have both namespace and the other type
         self.assertEqual(result.get(".test.TestMessage"), {".test", ".other.SomeType"})
 
-    def test_excludes_nested_google_protobuf_types(self):
-        """Test that nested google.protobuf.* types are excluded."""
+    def test_excludes_own_nested_types(self):
+        """A field using a type nested in this message is not a dependency of this message.
+
+        The nested type depends on the message it is defined in. Listing it as a dependency of that message as well
+        results in a circular dependency which is not there.
+        """
         msg = DescriptorProto()
         msg.name = "TestMessage"
+        add_message_field(msg, "nested_field", ".test.TestMessage.NestedType")
 
-        # Add a field referencing a deeply nested google.protobuf type
-        field = msg.field.add()
-        field.name = "feature_field"
-        field.type = FieldDescriptorProto.TYPE_MESSAGE
-        field.type_name = ".google.protobuf.FeatureSet"
+        result = toposort_add_msg(msg, ".test", {})
 
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
+        self.assertEqual(result.get(".test.TestMessage"), {".test"})
 
-        # The google.protobuf type should NOT be in dependencies
-        self.assertNotIn(".google.protobuf.FeatureSet", result.get(".test.TestMessage", set()))
-
-    def test_handles_multiple_fields(self):
-        """Test that multiple fields are processed correctly."""
+    def test_excludes_deeply_nested_types(self):
+        """The same but for a type nested more than one level deep, it is not in the local definitions."""
         msg = DescriptorProto()
-        msg.name = "TestMessage"
+        msg.name = "A"
+        nested_b = msg.nested_type.add()
+        nested_b.name = "B"
+        nested_c = nested_b.nested_type.add()
+        nested_c.name = "C"
+        add_message_field(msg, "c_field", ".test.A.B.C")
 
-        # Add multiple fields with different type references
-        field1 = msg.field.add()
-        field1.name = "google_field"
-        field1.type = FieldDescriptorProto.TYPE_MESSAGE
-        field1.type_name = ".google.protobuf.FieldOptions"
+        result = toposort_add_msg(msg, ".test", {})
 
-        field2 = msg.field.add()
-        field2.name = "same_ns_field"
-        field2.type = FieldDescriptorProto.TYPE_MESSAGE
-        field2.type_name = ".test.TestMessage.Nested"
+        self.assertEqual(result.get(".test.A"), {".test"})
 
-        field3 = msg.field.add()
-        field3.name = "other_ns_field"
-        field3.type = FieldDescriptorProto.TYPE_MESSAGE
-        field3.type_name = ".other.Type"
-
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
-
-        # Only the different namespace type should be in dependencies
-        deps = result.get(".test.TestMessage", set())
-        self.assertNotIn(".google.protobuf.FieldOptions", deps)
-        self.assertNotIn(".test.TestMessage.Nested", deps)
-        self.assertIn(".other.Type", deps)
-        self.assertIn(".test", deps)
-
-    def test_handles_enum_fields(self):
-        """Test that enum field types are also handled correctly."""
+    def test_deeply_nested_types_can_be_sorted(self):
+        """The regression of PROTO-298 expressed without google/protobuf/descriptor.proto."""
         msg = DescriptorProto()
-        msg.name = "TestMessage"
+        msg.name = "A"
+        nested_b = msg.nested_type.add()
+        nested_b.name = "B"
+        nested_c = nested_b.nested_type.add()
+        nested_c.name = "C"
+        add_message_field(msg, "c_field", ".test.A.B.C")
 
-        # Add an enum field referencing a google.protobuf enum
-        field = msg.field.add()
-        field.name = "enum_field"
-        field.type = FieldDescriptorProto.TYPE_ENUM
-        field.type_name = ".google.protobuf.FieldOptions.JSType"
+        try:
+            order = toposort_flatten(toposort_add_msg(msg, ".test", {}))
+        except CircularDependencyError as e:
+            self.fail("Unexpected circular dependency: " + str(e))
 
-        dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
-
-        # The google.protobuf enum should NOT be in dependencies
-        self.assertNotIn(".google.protobuf.FieldOptions.JSType", result.get(".test.TestMessage", set()))
+        # A nested message is defined inside the message holding it, so the outer message comes first.
+        self.assertLess(order.index(".test.A"), order.index(".test.A.B"))
+        self.assertLess(order.index(".test.A.B"), order.index(".test.A.B.C"))
 
     def test_handles_local_definitions(self):
         """Test that locally defined types in the same message are not added as dependencies."""
         msg = DescriptorProto()
         msg.name = "TestMessage"
-
-        # Add a nested message
         nested_msg = msg.nested_type.add()
         nested_msg.name = "NestedType"
+        add_message_field(msg, "nested_field", ".test.TestMessage.NestedType")
 
-        # Add a field referencing the nested message
+        result = toposort_add_msg(msg, ".test", {})
+
+        self.assertNotIn(".test.TestMessage.NestedType", result.get(".test.TestMessage", set()))
+
+    def test_handles_enum_fields(self):
+        """Test that enum field types are handled the same way as message field types."""
+        msg = DescriptorProto()
+        msg.name = "TestMessage"
         field = msg.field.add()
-        field.name = "nested_field"
-        field.type = FieldDescriptorProto.TYPE_MESSAGE
-        field.type_name = ".test.TestMessage.NestedType"
+        field.name = "enum_field"
+        field.type = FieldDescriptorProto.TYPE_ENUM
+        field.type_name = ".other.SomeEnum"
+
+        result = toposort_add_msg(msg, ".test", {})
+
+        self.assertEqual(result.get(".test.TestMessage"), {".test", ".other.SomeEnum"})
+
+    def test_handles_multiple_fields(self):
+        """Test that multiple fields are processed correctly."""
+        msg = DescriptorProto()
+        msg.name = "TestMessage"
+        add_message_field(msg, "same_msg_field", ".test.TestMessage.Nested")
+        add_message_field(msg, "other_ns_field", ".other.Type")
+        add_message_field(msg, "google_field", ".google.protobuf.Duration")
+
+        deps = toposort_add_msg(msg, ".test", {}).get(".test.TestMessage", set())
+
+        self.assertEqual(deps, {".test", ".other.Type", ".google.protobuf.Duration"})
+
+    def test_real_google_descriptor_proto(self):
+        """The actual google/protobuf/descriptor.proto must not report a circular dependency.
+
+        No code is generated for this file but users may import it to declare custom options. This test guards the
+        toposort logic against the deeply nested and self referencing messages in that file.
+        """
+        file_descriptor = FileDescriptorProto()
+        file_descriptor.ParseFromString(descriptor_pb2.DESCRIPTOR.serialized_pb)
 
         dependency_data = {}
-        result = toposort_add_msg(msg, ".test", dependency_data)
+        for msg in file_descriptor.message_type:
+            dependency_data = toposort_add_msg(msg, "." + file_descriptor.package, dependency_data)
 
-        # The nested type is in local_definitions, so it should not be in dependencies
-        deps = result.get(".test.TestMessage", set())
-        self.assertNotIn(".test.TestMessage.NestedType", deps)
+        try:
+            order = toposort_flatten(dependency_data)
+        except CircularDependencyError as e:
+            self.fail("Unexpected circular dependency: " + str(e))
+
+        # A message must appear after the messages it depends on.
+        self.assertLess(order.index(".google.protobuf.FieldDescriptorProto"),
+                        order.index(".google.protobuf.DescriptorProto"))
 
 
 if __name__ == "__main__":
