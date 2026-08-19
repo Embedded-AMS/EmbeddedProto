@@ -50,7 +50,7 @@ namespace EmbeddedProto
     NESTING_TOO_DEEP = 11, //!< Message nesting exceeds the state stack depth.
     // Errors for callback (streaming) field storage
     CALLBACK_NOT_SET = 12, //!< A callback field was serialized/deserialized without a bound source/sink.
-    CALLBACK_SEQUENCE = 13, //!< A callback field was accessed out of order (e.g. a size pass under a LEN ancestor).
+    CALLBACK_SEQUENCE = 13, //!< Callback field requires single-pass access; a size pass or packed encoding attempted on a streaming field violates this constraint.
     CALLBACK_SIZE_MISMATCH = 14, //!< The size reported by the user callback does not match the bytes streamed.
   };
 
