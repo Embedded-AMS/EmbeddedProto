@@ -1,0 +1,53 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://EmbeddedProto.com/license/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+// This file is used to test that a proto file declaring protoc custom options can be processed. Declaring custom
+// options requires importing google/protobuf/descriptor.proto. Embedded Proto does not generate code for that file,
+// the definitions in it are only used by protoc and by other plugins.
+
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  string field_note = 50001;
+}
+
+extend google.protobuf.MessageOptions {
+  bool message_note = 50002;
+}
+
+message CustomOptions {
+  option (message_note) = true;
+
+  string name = 1 [(field_note) = "the name of the sensor"];
+  int32 value = 2;
+  repeated uint32 samples = 3;
+}

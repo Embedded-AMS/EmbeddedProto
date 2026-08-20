@@ -695,6 +695,10 @@ class FieldMessage(Field):
                 break
 
         if not found:
+            if self.descriptor.type_name.startswith(".google.protobuf."):
+                raise Exception("The field " + self.name + " uses the type " + self.descriptor.type_name + ". No code "
+                                "is generated for google/protobuf/descriptor.proto, that file may only be imported to "
+                                "declare custom options. Please do not use its types as a field type.")
             raise Exception("Unable to find the definition of this message: " + self.name)
 
     def register_template_parameters(self):
