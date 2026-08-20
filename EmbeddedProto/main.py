@@ -33,7 +33,7 @@ import sys
 import locale
 import json
 from datetime import datetime
-from EmbeddedProto.ProtoFile import ProtoFile
+from EmbeddedProto.ProtoFile import ProtoFile, is_excluded_proto_file
 from EmbeddedProto import custom_header
 from google.protobuf import descriptor_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
@@ -57,27 +57,11 @@ def load_version_info():
 
 
 def generate_code(request, respones):
-    # Create definitions for al proto files in the request except for our own options file which is not required in cpp
-    # code. First also ignore the google descriptor file, only add it later if it is required by the user.
-    file_definitions = []
-    google_descriptor_file = None
-    add_google_descriptor_file = False
-    for proto_file in request.proto_file:
-        if ("embedded_proto_options.proto" not in proto_file.name) and \
-           ("google/protobuf/descriptor.proto" not in proto_file.name):
-            file_definitions.append(ProtoFile(proto_file))
-            if "google/protobuf/descriptor.proto" in file_definitions[-1].descriptor.dependency:
-                add_google_descriptor_file = True
-
-        # If we come by the descriptor just store it so we can easily use it when needed.
-        if "google/protobuf/descriptor.proto" in proto_file.name:
-            google_descriptor_file = proto_file
-
-    # See if we should include google/protobuf/descriptor.proto after all as it is directly include by one of user
-    # defined proto files.
-    if add_google_descriptor_file and google_descriptor_file:
-        # Insert it at the front so the header file will include it before the classes requiring it.
-        file_definitions.insert(0, ProtoFile(google_descriptor_file))
+    # Create definitions for al proto files in the request except for the files we never generate code for. Our own
+    # options file only holds generator settings. The google descriptor file only holds the definitions required to
+    # declare custom options, they are used by protoc and other plugins but not by the embedded target.
+    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file
+                        if not is_excluded_proto_file(proto_file.name)]
 
     # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
     # create template parameters.
@@ -91,17 +75,18 @@ def generate_code(request, respones):
     for fd in file_definitions:
         fd.match_fields_with_definitions(all_types_definitions)
 
-    # Add template parameters to the fields that need them.
-    all_parameters_registered = True
+    # Add template parameters to the fields that need them. A message can only be resolved after the messages it uses
+    # are resolved. As the files are not sorted by their mutual dependencies this may take several passes.
+    unresolved_files = []
     for _ in range(3):
-        for fd in file_definitions:
-            all_parameters_registered = fd.register_template_parameters() and all_parameters_registered
-        if all_parameters_registered:
+        unresolved_files = [fd for fd in file_definitions if not fd.register_template_parameters()]
+        if not unresolved_files:
             break
 
-    if not all_parameters_registered:
-        raise Exception("Messages with repeated, string or byte fields use template parameters to define their length."
-                        "For some reason it was not to add all required template parameters.")
+    if unresolved_files:
+        raise Exception("Messages with repeated, string or byte fields use template parameters to define their length. "
+                        "For some reason it was not possible to add all required template parameters in the following "
+                        "file(s): " + ", ".join(fd.descriptor.name for fd in unresolved_files) + ".")
 
     # Load version information
     version_info = load_version_info()
