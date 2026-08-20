@@ -220,21 +220,35 @@ TEST(CallbackStorageOption, partial_serialize_out_across_split_round_trips)
   // element forces a BUFFER_FULL resume boundary. Flush and clear between calls; the same state
   // resumes without double-pulling the source.
   ::EmbeddedProto::WriteBufferFixedSize<7> chunk;
-  ::EmbeddedProto::ReadBufferFixedSize<64> wire;
+  std::array<uint8_t, 64> accumulated{};
+  std::size_t total = 0U;
   Error result = Error::BUFFER_FULL;
   uint32_t guard = 0U;
   while((Error::BUFFER_FULL == result) && (guard < 100U))
   {
     result = out.serialize_partial(chunk, out_state.root());
     ASSERT_TRUE((Error::NO_ERRORS == result) || (Error::BUFFER_FULL == result));
-    for(uint32_t i = 0U; i < chunk.get_size(); ++i)
-    {
-      wire.push(chunk.get_data()[i]);
-    }
+    ASSERT_GE(accumulated.size() - total, chunk.get_size());
+    std::memcpy(accumulated.data() + total, chunk.get_data(), chunk.get_size());
+    total += chunk.get_size();
     chunk.clear();
     ++guard;
   }
   ASSERT_EQ(Error::NO_ERRORS, result);
+
+  // The bytes streamed across all resumes are EXPANDED, one tag+value per element, exactly as a
+  // resident field emits them. A round-trip alone would not catch a regression to PACKED here,
+  // as the deserializer accepts both encodings.
+  ::EmbeddedProto::WriteBufferFixedSize<64> expected;
+  serialize_reference_expanded({10, 20, 30}, expected);
+  ASSERT_EQ(expected.get_size(), total);
+  EXPECT_EQ(0, std::memcmp(expected.get_data(), accumulated.data(), total));
+
+  ::EmbeddedProto::ReadBufferFixedSize<64> wire;
+  for(std::size_t i = 0U; i < total; ++i)
+  {
+    wire.push(accumulated[i]);
+  }
 
   Collector<8> collector;
   SinkCallback sink;
