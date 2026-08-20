@@ -57,15 +57,24 @@ namespace test_EmbeddedAMS_CallbackStorageE2E
 using ::EmbeddedProto::Error;
 using ::EmbeddedProto::int32;
 
+//! The element type the generator uses for the repeated Status field.
+/*!
+    A repeated enum field is stored as ::EmbeddedProto::enumeration, not as the bare enum, so the
+    storage type handed to the message has to use the same element type. The serialized size is that
+    of the largest enumerator, STATUS_ERROR, which equals two.
+*/
+using StatusField = ::EmbeddedProto::enumeration<callback_storage::Status,
+                                                 ::EmbeddedProto::WireFormatter::VarintSize(2)>;
+
 //! The same generated message, once with resident storage (to produce bytes) and once with callback storage (to consume them). Both satisfy the customStorage static_assert.
 using ResidentMsg = callback_storage::CallbackStorageMsg<
     ::EmbeddedProto::RepeatedFieldFixedSize<int32, 8>,
-    ::EmbeddedProto::RepeatedFieldFixedSize<callback_storage::Status, 8>>;
+    ::EmbeddedProto::RepeatedFieldFixedSize<StatusField, 8>>;
 using CallbackMsg = callback_storage::CallbackStorageMsg<
     ::EmbeddedProto::RepeatedFieldCallback<int32>,
-    ::EmbeddedProto::RepeatedFieldCallback<callback_storage::Status>>;
+    ::EmbeddedProto::RepeatedFieldCallback<StatusField>>;
 using IntSinkCallback = ::EmbeddedProto::RepeatedFieldCallback<int32>::SinkCallback;
-using StatusSinkCallback = ::EmbeddedProto::RepeatedFieldCallback<callback_storage::Status>::SinkCallback;
+using StatusSinkCallback = ::EmbeddedProto::RepeatedFieldCallback<StatusField>::SinkCallback;
 
 //! Sink recording received elements into a fixed buffer (no dynamic allocation).
 template<typename T, std::size_t N>
@@ -86,12 +95,18 @@ struct Collector
   }
 };
 
-template<typename T, std::size_t N>
-static void expect_collected(const Collector<T, N>& collector, std::initializer_list<T> expected)
+//! Compare the collected elements against the expected values.
+/*!
+    The collector holds field objects while the expected values are written as plain ints or
+    enumerators, hence the separate type for the initializer list.
+*/
+template<typename T, std::size_t N, typename EXPECTED_TYPE>
+static void expect_collected(const Collector<T, N>& collector,
+                             std::initializer_list<EXPECTED_TYPE> expected)
 {
   ASSERT_EQ(expected.size(), collector.count);
   std::size_t i = 0U;
-  for(const T& value : expected)
+  for(const EXPECTED_TYPE& value : expected)
   {
     EXPECT_EQ(value, collector.values[i]);
     ++i;
@@ -165,7 +180,7 @@ TEST(CallbackStorageE2E, deserialize_enum_streams_to_sink)
   ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
   serialize_enum_reference(buffer);
 
-  Collector<callback_storage::Status, 8> collector;
+  Collector<StatusField, 8> collector;
   StatusSinkCallback sink;
   sink.set(collector);
 

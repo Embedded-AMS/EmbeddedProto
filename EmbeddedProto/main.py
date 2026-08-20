@@ -35,6 +35,7 @@ import json
 from datetime import datetime
 from EmbeddedProto.ProtoFile import ProtoFile, is_excluded_proto_file
 from EmbeddedProto import custom_header
+from EmbeddedProto import embedded_proto_options_pb2
 from google.protobuf import descriptor_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
@@ -56,7 +57,42 @@ def load_version_info():
 # -----------------------------------------------------------------------------
 
 
+# Describe an exception in the error reported back to protoc.
+def describe_exception(e):
+    # Errors this generator raises on purpose are a plain Exception, their text is the whole story. Any other type
+    # signals an unexpected failure, there the type name is required as str() may hold nothing but a variable name.
+    if type(e) is Exception:
+        return str(e)
+    return type(e).__name__ + ": " + str(e)
+
+
+# The name of the message in embedded_proto_options.proto holding the generator options.
+OPTIONS_MESSAGE_NAME = "Options"
+
+
+# Raise a clear error when the compiled options module lags behind embedded_proto_options.proto.
+def verify_options_module_is_current(request):
+    # protoc parses embedded_proto_options.proto on every run, this generator reads the options through
+    # embedded_proto_options_pb2.py. That module is generated once, while installing Embedded Proto. When an option
+    # is added to the proto file without reinstalling, the module lags behind and reading the new option fails with
+    # an AttributeError naming nothing but the option. Compare both and report what is actually wrong.
+    compiled_options = {field.name for field in embedded_proto_options_pb2.Options.DESCRIPTOR.fields}
+    for proto_file in request.proto_file:
+        if "embedded_proto_options.proto" not in proto_file.name:
+            continue
+        for message in proto_file.message_type:
+            if OPTIONS_MESSAGE_NAME != message.name:
+                continue
+            missing = [field.name for field in message.field if field.name not in compiled_options]
+            if missing:
+                raise Exception("The generated file embedded_proto_options_pb2.py is out of date, it lacks the "
+                                "option(s): " + ", ".join(missing) + ". It is regenerated when installing Embedded "
+                                "Proto, please rerun: python3 install.py")
+
+
 def generate_code(request, respones):
+    verify_options_module_is_current(request)
+
     # Create definitions for al proto files in the request except for the files we never generate code for. Our own
     # options file only holds generator settings. The google descriptor file only holds the definitions required to
     # declare custom options, they are used by protoc and other plugins but not by the embedded target.
@@ -172,7 +208,7 @@ def main_plugin():
     except jinja2.TemplateError as e:
         response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
     except Exception as e:
-        response.error = "Embedded Proto ERROR - " + str(e)
+        response.error = "Embedded Proto ERROR - " + describe_exception(e)
 
     # Serialize response message
     output = response.SerializeToString()
@@ -209,7 +245,7 @@ def main_cli():
         except jinja2.TemplateError as e:
             response.error = "Embedded Proto ERROR - TemplateError exception: " + str(e)
         except Exception as e:
-            response.error = "Embedded Proto ERROR - " + str(e)
+            response.error = "Embedded Proto ERROR - " + describe_exception(e)
 
         # For debugging purposes print the result to the console.
         for response_file in response.file:
