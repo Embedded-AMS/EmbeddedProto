@@ -223,8 +223,11 @@ namespace EmbeddedProto
         return return_value;
       }
 
+      //! Not final: RepeatedFieldCallback overrides this so expanded
+      //! (one-tag-per-element) scalar input is funnelled through the virtual
+      //! add() hook instead of the random-access get(index) slot it lacks.
       Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
-                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
+                                   const ::EmbeddedProto::WireFormatter::WireType& wire_type) override
       {
         const bool is_length_delimited =
             ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type;

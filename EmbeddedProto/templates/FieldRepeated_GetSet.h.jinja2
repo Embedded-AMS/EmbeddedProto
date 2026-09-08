@@ -81,6 +81,12 @@ inline {{field.repeated_type}}& mutable_{{field.get_name()}}()
   }
   return {{field.get_variable_name()}};
 }
+{% elif field.callback_is_message() %}
+{# A repeated message callback owns no element array: it streams through bound source/sink handles.
+   Only the whole-field accessors are emitted (no indexed get/set/add); set_ copies the bindings. #}
+inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs) { {{field.get_variable_name()}}.set(rhs); }
+inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
 {% else %}
 inline const {{field.get_base_type()}}& {{field.get_name()}}(uint32_t index) const { return {{field.get_variable_name()}}[index]; }
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
