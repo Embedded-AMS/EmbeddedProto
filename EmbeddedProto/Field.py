@@ -944,10 +944,11 @@ class FieldRepeated(Field):
         # message template (which dispatches on the group wire type to deserialize()) rather than the
         # basic deserialize_check_type path, which is LEN-only for a message and would reject a group.
         if self.callback_is_message():
-            rendered = self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
-            return rendered.rstrip()
-        str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
-        return str.rstrip()
+            str = self.render("FieldMsg_Deserialize.h.jinja2", jinja_environment=jinja_env)
+            return str.rstrip()
+        else:
+            str = self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env)
+            return str.rstrip()
 
     def uses_serialize_len(self):
         return True
