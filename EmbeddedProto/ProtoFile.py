@@ -87,8 +87,11 @@ def toposort_add_msg(msg, namespace, dependency_data):
 # -----------------------------------------------------------------------------
 
 class ProtoFile:
-    def __init__(self, proto_descriptor):
+    def __init__(self, proto_descriptor, options_file=None):
         self.descriptor = proto_descriptor
+
+        # The external field options file, shared by every field in this run. None when no file was given.
+        self.options_file = options_file
 
         if "proto2" == proto_descriptor.syntax:
             raise Exception(proto_descriptor.name + ": Sorry, proto2 is not supported, please use proto3.")
@@ -115,7 +118,8 @@ class ProtoFile:
 
         self.enum_definitions = [EnumDefinition(enum, self.scope, self.feature_resolver, self.file_features)
                                  for enum in self.descriptor.enum_type]
-        self.msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.file_features)
+        self.msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.file_features,
+                                                  self.options_file)
                                 for msg in self.descriptor.message_type]
 
         self.all_parameters_registered = False

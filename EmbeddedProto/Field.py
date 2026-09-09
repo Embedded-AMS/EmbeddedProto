@@ -30,6 +30,7 @@
 
 from google.protobuf.descriptor_pb2 import FieldDescriptorProto
 from . import embedded_proto_options_pb2
+from . import field_options
 from .Features import FieldPresence
 import copy
 import sys
@@ -88,14 +89,17 @@ class Field:
 
         self.of_type_enum = FieldDescriptorProto.TYPE_ENUM == proto_descriptor.type
 
+        # The Embedded Proto options of this field, written inline in the .proto, supplied by an external options
+        # file, or both. Resolved once here so every option read below uses one and the same effective set.
+        self.embedded_proto_options = self.resolve_embedded_proto_options()
+
         # Whether the user wants to supply the storage type for this field via a template parameter.
         self.custom_storage = False
         # Whether the field streams its elements through user callbacks (the callbackStorage option).
         self.callback_storage = False
-        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
-            options = self.descriptor.options.Extensions[embedded_proto_options_pb2.options]
-            self.custom_storage = options.customStorage
-            self.callback_storage = options.callbackStorage
+        if self.embedded_proto_options is not None:
+            self.custom_storage = self.embedded_proto_options.customStorage
+            self.callback_storage = self.embedded_proto_options.callbackStorage
 
         # Remember whether this is a repeated field; it selects the callback storage kind
         # (repeated scalar/enum -> RepeatedFieldCallback, singular bytes/string -> BytesStringCallback).
@@ -105,6 +109,41 @@ class Field:
         # every other placement with a generator error so unsupported configurations never emit wrong code.
         if self.callback_storage:
             self.reject_unsupported_callback_storage(is_repeated, in_real_oneof)
+
+    # Combine the options written inline in the .proto with those from an external options file. An entry in the
+    # options file wins over the same option inline: the .proto is a shared contract and may not be yours to edit,
+    # which is the reason the file exists. Returns None when neither source sets anything.
+    def resolve_embedded_proto_options(self):
+        inline = None
+        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
+            inline = self.descriptor.options.Extensions[embedded_proto_options_pb2.options]
+
+        # The options file reaches a field through its parent message, the same way the feature resolver does.
+        options_file = getattr(self.parent, "options_file", None)
+        if not options_file:
+            return inline
+
+        # The scope of the parent message, the package parts and message names leading up to this field.
+        scope = self.parent.scope.get_list_of_scope_str()
+        from_file = options_file.resolve(scope, self.descriptor.name)
+        if not from_file:
+            return inline
+
+        result = embedded_proto_options_pb2.Options()
+        if inline is not None:
+            result.CopyFrom(inline)
+
+        for name, value in from_file.items():
+            # The Options message has no field presence, an option still at its default was never set inline. Report
+            # an override rather than let the .proto and the options file disagree silently.
+            previous = getattr(result, name)
+            if previous:
+                field_options.warn(options_file.describe_sources() + ": " + ".".join(scope) + "."
+                                   + self.descriptor.name + ": " + name + " = " + str(value)
+                                   + " overrides " + str(previous) + " set in the proto file.")
+            setattr(result, name, value)
+
+        return result
 
     # Returns true when the user supplies the storage type for this field (the customStorage option).
     def has_custom_storage(self):
@@ -450,9 +489,9 @@ class BaseStringBytes(Field):
         # Find options we know and use in this type of field.
         self.MaxLength = None
 
-        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
-            options = self.descriptor.options.Extensions[embedded_proto_options_pb2.options]
-            
+        if self.embedded_proto_options is not None:
+            options = self.embedded_proto_options
+
             # Determine which maxLength to use based on context
             # If we're in a repeated field, use nestedMaxLength, if not present create a C++ template parameter.
             # If we're not in a repeated field, use maxLength, if not present create a C++ template parameter.
@@ -838,8 +877,8 @@ class FieldRepeated(Field):
 
         # Find options we know and use in this type of field.
         self.MaxLength = None
-        if self.descriptor.options.HasExtension(embedded_proto_options_pb2.options):
-            self.MaxLength = self.descriptor.options.Extensions[embedded_proto_options_pb2.options].maxLength
+        if self.embedded_proto_options is not None:
+            self.MaxLength = self.embedded_proto_options.maxLength
 
     def get_wire_type_str(self):
         return "LENGTH_DELIMITED"

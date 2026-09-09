@@ -1,0 +1,52 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+syntax = "proto3";
+
+package OptionsFromFile;
+
+// This file deliberately holds no Embedded Proto options and does not import
+// embedded_proto_options.proto. Every option of these fields is supplied by
+// test/options/embedded_proto_test.options.json, which stands in for a schema
+// that is not yours to edit. That the messages below need no template parameter
+// for their length is the proof that the options file was read: without it the
+// generated classes would take one.
+message Frame {
+  repeated int32 samples = 1;
+  string name = 2;
+  bytes blob = 3;
+  repeated string tags = 4;
+
+  message Inner {
+    string label = 1;
+  }
+
+  Inner inner = 5;
+}

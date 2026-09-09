@@ -154,6 +154,74 @@ After running protoc without errors, the generated source code is located in the
 * When building do not for get to pass `-lstdc++` to the linker. This to prevent errors like: `undefined reference to`.
 
 
+# Setting field options from a file
+
+Embedded Proto's per field options, `maxLength`, `nestedMaxLength`, `customStorage` and `callbackStorage`, are normally written in the \*.proto itself:
+
+```proto
+message SensorFrame {
+  repeated int32 samples = 1 [(EmbeddedProto.options).maxLength = 128];
+}
+```
+
+That \*.proto is a shared contract though, used by other languages and other teams, while these options describe one embedded target. When the schema is not yours to edit, for instance because it comes from a library, the same options can be supplied from an external JSON file instead.
+
+The file mirrors the structure of your messages: the parts of the package, the message names, any nested messages and finally the field. Options are set on a field. For a schema like this one:
+
+```proto
+package foo.telemetry;
+
+message Reading {
+  string sensor_id = 1;
+  repeated double values = 2;
+  bytes raw = 3;
+
+  message Meta {
+    repeated string tags = 1;
+  }
+}
+```
+
+the options file reads:
+
+```json
+{
+  "foo": {
+    "telemetry": {
+      "Reading": {
+        "sensor_id": { "maxLength": 16 },
+        "values":    { "maxLength": 64 },
+        "raw":       { "callbackStorage": true },
+        "Meta": {
+          "tags": { "maxLength": 4, "nestedMaxLength": 12 }
+        }
+      }
+    }
+  }
+}
+```
+
+Point the generator at it with the `options_file` parameter:
+
+```bash
+protoc --plugin=protoc-gen-eams -I./LOCATION/PROTO/FILES \
+       --eams_out=./generated_src \
+       --eams_opt=options_file=./cfg/board_x.options.json \
+       PROTO_MESSAGE_FILE.proto
+```
+
+A few things worth knowing:
+
+* A scope may also be written as a dotted path: `"foo.telemetry": { ... }` says the same as the two nested objects above, and `"foo.telemetry.Reading.sensor_id": { "maxLength": 16 }` says it in one line. Both spellings may be mixed in one file.
+* The file is keyed by package and message, never by file name or location. It therefore has no relation to where your \*.proto files are, one file can hold the options of every schema in your build, and it may live anywhere.
+* Give `--eams_opt` more than once to layer files: `--eams_opt=options_file=base.json --eams_opt=options_file=board_x.json`. The last file to set an option wins.
+* Protoc also accepts parameters written in front of the output directory, `--eams_out=options_file=board_x.options.json:./generated_src`, separating several of them with a comma. That works too, `--eams_opt` is just easier to read.
+* An option in the file wins over the same option written in the \*.proto. Overriding a value that is in the \*.proto is reported on the console, so it does not happen unnoticed.
+* An entry naming a field or message that does not exist is an error, a typo may not quietly leave a buffer at its default size. Entries for a package that this protoc run does not compile at all are skipped, so one file can serve several builds.
+* A file named with `options_file=` that does not exist is an error for the same reason.
+* There is no support for a file placed next to the \*.proto and found automatically. Protoc passes a plugin only the file name relative to the include path, so where the \*.proto actually lives is not known to the generator. Name the file explicitly.
+
+
 # Setting your license token
 
 A commercial license adds a customer-specific header to the generated files. To configure your token, run:

@@ -36,6 +36,7 @@ from datetime import datetime
 from EmbeddedProto.ProtoFile import ProtoFile, is_excluded_proto_file
 from EmbeddedProto import custom_header
 from EmbeddedProto import embedded_proto_options_pb2
+from EmbeddedProto import field_options
 from google.protobuf import descriptor_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
@@ -70,6 +71,44 @@ def describe_exception(e):
 OPTIONS_MESSAGE_NAME = "Options"
 
 
+# The name of the plugin parameter pointing at an external field options file.
+OPTIONS_FILE_PARAMETER = "options_file"
+
+
+# Return the options file paths given as plugin parameters.
+def parse_parameters(parameter):
+    # Protoc gathers the plugin parameters into one string of comma separated key=value pairs. They are written
+    # either as separate flags, which is the readable form and the one the documentation uses:
+    #   --eams_opt=options_file=base.json --eams_opt=options_file=board_x.json
+    # or in front of the output directory:
+    #   --eams_out=options_file=base.json,options_file=board_x.json:./generated_src
+    # Both arrive here as the same string. Splitting on the comma only, rather than on whitespace as well, keeps a
+    # Windows path with backslashes intact.
+    paths = []
+    for argument in parameter.split(","):
+        argument = argument.strip()
+        if not argument:
+            continue
+        name, separator, value = argument.partition("=")
+        if (OPTIONS_FILE_PARAMETER != name) or not separator or not value:
+            raise Exception("Unknown generator parameter: " + argument + ". The only parameter supported is "
+                            + OPTIONS_FILE_PARAMETER + "=<path to a json file>, it may be given more than once.")
+        paths.append(value)
+    return paths
+
+
+# Read the external field options file(s) named as plugin parameters and check them against the definitions in this
+# run. Returns an empty OptionsFile when no file was requested.
+def load_field_options(request):
+    options = field_options.load(parse_parameters(request.parameter))
+    if options:
+        schema = field_options.schema_from_descriptors(
+            [proto_file for proto_file in request.proto_file
+             if not is_excluded_proto_file(proto_file.name)])
+        options.validate_against(schema)
+    return options
+
+
 # Raise a clear error when the compiled options module lags behind embedded_proto_options.proto.
 def verify_options_module_is_current(request):
     # protoc parses embedded_proto_options.proto on every run, this generator reads the options through
@@ -93,10 +132,13 @@ def verify_options_module_is_current(request):
 def generate_code(request, respones):
     verify_options_module_is_current(request)
 
+    # The options a field may also have been given inline in the .proto, read from an external file instead.
+    options_file = load_field_options(request)
+
     # Create definitions for al proto files in the request except for the files we never generate code for. Our own
     # options file only holds generator settings. The google descriptor file only holds the definitions required to
     # declare custom options, they are used by protoc and other plugins but not by the embedded target.
-    file_definitions = [ProtoFile(proto_file) for proto_file in request.proto_file
+    file_definitions = [ProtoFile(proto_file, options_file) for proto_file in request.proto_file
                         if not is_excluded_proto_file(proto_file.name)]
 
     # Obtain all definitions made in all the files to properly link definitions with fields using them. This to properly
