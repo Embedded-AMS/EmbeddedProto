@@ -126,13 +126,21 @@ class MessageInterface : public ::EmbeddedProto::Field
     {
       Error return_value = Error::NO_ERRORS;
 
+      // The size of this nested message is calculated once, when the field is entered,
+      // and kept in the state. Resuming after a full buffer reuses it instead of
+      // walking the whole subtree again for every chunk.
+      if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
+      {
+        state.size_value = serialized_size();
+      }
+
       // Skip serializing empty fields for non-optional fields (proto3 default behavior)
-      if(optional || (0 != serialized_size()))
+      if(optional || (0U != state.size_value))
       {
         // Handle TAG and SIZE phases using helper method
         if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
         {
-          return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
+          return_value = serialize_partial_tag_and_size(field_number, state.size_value, buffer, state, optional);
         }
 
         if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)

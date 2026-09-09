@@ -77,7 +77,7 @@ namespace EmbeddedProto
       //! For length-delimited fields: bytes remaining to read/write.
       uint32_t bytes_remaining = 0;
       
-      //! For length-delimited fields: size value once calculated/read.
+      //! For length-delimited fields: the size once calculated when serializing or read when deserializing.
       uint32_t size_value = 0;
       
       //! Pointer to child state for nested messages (null if leaf).

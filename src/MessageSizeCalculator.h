@@ -95,6 +95,13 @@ namespace EmbeddedProto
         return true;
       }
 
+      //! Only the count matters here, so account for the bytes without receiving them.
+      bool count_only(const uint32_t number_of_bytes) override
+      {
+        size_ += number_of_bytes;
+        return true;
+      }
+
 
     private:
 
