@@ -390,6 +390,76 @@ TEST(FieldString, oneof_deserialize)
   EXPECT_STREQ(msg.txt(), "Foo bar");
 }
 
+#ifdef NULL_TERMINATED_STRINGS
+
+// With NULL_TERMINATED_STRINGS a string reserves one character behind its maximum length which
+// always holds a null terminator, so get_const() is a valid c style string in every state. Without
+// the define a completely full string has no terminator, which the tests above never rely on.
+
+TEST(FieldString, null_terminated_when_completely_full)
+{
+  text<10> msg;
+  msg.mutable_txt() = "1234567890";
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  // The reserved character does not count towards the length the wire sees.
+  EXPECT_EQ(10, msg.get_txt().get_max_length());
+  EXPECT_EQ(10U, strlen(msg.get_txt().get_const()));
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+}
+
+TEST(FieldString, null_terminated_after_deserializing_a_full_string)
+{
+  // Field one, ten characters: fills the whole field, so nothing zero is left behind the data.
+  ::EmbeddedProto::ReadBufferFixedSize<12> buffer;
+  buffer.push(0x0a);
+  buffer.push(0x0a);
+  for(const char c : {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'})
+  {
+    buffer.push(static_cast<uint8_t>(c));
+  }
+
+  text<10> msg;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(10, msg.get_txt().get_length());
+  EXPECT_EQ(10U, strlen(msg.get_txt().get_const()));
+  ASSERT_STREQ("1234567890", msg.get_txt().get_const());
+}
+
+TEST(FieldString, null_terminated_after_shrinking)
+{
+  text<10> msg;
+  msg.mutable_txt() = "1234567890";
+  // The raw set copies exactly the given number of characters and used to leave the old tail.
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.mutable_txt().set("abc", 3));
+  EXPECT_EQ(3, msg.get_txt().get_length());
+  ASSERT_STREQ("abc", msg.get_txt().get_const());
+}
+
+TEST(FieldString, null_terminated_after_writing_by_index)
+{
+  text<10> msg;
+  msg.mutable_txt() = "1234567890";
+  msg.mutable_txt().set("ab", 2);
+  // Writing by index grows the string by one character; the terminator moves along.
+  msg.mutable_txt().get(2) = 'c';
+  EXPECT_EQ(3, msg.get_txt().get_length());
+  ASSERT_STREQ("abc", msg.get_txt().get_const());
+}
+
+TEST(FieldString, terminator_changes_neither_wire_size_nor_bytes_fields)
+{
+  // The extra character is storage only, it never reaches the wire.
+  EXPECT_EQ(::EmbeddedProto::FieldBytes<10>::max_serialized_size(),
+            ::EmbeddedProto::FieldString<10>::max_serialized_size());
+  EXPECT_EQ(::EmbeddedProto::FieldBytes<10>::max_serialized_size(1),
+            ::EmbeddedProto::FieldString<10>::max_serialized_size(1));
+  // A bytes field reserves nothing, a byte array has no terminator. Twenty characters put the
+  // data right on an alignment boundary, so the reserved character is not hidden in padding.
+  EXPECT_LT(sizeof(::EmbeddedProto::FieldBytes<20>), sizeof(::EmbeddedProto::FieldString<20>));
+}
+
+#endif // NULL_TERMINATED_STRINGS
+
 TEST(FieldBytes, set_get)
 {
   raw_bytes<10> msg;
