@@ -148,8 +148,10 @@ namespace EmbeddedProto
           // Check if there's enough space for the data after writing tag and size
           if(size <= buffer.get_available_size())
           {
-            // Only call serialize if there's actual data to write
-            if(size > 0)
+            // Only call serialize if there's actual data to write. When the buffer
+            // only counts bytes the payload size is already known, serializing it
+            // would just count the same bytes a second time.
+            if((0U < size) && !buffer.count_only(size))
             {
               return_value = serialize(buffer);
             }

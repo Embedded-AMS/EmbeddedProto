@@ -126,35 +126,44 @@ class MessageInterface : public ::EmbeddedProto::Field
     {
       Error return_value = Error::NO_ERRORS;
 
-      // Skip serializing empty fields for non-optional fields (proto3 default behavior)
-      if(optional || (0 != serialized_size()))
+      // The size of this nested message is calculated once, when the field is entered,
+      // and kept in the state. Resuming after a full buffer reuses it instead of
+      // walking the whole subtree again for every chunk. Whether the field is emitted
+      // at all is decided here as well, so no later phase depends on the stored size.
+      if(::EmbeddedProto::FieldProcessingPhase::TAG == state.phase)
       {
-        // Handle TAG and SIZE phases using helper method
-        if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
-        {
-          return_value = serialize_partial_tag_and_size(field_number, serialized_size(), buffer, state, optional);
-        }
+        state.size_value = serialized_size();
 
-        if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+        // Skip serializing empty fields for non-optional fields (proto3 default behavior)
+        if((!optional) && (0U == state.size_value))
         {
-          if(nullptr != state.child)
-          {
-            return_value = this->serialize_partial(buffer, *state.child);
-            if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
-            {
-              state.bytes_remaining = 0U;
-              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-            }
-          }
-          else
-          {
-            return_value = Error::NESTING_TOO_DEEP;
-          }
+          state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
         }
       }
-      else
+
+      // Handle TAG and SIZE phases using helper method
+      if((::EmbeddedProto::FieldProcessingPhase::TAG == state.phase) || (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
       {
-        state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+        return_value = serialize_partial_tag_and_size(field_number, state.size_value, buffer, state, optional);
+      }
+
+      // A zero sized field never reaches the data phase, serialize_partial_tag_and_size()
+      // marks it complete, so the size no longer has to be checked here.
+      if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+      {
+        if(nullptr != state.child)
+        {
+          return_value = this->serialize_partial(buffer, *state.child);
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+          {
+            state.bytes_remaining = 0U;
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+          }
+        }
+        else
+        {
+          return_value = Error::NESTING_TOO_DEEP;
+        }
       }
 
       return return_value;
