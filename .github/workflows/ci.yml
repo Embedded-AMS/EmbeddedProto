@@ -46,7 +46,9 @@ jobs:
         echo "token present: ${EMBEDDEDPROTO_BUILD_TOKEN:+yes}"
         ./venv/bin/embeddedproto --check-license
     - name: Python unit tests
-      run: python -m unittest discover -s test/python -p 'test_*.py' -v
+      # Use the venv interpreter: the tests import protobuf and run grpc_tools.protoc,
+      # which install.py installs into ./venv and not into the system interpreter.
+      run: ./venv/bin/python -m unittest discover -s test/python -p 'test_*.py' -v
     - name: Build test
       run: ./build_test.sh ${{ matrix.serialization-mode }}
     - name: Code coverage
