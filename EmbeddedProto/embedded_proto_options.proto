@@ -42,8 +42,17 @@ message Options {
                                   //   whole-value streaming
                                   // - repeated message: emits ::EmbeddedProto::MessageCallback<T>,
                                   //   requires DELIMITED (group) framing; rejected if LENGTH_DELIMITED
+                                  // - map: emits ::EmbeddedProto::MessageCallback<Entry>, entries stay
+                                  //   length delimited so DELIMITED is not required. The map keeps no
+                                  //   entries, so no key lookup accessors are generated.
                                   // Rejected on: oneof members, singular scalar/enum/message,
                                   // explicit-presence singular scalars, repeated string/bytes.
+  uint32 keyMaxLength = 5;        // Only used for map fields with a string or bytes key. Sets the
+                                  // length of the key, while maxLength sets the number of entries
+                                  // the map can hold.
+  uint32 valueMaxLength = 6;      // Only used for map fields with a string or bytes value. Sets the
+                                  // length of the value, while maxLength sets the number of entries
+                                  // the map can hold.
 }
 
 extend google.protobuf.FieldOptions { 

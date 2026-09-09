@@ -182,6 +182,23 @@ namespace EmbeddedProto
       */
       virtual Error add(const DATA_TYPE& value) = 0;
 
+      //! Remove the element at the given index, moving the elements behind it one place forward.
+      /*!
+          The default implementation reports INDEX_OUT_OF_BOUND. Storage types which hold no
+          resident collection, like the streaming callback storage, keep that behaviour; storage
+          types which can shrink override this function. Used among others to remove a key from a
+          map field.
+
+          \param[in] index The index of the element to remove.
+          \return Error::NO_ERRORS when the element was removed. Error::INDEX_OUT_OF_BOUND when the
+                  index is outside of the data held or this storage type can not remove elements.
+      */
+      virtual Error erase(const uint32_t index)
+      {
+        static_cast<void>(index);
+        return Error::INDEX_OUT_OF_BOUND;
+      }
+
       //! Remove all data in the array and set it to the default value.
       virtual void clear() override = 0;
 

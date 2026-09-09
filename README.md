@@ -31,6 +31,7 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 * TODO Installation via pip3: `pip install EmbeddedProto`. This will also install a matching version of protoc. So you do not need to install the protoc compiler yourself.
 * TODO Run EmbeddedProto as an executable: `embeddedproto -I YOUR_FOLDER YOUR_PROTO_FILE.proto`
 * Included the C++ source files in the python package. You can get the location of these C++ source files by running: `embeddedproto --cpp-src-location`.
+* Added support for `map<K, V>` fields. A map is declared as in any other protobuf implementation and sized with `maxLength` (the number of entries) plus `keyMaxLength` and `valueMaxLength` for a string or bytes key and value. The generated API is map shaped: `set_`, `get_`, `has_`, `remove_`, `clear_`, `find_` and `_size`. Entries may also be streamed through callbacks with `callbackStorage`, in which case no entries are stored in the message. See [doc/maps.md](doc/maps.md).
 * Added the `customStorage` field option. With `[(EmbeddedProto.options).customStorage = true]` you take control of the storage type of a repeated, string, bytes or message field. The generated message exposes the storage type as a plain template parameter (without a size parameter and without a default), so you supply the complete type yourself. The supplied type must derive from `::EmbeddedProto::RepeatedField<T>` (repeated), `::EmbeddedProto::internal::BaseStringBytes` (string/bytes) or `::EmbeddedProto::MessageInterface` (message); this is enforced with a `static_assert`. The option takes precedence over `maxLength`. Fields without the option keep their existing behaviour, so existing `.proto` files and generated user code are unchanged.
 
 ## 3.6.0
@@ -156,7 +157,7 @@ After running protoc without errors, the generated source code is located in the
 
 # Setting field options from a file
 
-Embedded Proto's per field options, `maxLength`, `nestedMaxLength`, `customStorage` and `callbackStorage`, are normally written in the \*.proto itself:
+Embedded Proto's per field options, `maxLength`, `nestedMaxLength`, `keyMaxLength`, `valueMaxLength`, `customStorage` and `callbackStorage`, are normally written in the \*.proto itself:
 
 ```proto
 message SensorFrame {

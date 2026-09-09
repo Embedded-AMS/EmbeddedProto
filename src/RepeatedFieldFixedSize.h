@@ -182,6 +182,23 @@ namespace EmbeddedProto
         return return_value;
       }
 
+      Error erase(const uint32_t index) override
+      {
+        Error return_value = Error::INDEX_OUT_OF_BOUND;
+        if(index < current_length_)
+        {
+          for(uint32_t i = index; (i + 1U) < current_length_; ++i)
+          {
+            data_[i] = data_[i + 1U];
+          }
+          --current_length_;
+          // Leave no stale copy of the last element behind in the vacated slot.
+          data_[current_length_].clear();
+          return_value = Error::NO_ERRORS;
+        }
+        return return_value;
+      }
+
       void clear() override
       {
         for(auto& d : data_)

@@ -55,15 +55,23 @@ namespace EmbeddedProto
         - on deserialize, every parsed element lands in the transient and is pushed
           to a user *sink*.
 
-      Elements are framed DELIMITED (editions message_encoding = DELIMITED): each is
-      a START_GROUP / END_GROUP pair rather than a length-prefixed block. Group
-      framing carries no size prefix, so a message can be written in a single pass
-      without the serialized_size() pre-pass a LEN frame needs (which for a stream
-      would drain the source twice). This lets a device relay arbitrarily many
+      Two element framings are offered, the generator picks one at generation time:
+
+        - DELIMITED groups (serialize_expanded), a START_GROUP / END_GROUP pair per
+          element, used for a plain repeated message field with
+          features.message_encoding = DELIMITED;
+        - length delimited blocks (serialize_expanded_len), tag + size + body per
+          element, used for a map field so its entries stay readable by a standard
+          protoc peer.
+
+      Both are single pass: the element sits in the transient when it is written, so
+      even the length prefix is measured without pulling it a second time. What a
+      stream can not provide is a size for the *whole* field ahead of its elements,
+      which is why serialize() refuses with CALLBACK_SEQUENCE when placed under a
+      length prefixed ancestor. This lets a device relay arbitrarily many
       sub-messages through a fixed, tiny RAM footprint: the two Functional handles
       plus one transient sub-message (never the whole collection). It plugs in
-      through the callbackStorage generator option, which also forces the field to
-      DELIMITED encoding.
+      through the callbackStorage generator option.
 
       Only repeated message fields are supported here; a singular message callback
       is a separate, later capability.
@@ -217,6 +225,58 @@ namespace EmbeddedProto
         return return_value;
       }
 
+      //! Pull elements from the bound source and emit each as a length delimited block.
+      /*!
+          The wire form a map field needs: one tag + size + body per element, identical to what a
+          resident repeated message field writes, so the bytes stay readable by a standard protoc
+          peer.
+
+          A per element length prefix costs no second pull. The element is sitting in the transient
+          when its size is measured, so serialized_size() walks the transient and not the user
+          callback: the source is still drained exactly once. This is unlike a length prefix around
+          the *whole* field, which would have to know the total before any element was pulled; that
+          case is still refused by serialize() above.
+
+          \param field_number The field number written in each element's tag.
+          \param buffer       The destination buffer.
+      */
+      Error serialize_expanded_len(uint32_t field_number, WriteBufferInterface& buffer) const
+      {
+        Error return_value = Error::NO_ERRORS;
+        if(!source_.is_set())
+        {
+          if(strict_)
+          {
+            return_value = Error::CALLBACK_NOT_SET;
+          }
+          // Not strict: no source bound, emit nothing.
+        }
+        else
+        {
+          bool more = true;
+          while(more && (Error::NO_ERRORS == return_value))
+          {
+            bool produced = false;
+            transient_.clear();
+            static_cast<void>(source_.invoke(produced, transient_));
+            if(produced)
+            {
+              return_value = transient_.serialize_len(field_number, transient_.serialized_size(),
+                                                      buffer, true);
+              if(Error::NO_ERRORS == return_value)
+              {
+                ++length_;
+              }
+            }
+            else
+            {
+              more = false;
+            }
+          }
+        }
+        return return_value;
+      }
+
       //! Deserialize one group element and push it to the sink.
       /*!
           The opening START_GROUP tag has been consumed by the caller. The element's
@@ -331,6 +391,57 @@ namespace EmbeddedProto
         return return_value;
       }
 
+      //! Resumable, length delimited variant of serialize_partial_as_field_expanded.
+      /*!
+          The partial counterpart of serialize_expanded_len: one tag + size + body per element,
+          resuming where a full buffer stopped. The element stays resident in the transient across a
+          resume, so the source is pulled exactly once per element here as well.
+
+          \param field_number The field number written in each element's tag.
+          \param buffer       The destination buffer.
+          \param state        External state tracking progress through the stream.
+          \param optional     Unused, an entry is always emitted, also when it is empty.
+      */
+      Error serialize_partial_as_field_expanded_len(uint32_t field_number,
+                                                    WriteBufferInterface& buffer,
+                                                    MessageState& state,
+                                                    bool optional) const
+      {
+        static_cast<void>(optional);
+        Error return_value = Error::NO_ERRORS;
+        bool more = true;
+        while(more && (Error::NO_ERRORS == return_value))
+        {
+          if(::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase)
+          {
+            // The whole stream has been drained.
+            more = false;
+          }
+          else if(::EmbeddedProto::FieldProcessingPhase::DATA == state.phase)
+          {
+            if(nullptr != state.child)
+            {
+              return_value = transient_.serialize_partial(buffer, *state.child);
+              if((Error::NO_ERRORS == return_value)
+                 && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.child->phase))
+              {
+                finish_len_element(state);
+              }
+            }
+            else
+            {
+              return_value = Error::NESTING_TOO_DEEP;
+            }
+          }
+          else
+          {
+            // Phase TAG or SIZE: pull the next element if needed and write its tag and size.
+            return_value = serialize_partial_begin_len(field_number, buffer, state);
+          }
+        }
+        return return_value;
+      }
+
       //! Resumable push-deserialize of one group element for the partial engine.
       /*!
           Invoked by the inherited deserialize_partial_as_group, which consumes the
@@ -344,6 +455,29 @@ namespace EmbeddedProto
       Error deserialize_partial(ReadBufferInterface& buffer, MessageState& state) override
       {
         Error return_value = transient_.deserialize_partial(buffer, state);
+        if((Error::NO_ERRORS == return_value)
+           && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
+        {
+          return_value = push_to_sink(transient_);
+          if(Error::NO_ERRORS == return_value)
+          {
+            ++length_;
+          }
+          transient_.clear();
+        }
+        return return_value;
+      }
+      //! Resumable push-deserialize of one length delimited element for the partial engine.
+      /*!
+          The length delimited counterpart of the group path used by deserialize_partial. The base
+          class streams the element body into the transient and marks this *field* COMPLETE once the
+          declared number of bytes has been consumed. That completion lands on the field state and
+          not on the transient's own state, which is why the element is pushed to the sink from here
+          instead of from deserialize_partial, the way the group path does it.
+      */
+      Error deserialize_partial_as_field(ReadBufferInterface& buffer, MessageState& state) override
+      {
+        Error return_value = MessageInterface::deserialize_partial_as_field(buffer, state);
         if((Error::NO_ERRORS == return_value)
            && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
         {
@@ -397,6 +531,82 @@ namespace EmbeddedProto
       }
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
+      //! Pull the next element (once, guarded by element_loaded_) and write its tag and size.
+      /*!
+          The length delimited counterpart of serialize_partial_begin_group. The size is measured on
+          the transient after the pull, so no element is ever produced twice. When the source is
+          exhausted (or unbound and not strict) the field is marked COMPLETE.
+
+          An entry that serializes to zero bytes is finished here: serialize_partial_tag_and_size
+          marks a zero sized field COMPLETE because it has no body to write, which for a stream
+          would otherwise read as "the whole field is done" instead of "this element is done".
+      */
+      Error serialize_partial_begin_len(uint32_t field_number,
+                                        WriteBufferInterface& buffer,
+                                        MessageState& state) const
+      {
+        Error return_value = Error::NO_ERRORS;
+        if(!element_loaded_)
+        {
+          if(!source_.is_set())
+          {
+            if(strict_)
+            {
+              return_value = Error::CALLBACK_NOT_SET;
+            }
+            else
+            {
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+          }
+          else
+          {
+            bool produced = false;
+            transient_.clear();
+            static_cast<void>(source_.invoke(produced, transient_));
+            if(produced)
+            {
+              element_loaded_ = true;
+              // Measured once, here, and kept in the state so a resume after a full buffer does
+              // not walk the transient again.
+              state.size_value = transient_.serialized_size();
+              if(nullptr != state.child)
+              {
+                state.child->reset();
+              }
+            }
+            else
+            {
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+            }
+          }
+        }
+
+        if((Error::NO_ERRORS == return_value) && element_loaded_)
+        {
+          return_value = serialize_partial_tag_and_size(field_number, state.size_value, buffer,
+                                                        state, true);
+          if((Error::NO_ERRORS == return_value)
+             && (::EmbeddedProto::FieldProcessingPhase::COMPLETE == state.phase))
+          {
+            finish_len_element(state);
+          }
+        }
+        return return_value;
+      }
+
+      //! Close off one length delimited element and arm the state for the next one.
+      void finish_len_element(MessageState& state) const
+      {
+        ++length_;
+        element_loaded_ = false;
+        state.phase = ::EmbeddedProto::FieldProcessingPhase::TAG;
+        if(nullptr != state.child)
+        {
+          state.child->reset();
+        }
+      }
+
       //! Pull the next element (once, guarded by element_loaded_) and write its START_GROUP tag.
       /*!
           When the source is exhausted (or unbound and not strict) the field is

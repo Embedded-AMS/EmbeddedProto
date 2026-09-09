@@ -162,8 +162,20 @@ class Field:
     def callback_is_message(self):
         return False
 
+    # Returns true when a callbackStorage field streams its elements length delimited instead of as
+    # DELIMITED groups. Only a map does; its entries have to stay readable by a standard protoc peer.
+    def callback_is_len_expanded(self):
+        return False
+
     # Raise a generator error when callbackStorage is set on a field kind that is not yet supported.
     def reject_unsupported_callback_storage(self, is_repeated, in_real_oneof):
+        # A map streams its entries length delimited instead of as DELIMITED groups, so the rules
+        # below do not apply to it. This is checked on the descriptor rather than on the class
+        # because a repeated field builds its element from that very same descriptor, which would
+        # otherwise run these checks a second time for the entry.
+        if Field.find_map_entry_descriptor(self.descriptor, self.parent) is not None:
+            return
+
         location = self.parent.name + "." + self.descriptor.name
         is_message = FieldDescriptorProto.TYPE_MESSAGE == self.descriptor.type
         is_string_or_bytes = self.descriptor.type in (FieldDescriptorProto.TYPE_STRING,
@@ -208,6 +220,25 @@ class Field:
         return ""
 
     @staticmethod
+    # Return the descriptor of the synthetic entry message when this field is a map, None otherwise.
+    #
+    # Protoc rewrites "map<K,V> foo = 1;" into a repeated message field whose element is a nested
+    # message flagged map_entry, holding the key as field one and the value as field two. That entry
+    # is always nested directly in the message declaring the map, so it can be found by name among
+    # the raw nested types of the parent. The raw descriptors are used on purpose: this runs from
+    # MessageDefinition.__init__ while the fields are built, before the type definitions are matched,
+    # so the generated entry class can not be resolved through the usual type lookup yet.
+    def find_map_entry_descriptor(proto_descriptor, parent_msg):
+        result = None
+        if (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and \
+                (FieldDescriptorProto.TYPE_MESSAGE == proto_descriptor.type):
+            entry_name = proto_descriptor.type_name.rsplit(".", 1)[-1]
+            for nested in parent_msg.descriptor.nested_type:
+                if (nested.name == entry_name) and nested.options.map_entry:
+                    result = nested
+        return result
+
+    @staticmethod
     # This function create the appropriate field object for a variable defined in the message.
     # The descriptor and parent message parameters are required parameters, all field need them to be created. The oneof
     # parameter is only required for fields which are part of a oneof. The parameter is the reference to the oneof
@@ -223,7 +254,12 @@ class Field:
             result = FieldErrorRecursive(proto_descriptor, parent_msg, oneof)
         # Now continue constructing the normal fields.
         elif (FieldDescriptorProto.LABEL_REPEATED == proto_descriptor.label) and not already_nested:
-            result = FieldRepeated(proto_descriptor, parent_msg, oneof)
+            # A map is stored and encoded as a repeated message field of entries, so it has to be
+            # recognised before the plain repeated field is constructed.
+            if Field.find_map_entry_descriptor(proto_descriptor, parent_msg) is not None:
+                result = FieldMap(proto_descriptor, parent_msg, oneof)
+            else:
+                result = FieldRepeated(proto_descriptor, parent_msg, oneof)
         elif FieldDescriptorProto.TYPE_MESSAGE == proto_descriptor.type:
             result = FieldMessage(proto_descriptor, parent_msg, oneof)
         elif FieldDescriptorProto.TYPE_ENUM == proto_descriptor.type:
@@ -1041,6 +1077,207 @@ class FieldRepeated(Field):
         return self.actual_type.descriptor.type in (FieldDescriptorProto.TYPE_MESSAGE,
                                                      FieldDescriptorProto.TYPE_STRING,
                                                      FieldDescriptorProto.TYPE_BYTES)
+
+# -----------------------------------------------------------------------------
+
+
+# This class wraps a protobuf map field.
+#
+# Protoc rewrites "map<K,V> foo = 1;" into a repeated message field whose element is a synthetic
+# entry message holding the key as field one and the value as field two. On the wire the two are
+# identical, so this class reuses the storage and the whole (de)serialization of a repeated message
+# field and only adds the map shaped accessors on top of it.
+class FieldMap(FieldRepeated):
+
+    # Protobuf fixes the field numbers of the entry message.
+    KEY_FIELD_NUMBER = 1
+    VALUE_FIELD_NUMBER = 2
+
+    def __init__(self, proto_descriptor, parent_msg, oneof=None):
+        # Resolved before the base constructor runs because the callback storage validation it
+        # performs already has to know that this field is a map.
+        self.entry_descriptor = Field.find_map_entry_descriptor(proto_descriptor, parent_msg)
+
+        super().__init__(proto_descriptor, parent_msg, oneof)
+
+        # The generated entry class. A message definition creates its nested definitions before its
+        # fields, so the entry is already available while this field is constructed.
+        self.entry_definition = None
+        for nested in parent_msg.nested_msg_definitions:
+            if nested.descriptor is self.entry_descriptor:
+                self.entry_definition = nested
+
+        if self.entry_definition is None:
+            raise Exception(self.get_location() + ": unable to find the generated map entry class.")
+
+        self.apply_key_value_max_length()
+
+    # The message and field name, used to point the user at the offending field in an error message.
+    def get_location(self):
+        return self.parent.name + "." + self.descriptor.name
+
+    # Return the field of the entry class with the given number. The key and the value are looked up
+    # by their protobuf field number rather than by their position in the entry.
+    def get_entry_field(self, number):
+        result = None
+        for field in self.entry_definition.fields:
+            if number == field.variable_id:
+                result = field
+        return result
+
+    def get_key_field(self):
+        return self.get_entry_field(FieldMap.KEY_FIELD_NUMBER)
+
+    def get_value_field(self):
+        return self.get_entry_field(FieldMap.VALUE_FIELD_NUMBER)
+
+    # Push keyMaxLength and valueMaxLength into the string or bytes fields of the entry class.
+    #
+    # Without this the key and the value are singular fields of a message which carries no options of
+    # its own, so each would expose a bare C++ template parameter and the user would have to size the
+    # map through the generated entry type instead of through the map field itself.
+    def apply_key_value_max_length(self):
+        if self.embedded_proto_options is None:
+            return
+
+        options = self.embedded_proto_options
+        if options.keyMaxLength:
+            key_field = self.get_key_field()
+            if not isinstance(key_field, BaseStringBytes):
+                raise Exception(self.get_location() + ": keyMaxLength is only valid on a map with a "
+                                "string key.")
+            key_field.MaxLength = options.keyMaxLength
+
+        if options.valueMaxLength:
+            value_field = self.get_value_field()
+            if not isinstance(value_field, BaseStringBytes):
+                raise Exception(self.get_location() + ": valueMaxLength is only valid on a map with "
+                                "a string or bytes value.")
+            value_field.MaxLength = options.valueMaxLength
+
+    # A map entry is length delimited on the wire, whether the entries are stored resident or
+    # streamed through callbacks. Streaming does not switch the framing to a group the way it does
+    # for a plain repeated message field, so the bytes stay readable by a standard protoc peer.
+    def is_delimited(self):
+        return False
+
+    # True when this map streams its entries through user callbacks. The generated code then emits
+    # each entry length delimited from a transient, which needs a serialize call of its own.
+    def callback_is_len_expanded(self):
+        return self.has_callback_storage()
+
+    # Entries are length delimited in both storage modes, so deserialization always follows the same
+    # path as any other repeated message field, never the group path a message callback uses.
+    def render_deserialize(self, jinja_env):
+        return self.render("FieldBasic_Deserialize.h.jinja2", jinja_environment=jinja_env).rstrip()
+
+    def render_get_set(self, jinja_env):
+        return self.render("FieldMap_GetSet.h.jinja2", jinja_environment=jinja_env)
+
+    # ---- Types used by the generated map API --------------------------------------------------
+
+    # The C++ type of one entry, the element type of the underlying repeated field.
+    def get_entry_type(self):
+        return self.actual_type.get_type()
+
+    @staticmethod
+    def field_is_string(field):
+        return FieldDescriptorProto.TYPE_STRING == field.descriptor.type
+
+    @staticmethod
+    def field_is_bytes(field):
+        return FieldDescriptorProto.TYPE_BYTES == field.descriptor.type
+
+    @staticmethod
+    def field_is_message(field):
+        return FieldDescriptorProto.TYPE_MESSAGE == field.descriptor.type
+
+    def key_is_string(self):
+        return FieldMap.field_is_string(self.get_key_field())
+
+    def value_is_string(self):
+        return FieldMap.field_is_string(self.get_value_field())
+
+    def value_is_bytes(self):
+        return FieldMap.field_is_bytes(self.get_value_field())
+
+    def value_is_message(self):
+        return FieldMap.field_is_message(self.get_value_field())
+
+    def value_is_enum(self):
+        return self.get_value_field().of_type_enum
+
+    # True when the value can be returned by value from a lookup, with a sensible default when the
+    # key is absent. Messages and bytes have no such literal default and are read through the
+    # Error returning overload instead.
+    def value_is_returned_by_value(self):
+        return not (self.value_is_message() or self.value_is_bytes())
+
+    # The C++ type a key is passed as. A string key is taken as a plain c style string, which is what
+    # a user reaches for, and compares directly against the stored key through FieldString.
+    def get_key_param_type(self):
+        if self.key_is_string():
+            return "const char*"
+        return self.get_key_field().get_cstdint_type()
+
+    # The C++ type a value is passed as when writing an entry.
+    def get_value_param_type(self):
+        value_field = self.get_value_field()
+        if self.value_is_string():
+            return "const char*"
+        if self.value_is_bytes() or self.value_is_message():
+            return "const " + value_field.get_type() + "&"
+        if self.value_is_enum():
+            return value_field.get_type_as_defined()
+        return value_field.get_cstdint_type()
+
+    # The C++ type a lookup returns for the value kinds that have a literal default.
+    def get_value_return_type(self):
+        value_field = self.get_value_field()
+        if self.value_is_string():
+            return "const char*"
+        if self.value_is_enum():
+            return value_field.get_type_as_defined()
+        return value_field.get_cstdint_type()
+
+    # The value handed back when a key is not present in the map. Scalars and enums reuse the default
+    # the generator emits for the field itself, which also covers a CLOSED enum whose first
+    # enumerator is not zero.
+    def get_value_absent_default(self):
+        if self.value_is_string():
+            return '""'
+        return self.get_value_field().get_default_value()
+
+    # The C++ type the Error returning lookup writes the value into.
+    def get_value_out_type(self):
+        value_field = self.get_value_field()
+        if self.value_is_string() or self.value_is_bytes() or self.value_is_message():
+            return value_field.get_type()
+        if self.value_is_enum():
+            return value_field.get_type_as_defined()
+        return value_field.get_cstdint_type()
+
+    # The statement writing the key of a freshly added entry, given the names of the entry variable
+    # and of the key parameter. A string is assigned through its field object, every other key kind
+    # has a plain setter taking the value.
+    def get_key_assign_statement(self, entry, key):
+        if self.key_is_string():
+            return entry + ".mutable_key().set(" + key + ");"
+        return entry + ".set_key(" + key + ");"
+
+    # The statement writing the value of an entry, see get_key_assign_statement.
+    def get_value_assign_statement(self, entry, value):
+        if self.value_is_string():
+            return entry + ".mutable_value().set(" + value + ");"
+        return entry + ".set_value(" + value + ");"
+
+    # The expression reading the value out of an entry for the by value lookup. A string is handed
+    # back as a c style string, matching get_value_return_type.
+    def get_value_read_expression(self, entry):
+        if self.value_is_string():
+            return entry + ".get_value().get_const()"
+        return entry + ".get_value()"
+
 
 # -----------------------------------------------------------------------------
 

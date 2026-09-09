@@ -37,7 +37,16 @@ Postal address:
 {# Field types that use LENGTH_DELIMITED: messages, strings, bytes, repeated #}
 {# ======================================================================= #}
 
-{% if field.callback_is_expanded() %}
+{% if field.callback_is_len_expanded() %}
+{# ------------------------------------------------------------------------- #}
+{# Map callback storage: pull each entry from the bound source and emit it     #}
+{# length delimited, resuming across a full buffer without pulling any entry   #}
+{# twice. Same framing a resident map uses, so a protoc peer can read it.      #}
+{# ------------------------------------------------------------------------- #}
+return_value = {{field.get_variable_name()}}.serialize_partial_as_field_expanded_len(
+    static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer, state, false);
+
+{% elif field.callback_is_expanded() %}
 {# ------------------------------------------------------------------------- #}
 {# Repeated callback storage: pull each element from the bound source and emit #}
 {# it EXPANDED (one tag+value or one group per element), resuming across a     #}
