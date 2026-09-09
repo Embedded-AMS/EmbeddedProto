@@ -1,0 +1,82 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+// This file is used to test serializing repeated fields.
+
+
+// This file is used to test map fields, both stored resident and streamed through callbacks.
+
+syntax = "proto3";
+
+import "embedded_proto_options.proto";
+
+package map_fields;
+
+enum Colour
+{
+  RED   = 0;
+  GREEN = 1;
+  BLUE  = 2;
+}
+
+message Point
+{
+  int32 x = 1;
+  int32 y = 2;
+}
+
+// One map per value kind, to cover the type matrix in a single message. The field after the maps
+// catches a map whose entries are interleaved with other fields of the parent.
+message MapTypes
+{
+  map<string, int32>  by_name = 1 [(EmbeddedProto.options) = { maxLength: 4, keyMaxLength: 8 }];
+  map<int32, string>  by_id   = 2 [(EmbeddedProto.options) = { maxLength: 4, valueMaxLength: 8 }];
+  map<string, string> text    = 3 [(EmbeddedProto.options) = { maxLength: 3, keyMaxLength: 6, valueMaxLength: 10 }];
+  map<uint32, Colour> colours = 4 [(EmbeddedProto.options) = { maxLength: 4 }];
+  map<int64, Point>   points  = 5 [(EmbeddedProto.options) = { maxLength: 3 }];
+  map<bool, bytes>    flags   = 6 [(EmbeddedProto.options) = { maxLength: 2, valueMaxLength: 4 }];
+  int32               other   = 7;
+}
+
+// A map with room for two entries only, to test the capacity limit.
+message SmallMap
+{
+  map<string, int32> entries = 1 [(EmbeddedProto.options) = { maxLength: 2, keyMaxLength: 8 }];
+}
+
+// The same map streamed through user callbacks instead of stored resident. The entries stay length
+// delimited, so the bytes are identical to those of a resident map.
+message StreamMap
+{
+  map<string, int32> entries = 1 [(EmbeddedProto.options) = {
+    callbackStorage: true,
+    keyMaxLength: 8
+  }];
+}

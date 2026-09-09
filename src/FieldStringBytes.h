@@ -171,6 +171,32 @@ namespace EmbeddedProto
           return return_value;
         }
 
+        //! Compare the data held by this object with that of another string or bytes field.
+        /*!
+            The maximum lengths of the two objects may differ, only the data actually held is
+            compared. Used among others to look up a key in a map field.
+
+            \param[in] rhs The object to compare this one with.
+            \return True when both hold the same number of bytes and all of them are equal.
+        */
+        template<uint32_t RHS_LENGTH>
+        bool operator==(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs) const
+        {
+          return (current_length_ == rhs.get_length()) &&
+                 (0 == memcmp(data_.data(), rhs.get_const(), current_length_));
+        }
+
+        //! Compare the data held by this object with that of another string or bytes field.
+        /*!
+            \param[in] rhs The object to compare this one with.
+            \return True when the two differ in length or in any of the bytes held.
+        */
+        template<uint32_t RHS_LENGTH>
+        bool operator!=(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs) const
+        {
+          return !(*this == rhs);
+        }
+
         Error serialize(WriteBufferInterface& buffer) const override 
         { 
           Error return_value = Error::NO_ERRORS;
@@ -494,6 +520,49 @@ namespace EmbeddedProto
         return *this;
       }
 
+      //! Compare the characters in this object with a c style string.
+      /*!
+          A short example:
+            if(msg.get_name() == "Foo bar") { }
+
+          \param[in] rhs The c style string to compare the characters in this object with.
+          \return True when both hold the same number of characters and all of them are equal.
+      */
+      bool operator==(const char* const rhs) const
+      {
+        bool result = false;
+        if(nullptr != rhs)
+        {
+          const uint32_t rhs_length = strnlen(rhs, MAX_LENGTH + 1);
+          result = (rhs_length == this->get_length()) &&
+                   (0 == memcmp(this->get_const(), rhs, rhs_length));
+        }
+        return result;
+      }
+
+      //! Compare the characters in this object with a c style string.
+      /*!
+          \param[in] rhs The c style string to compare the characters in this object with.
+          \return True when the two differ in length or in any of the characters held.
+      */
+      bool operator!=(const char* const rhs) const
+      {
+        return !(*this == rhs);
+      }
+
+      //! Does the given c style string fit in this object without being cut short?
+      /*!
+          set() stores at most MAX_LENGTH characters and drops the rest. Check first when a cut
+          short string would be wrong rather than merely shorter, as with a map key.
+
+          \param[in] str The c style string to check. A nullptr counts as an empty string.
+          \return True when the string is at most MAX_LENGTH characters long.
+      */
+      static bool fits(const char* const str)
+      {
+        return (nullptr == str) || (MAX_LENGTH >= strnlen(str, MAX_LENGTH + 1));
+      }
+
       //! Assign the data from the given c style string to this object.
       /*!
           \param[in] str The c style string from which to take the characters and copy it to this object.
@@ -562,7 +631,7 @@ namespace EmbeddedProto
           
           \return The length of this character array will be returned or the value of len.
       */
-      uint32_t strnlen(const char* s, uint32_t len) 
+      static uint32_t strnlen(const char* s, uint32_t len)
       {
         uint32_t i = 0;
         for(; (i < len) && (s[i] != '\0'); ++i)

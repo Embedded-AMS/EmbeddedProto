@@ -73,7 +73,9 @@ BOOLEAN = "boolean"
 OPTION_TYPES = {"maxLength": UNSIGNED,
                 "nestedMaxLength": UNSIGNED,
                 "customStorage": BOOLEAN,
-                "callbackStorage": BOOLEAN}
+                "callbackStorage": BOOLEAN,
+                "keyMaxLength": UNSIGNED,
+                "valueMaxLength": UNSIGNED}
 
 
 def warn(message):

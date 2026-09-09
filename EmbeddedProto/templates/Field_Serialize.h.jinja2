@@ -35,7 +35,13 @@ Postal address:
 #}
 {% if field.uses_serialize_len() %}
 {# Field types that use serialize_len(): messages, strings, bytes, repeated #}
-{% if field.callback_is_expanded() %}
+{% if field.callback_is_len_expanded() %}
+{# Map callback storage: pull each entry from the bound source and emit it length delimited, the same framing a resident map uses. #}
+if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+{
+  return_value = {{field.get_variable_name()}}.serialize_expanded_len(static_cast<uint32_t>(FieldNumber::{{field.get_variable_id_name()}}), buffer);
+}
+{% elif field.callback_is_expanded() %}
 {# Repeated callback storage: pull elements from the bound source and emit each EXPANDED (one tag+value per element) in a single call. #}
 if(::EmbeddedProto::Error::NO_ERRORS == return_value)
 {
