@@ -41,6 +41,11 @@ file(GLOB_RECURSE PROTO_FILES "${CMAKE_SOURCE_DIR}/test/proto/*.proto")
 set(PROTO_GEN_DIR ${CMAKE_SOURCE_DIR}/build/EAMS)
 file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
+# The external field options file used by the tests. It sits outside test/proto on purpose: the options are keyed by
+# package and message, never by the location of a *.proto, so the file may live anywhere. It is passed to every
+# generation; entries for a package that a run does not compile are skipped.
+set(FIELD_OPTIONS_FILE ${CMAKE_SOURCE_DIR}/test/options/embedded_proto_test.options.json)
+
 # Include the source code template files in the dependencies such that when the templates change 
 # the code is regenerated.
 file(GLOB_RECURSE TEMPLATE_FILES "${CMAKE_SOURCE_DIR}/EmbeddedProto/templates/*.h.jinja2")
@@ -50,8 +55,8 @@ foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_FILE_NAME ${PROTO_FILE} NAME_WE)
     add_custom_command(
         OUTPUT ${PROTO_GEN_DIR}/${PROTO_FILE_NAME}.h
-        COMMAND ${CMAKE_SOURCE_DIR}/venv/bin/python3 -m grpc_tools.protoc --plugin=protoc-gen-eams=${CMAKE_SOURCE_DIR}/protoc-gen-eams -I${CMAKE_SOURCE_DIR}/EmbeddedProto -I${CMAKE_SOURCE_DIR}/test/proto --eams_out=${PROTO_GEN_DIR} ${PROTO_FILE}
-        DEPENDS ${PROTO_FILE} ${TEMPLATE_FILES}
+        COMMAND ${CMAKE_SOURCE_DIR}/venv/bin/python3 -m grpc_tools.protoc --plugin=protoc-gen-eams=${CMAKE_SOURCE_DIR}/protoc-gen-eams -I${CMAKE_SOURCE_DIR}/EmbeddedProto -I${CMAKE_SOURCE_DIR}/test/proto --eams_out=${PROTO_GEN_DIR} --eams_opt=options_file=${FIELD_OPTIONS_FILE} ${PROTO_FILE}
+        DEPENDS ${PROTO_FILE} ${TEMPLATE_FILES} ${FIELD_OPTIONS_FILE}
         COMMENT "Running EAMS plugin on ${PROTO_FILE}"
         VERBATIM
     )

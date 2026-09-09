@@ -182,13 +182,19 @@ class EnumDefinition(TypeDefinition):
 # -----------------------------------------------------------------------------
 
 class MessageDefinition(TypeDefinition):
-    def __init__(self, proto_descriptor, parent_scope, feature_resolver=None, enclosing_features=None):
+    def __init__(self, proto_descriptor, parent_scope, feature_resolver=None, enclosing_features=None,
+                 options_file=None):
         super().__init__(proto_descriptor, parent_scope, "TypeDefMsg.h.jinja2",
                          feature_resolver, enclosing_features)
 
+        # The external field options file. The fields of this message read their options from it, they reach it
+        # through their parent message the same way they reach the feature resolver.
+        self.options_file = options_file
+
         self.nested_enum_definitions = [EnumDefinition(enum, self.scope, self.feature_resolver, self.features)
                                         for enum in self.descriptor.enum_type]
-        self.nested_msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.features)
+        self.nested_msg_definitions = [MessageDefinition(msg, self.scope, self.feature_resolver, self.features,
+                                                        self.options_file)
                                        for msg in self.descriptor.nested_type]
 
         # Store the id numbers of all the fields to create the ID enum.
