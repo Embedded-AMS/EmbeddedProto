@@ -28,6 +28,8 @@
 #   the Netherlands
 #
 
+import os
+import shutil
 import sys
 import grpc_tools.protoc as protoc
 from importlib import resources
@@ -67,8 +69,21 @@ def get_options_proto_location():
     return str(resources.files("EmbeddedProto").resolve())
 
 
-def build_protoc_argv(argv):
-    # Turn the command line of embeddedproto into the one handed to protoc.
+def get_plugin_location(program):
+    # Obtain the path of the protoc-gen-eams plugin.
+    #
+    # protoc searches its plugins on PATH, and the folder holding the embeddedproto command is
+    # not always on it. A build system for instance may call the command by its full path
+    # without activating the virtual environment. Prefer the plugin installed next to the
+    # command, fall back to PATH, and leave the lookup to protoc when neither has it.
+    bin_dir = os.path.dirname(os.path.abspath(program))
+    return shutil.which("protoc-gen-eams", path=bin_dir) or shutil.which("protoc-gen-eams")
+
+
+def build_protoc_argv(argv, program=sys.argv[0]):
+    # Turn the command line of embeddedproto into the one handed to protoc. The program is the
+    # path this command was started with, used to locate the plugin. It also becomes the first
+    # element of the result, protoc takes that element as its own name and skips it.
     #
     # The include paths for embedded_proto_options.proto and the Protobuf well known types
     # (google/protobuf/descriptor.proto, imported by the options file) are always appended,
@@ -79,15 +94,16 @@ def build_protoc_argv(argv):
 
     # Check if a plugin is included
     if not [x for x in argv if x.startswith("--plugin")]:
-        # If not add the EmbeddedProto plugin
-        argv.insert(0, "--plugin=protoc-gen-eams")
+        # If not add the EmbeddedProto plugin, by path when it can be found.
+        plugin = get_plugin_location(program)
+        argv.insert(0, "--plugin=protoc-gen-eams" + ("=" + plugin if plugin else ""))
 
-    return argv
+    return [program] + argv
 
 
 def run_protoc(argv=sys.argv):
     # Remove the program name
-    argv.pop(0)
+    program = argv.pop(0)
 
     # License configuration sub-commands, handled before protoc. These let
     # `embeddedproto --set-token <KEY> [--server-url <URL>]` and
@@ -106,6 +122,8 @@ def run_protoc(argv=sys.argv):
         return
 
     # Hand the exit code of protoc to the caller, so build scripts notice a failed generation.
-    sys.exit(protoc.main(build_protoc_argv(argv)))
+    sys.exit(protoc.main(build_protoc_argv(argv, program)))
+
+
 if __name__ == "__main__":
     run_protoc(sys.argv)
