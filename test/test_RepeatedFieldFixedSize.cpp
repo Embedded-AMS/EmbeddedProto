@@ -48,7 +48,6 @@ namespace test_EmbeddedAMS_RepeatedFieldFixedSize
 
 using ::testing::_;
 using ::testing::An;
-using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::SetArgReferee;
@@ -338,8 +337,8 @@ TEST(RepeatedFieldPacked, full_deserialize_fixed32_is_one_block_pop)
       .WillOnce(DoAll(SetArgReferee<1>(0x10), Return(true)));
   EXPECT_CALL(buffer, advance(1)).Times(1).WillOnce(Return(true));
   // Whole 16 byte block read in a single batched pop, never a per-byte pop.
-  EXPECT_CALL(buffer, pop(_, 16U)).Times(1).WillOnce(Invoke(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; }));
+  EXPECT_CALL(buffer, pop(_, 16U)).Times(1).WillOnce(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
   EXPECT_CALL(buffer, pop(An<uint8_t&>())).Times(0);
 
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;

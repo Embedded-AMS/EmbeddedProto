@@ -11,11 +11,10 @@ license = {text = "GPL-3.0 for Open Source projects, a Property license for Comm
 classifiers = [ ]
 dependencies = [
     "Jinja2>=3,<4",
-    "MarkupSafe>=2.0,<3",
-    "six>=1.16.0,<2",
+    "MarkupSafe>=2.0,<4",
     "toposort>=1.7,<2",
-    "protobuf==6.32.0",
-    "grpcio-tools==1.73.1",
+    "protobuf==7.36.1",
+    "grpcio-tools==1.83.1",
 ]
 
 [tool.setuptools.packages.find]
@@ -30,6 +29,6 @@ embeddedproto = "EmbeddedProto.EmbeddedProto:run_protoc"
 EmbeddedProto = ["templates/*", "version.json", "src/*", "embedded_proto_options.proto"]
 
 [build-system]
-requires = ["setuptools>=64", "grpcio-tools==1.75.0"]
+requires = ["setuptools>=64", "grpcio-tools==1.83.1"]
 build-backend = "setuptools.build_meta"
 
