@@ -34,6 +34,7 @@ from setuptools.command.editable_wheel import editable_wheel
 from setuptools.command.sdist import sdist
 from setuptools import setup
 import subprocess
+import sys
 import os
 import json
 import re
@@ -42,7 +43,7 @@ import re
 def build_proto():
 
     command = [
-        "python3",
+        sys.executable,
         "-m",
         "grpc_tools.protoc",
         "-I./EmbeddedProto",
