@@ -1,0 +1,52 @@
+{#
+Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+
+This file is part of Embedded Proto.
+
+Embedded Proto is open source software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, version 3 of the license.
+
+Embedded Proto  is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial and closed source application please visit:
+<https://embeddedproto.com/pricing/>.
+
+Embedded AMS B.V.
+Info:
+  info at EmbeddedProto dot com
+
+Postal address:
+  Atoomweg 2
+  1627 LE, Hoorn
+  the Netherlands
+#}
+enum class {{ typedef.name }} : uint32_t
+{
+  {% for value in typedef.values() %}
+  {{ value.name }} = {{ value.number }}{{ "," if not loop.last }}
+  {% endfor %}
+};
+{%- if typedef.is_closed() %}
+
+
+// CLOSED enum (editions enum_type feature): returns true only for declared values.
+static inline bool {{ typedef.name }}_is_valid(const uint32_t value)
+{
+  switch(value)
+  {
+    {% for number in typedef.unique_value_numbers() %}
+    case {{ number }}U:
+    {% endfor %}
+      return true;
+    default:
+      return false;
+  }
+}
+{%- endif %}

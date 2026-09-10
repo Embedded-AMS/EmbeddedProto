@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -31,6 +31,7 @@
 #include "gtest/gtest.h"
 
 #include <WireFormatter.h>
+#include <ReadBufferFixedSize.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 
@@ -190,16 +191,45 @@ TEST(OptionalFields, empty_serialization)
   InSequence s;
   Mocks::WriteBufferMock buffer;
 
-  std::array<uint8_t, 15> expected = { 0x10, 0x00, // b
-                                       0x25, 0x00, 0x00, 0x00, 0x00, // y
-                                       0x2a, 0x00,  // pos
-                                       0x30, 0x00,  // state
-                                       0x3a, 0x00,  // bytes_array
-                                       0x42, 0x00}; // str
-
-  for(auto e : expected) {
+  // Fields are serialized in field number order
+  // b is field 2 (varint)
+  std::array<uint8_t, 2> expected_b = { 0x10, 0x00 };
+  for(auto e : expected_b) {
     EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
   }
+
+  // y is field 4 (fixed32)
+  std::array<uint8_t, 5> expected_y = { 0x25, 0x00, 0x00, 0x00, 0x00 };
+  for(auto e : expected_y) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  // pos is field 5 - nested message (LENGTH_DELIMITED)
+  EXPECT_CALL(buffer, push(0x2a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  // get_available_size() is called after writing tag and size for empty pos message
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
+  // state is field 6 (varint)
+  std::array<uint8_t, 2> expected_state = { 0x30, 0x00 };
+  for(auto e : expected_state) {
+    EXPECT_CALL(buffer, push(e)).Times(1).WillOnce(Return(true));
+  }
+
+  // bytes_array is field 7 (LENGTH_DELIMITED)
+  EXPECT_CALL(buffer, push(0x3a)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  // get_available_size() is called after writing tag and size for empty bytes_array
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
+
+  // str is field 8 (LENGTH_DELIMITED)
+  EXPECT_CALL(buffer, push(0x42)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x00)).Times(1).WillOnce(Return(true));
+
+  // get_available_size() is called after writing tag and size for empty str
+  EXPECT_CALL(buffer, get_available_size()).Times(1).WillOnce(Return(10));
 
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 } 
@@ -224,31 +254,27 @@ TEST(OptionalFields, cleared_serialization)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
-TEST(OptionalFields, empty_deserialization) 
-{
-  // Test is empty and default vvalues will set the precense flags.
-  ::optional_fields<5,10> msg;
+#ifdef PARTIAL_SERIALIZATION_ENABLED
 
-  InSequence s;
-  Mocks::ReadBufferMock buffer;
+TEST(OptionalFields, empty_deserialization)
+{
+  // Explicitly present fields with default/empty values must still set the
+  // presence flags, including the empty nested message (pos) and empty
+  // string/bytes fields.
+  ::optional_fields<5,10> msg;
+  ::optional_fields<5,10>::StateStack state;
 
   static constexpr uint32_t SIZE = 15;
 
-  ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
+  ::EmbeddedProto::ReadBufferFixedSize<SIZE> buffer({ 0x10, 0x00, // b
+                                                      0x25, 0x00, 0x00, 0x00, 0x00, // y
+                                                      0x2a, 0x00,  // pos
+                                                      0x30, 0x00,  // state
+                                                      0x3a, 0x00,  // bytes_array
+                                                      0x42, 0x00}); // str
 
-  std::array<uint8_t, SIZE> referee = { 0x10, 0x00, // b
-                                        0x25, 0x00, 0x00, 0x00, 0x00, // y
-                                        0x2a, 0x00,  // pos
-                                        0x30, 0x00,  // state
-                                        0x3a, 0x00,  // bytes_array
-                                        0x42, 0x00}; // str
-
-  for(auto r: referee) {
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
-  }
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
-
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
 
   EXPECT_TRUE(msg.has_b());
   EXPECT_TRUE(msg.has_y());
@@ -257,6 +283,28 @@ TEST(OptionalFields, empty_deserialization)
   EXPECT_TRUE(msg.has_bytes_array());
   EXPECT_TRUE(msg.has_str());
 }
+
+TEST(ManyOptFields, deserialize_partial_split_in_multibyte_tag)
+{
+  // Field a16 (number 16) has a two-byte tag: (16 << 3) | 0 = 128 -> 0x80 0x01.
+  // Split the buffer inside that tag varint to verify the tag resumes correctly.
+  ::many_opt_fields msg;
+  ::many_opt_fields::StateStack state;
+
+  ::EmbeddedProto::ReadBufferFixedSize<3> buffer({0x80}); // first byte of the tag only
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+
+  buffer.push(0x01); // rest of the tag
+  buffer.push(0x01); // a16 = 1
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize_partial(buffer, state.root()));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::TAG, state.root().phase);
+  EXPECT_TRUE(msg.has_a16());
+  EXPECT_EQ(1, msg.get_a16());
+}
+
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OptionalFields, cleared_deserialization) 
 {
@@ -270,9 +318,9 @@ TEST(OptionalFields, cleared_deserialization)
 
   ON_CALL(buffer, get_size()).WillByDefault(Return(SIZE));
 
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));
+  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(Return(false));
 
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
 
   EXPECT_FALSE(msg.has_b());
   EXPECT_FALSE(msg.has_y());

@@ -1,0 +1,21 @@
+{
+  "OptionsFromFile.Frame": {
+    "samples": { "maxLength": 16 },
+    "name": { "maxLength": 32 },
+    "blob": { "maxLength": 64 },
+    "tags": { "maxLength": 4, "nestedMaxLength": 12 },
+    "Inner": {
+      "label": { "maxLength": 8 }
+    }
+  },
+
+  "OptionsFromFileSecond": {
+    "Reading": {
+      "chunks": { "maxLength": 3, "nestedMaxLength": 20 },
+      "unit": { "maxLength": 6 },
+      "Limits": {
+        "thresholds": { "maxLength": 5 }
+      }
+    }
+  }
+}

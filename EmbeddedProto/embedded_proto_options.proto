@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package EmbeddedProto;
+
+/**
+ * Options for Embedded Proto fields.
+ *
+ * maxLength: Used to set the maximum length for repeated fields, strings, and bytes.
+ *            For repeated fields, this sets the array size.
+ *            For strings and bytes, this sets the maximum character/byte length.
+ *
+ * nestedMaxLength: Used specifically for repeated string/bytes fields to set the
+ *                  maximum length of the string/bytes elements within the array.
+ *                  This allows setting both the array size (via maxLength) and
+ *                  the individual element size (via nestedMaxLength).
+ *
+ * customStorage: When set the user supplies the storage type for this field via a
+ *                template parameter. Applies to repeated, string, bytes and message
+ *                fields. The supplied type must derive from the matching base class.
+ *
+ * callbackStorage: When set the field streams its data through user callbacks instead
+ *                  of storing them resident. See field-level documentation below.
+ */
+message Options {
+  uint32 maxLength = 1;           // Maximum length for repeated fields, strings, or bytes
+  uint32 nestedMaxLength = 2;     // Only used for string/bytes fields in a repeated array. The 
+                                  // option is used to set the length of the string/byte while 
+                                  // maxLength is used to set the length of the repeated array.
+  bool customStorage = 3;         // When set the user supplies the storage type for this field
+                                  // via a template parameter. Applies to repeated, string, bytes
+                                  // and message fields. The supplied type must derive from the
+                                  // matching base class (RepeatedField, BaseStringBytes or
+                                  // MessageInterface). Takes precedence over maxLength and
+                                  // generates no size template parameter.
+  bool callbackStorage = 4;       // When set the field streams its data through user callbacks
+                                  // instead of storing them resident. Supported field types:
+                                  // - repeated scalar/enum: emits ::EmbeddedProto::RepeatedFieldCallback<T>,
+                                  //   serialized EXPANDED (one tag per element)
+                                  // - singular string/bytes: emits ::EmbeddedProto::BytesStringCallback<T>,
+                                  //   whole-value streaming
+                                  // - repeated message: emits ::EmbeddedProto::MessageCallback<T>,
+                                  //   requires DELIMITED (group) framing; rejected if LENGTH_DELIMITED
+                                  // - map: emits ::EmbeddedProto::MessageCallback<Entry>, entries stay
+                                  //   length delimited so DELIMITED is not required. The map keeps no
+                                  //   entries, so no key lookup accessors are generated.
+                                  // Rejected on: oneof members, singular scalar/enum/message,
+                                  // explicit-presence singular scalars, repeated string/bytes.
+  uint32 keyMaxLength = 5;        // Only used for map fields with a string or bytes key. Sets the
+                                  // length of the key, while maxLength sets the number of entries
+                                  // the map can hold.
+  uint32 valueMaxLength = 6;      // Only used for map fields with a string or bytes value. Sets the
+                                  // length of the value, while maxLength sets the number of entries
+                                  // the map can hold.
+}
+
+extend google.protobuf.FieldOptions { 
+  Options options = 1141;         // Custom options for Embedded Proto fields
+}

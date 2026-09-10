@@ -41,7 +41,7 @@ if _REPO_ROOT not in sys.path:
 from google.protobuf import descriptor_pb2
 from google.protobuf.descriptor_pb2 import DescriptorProto, FieldDescriptorProto, FileDescriptorProto
 from toposort import CircularDependencyError, toposort_flatten
-from generator.EmbeddedProto.ProtoFile import toposort_add_msg
+from EmbeddedProto.ProtoFile import toposort_add_msg
 
 
 def add_message_field(msg, name, type_name):

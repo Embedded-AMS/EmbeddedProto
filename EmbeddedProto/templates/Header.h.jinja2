@@ -1,0 +1,101 @@
+{#
+  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+
+  This file is part of Embedded Proto.
+
+  Embedded Proto is open source software: you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as published
+  by the Free Software Foundation, version 3 of the license.
+
+  Embedded Proto  is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+
+  For commercial and closed source application please visit:
+  <https://embeddedproto.com/pricing/>.
+
+  Embedded AMS B.V.
+  Info:
+    info at EmbeddedProto dot com
+
+  Postal address:
+    Atoomweg 2
+    1627 LE, Hoorn
+    the Netherlands
+#}
+{% if custom_header %}
+{{ custom_header }}
+{% endif %}
+/*
+ *  This file is generated with Embedded Proto, PLEASE DO NOT EDIT!
+ *  source: {{proto_file.descriptor.name}}
+ *  Generated on: {{ current_date_and_time }}
+ */
+
+// This file is generated. Please do not edit!
+#ifndef {{proto_file.get_header_guard()}}_H
+#define {{proto_file.get_header_guard()}}_H
+
+#include <cstdint>
+#include <Version.h>
+
+//! The major version number of the Embedded Proto generator used to create this file.
+#define {{proto_file.filename_without_folder|upper}}_GENERATOR_VERSION_MAJOR {{version_major}}
+
+//! The minor version number of the Embedded Proto generator used to create this file.
+#define {{proto_file.filename_without_folder|upper}}_GENERATOR_VERSION_MINOR {{version_minor}}
+
+//! The patch version number of the Embedded Proto generator used to create this file.
+#define {{proto_file.filename_without_folder|upper}}_GENERATOR_VERSION_PATCH {{version_patch}}
+
+static_assert({{proto_file.filename_without_folder|upper}}_GENERATOR_VERSION_MAJOR == EMBEDDEDPROTO_VERSION_MAJOR,
+    "Major version mismatch between generated code and library");
+
+#if {{proto_file.filename_without_folder|upper}}_GENERATOR_VERSION_MINOR != EMBEDDEDPROTO_VERSION_MINOR
+#warning "Minor version mismatch between generated code and library"
+#endif
+
+{% if proto_file.msg_definitions %}
+#include <MessageInterface.h>
+#include <WireFormatter.h>
+#include <Fields.h>
+#include <MessageSizeCalculator.h>
+#include <ReadBufferSection.h>
+#include <RepeatedFieldFixedSize.h>
+#include <RepeatedFieldCallback.h>
+#include <MessageCallback.h>
+#include <FieldStringBytes.h>
+#include <BytesStringCallback.h>
+#include <Errors.h>
+#include <Defines.h>
+#include <limits>
+#include <type_traits>
+
+{% endif %}
+{% if proto_file.get_dependencies() is defined %}
+// Include external proto definitions
+{% for dependency in proto_file.get_dependencies() %}
+#include "{{dependency}}"
+{% endfor %}
+
+{% endif %}
+{% for namespace in proto_file.get_namespaces() %}
+namespace {{ namespace }} {
+{% endfor %}
+
+{% for enum in proto_file.enum_definitions %}
+{{ enum.render(environment) }}
+
+{% endfor %}
+{% for msg in proto_file.msg_definitions %}
+{{ msg.render(environment) }}
+
+{% endfor %}
+{% for namespace in proto_file.get_namespaces()|reverse %}
+} // End of namespace {{ namespace }}
+{% endfor %}
+#endif // {{proto_file.get_header_guard()}}_H

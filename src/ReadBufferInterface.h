@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -64,6 +64,19 @@ namespace EmbeddedProto
       */
       virtual bool peek(uint8_t& byte) const = 0;
 
+
+      //! Obtain the value of a byte which will be returned after calling pop() N times.
+      /*!
+          This function will not alter the buffer read index.
+          
+          The parameter byte will not be set if the buffer was empty.
+
+          \param[in] n_bytes The number of bytes to read a head.
+          \param[out] byte When the buffer is not empty this variable will hold the oldest value.
+          \return True not exceesing the buffer limits.
+      */
+      virtual bool peek(const uint32_t n_bytes, uint8_t& byte) const = 0;
+
       //! Advances the internal read index by one when the buffer is not empty.
       /*!
           \return True when the buffer was not empty.
@@ -81,13 +94,42 @@ namespace EmbeddedProto
       //! Obtain the value of the oldest byte in the buffer and remove it from the buffer.
       /*!
           This function will alter the internal read index.
-          
+
           The parameter byte will not be set if the buffer was empty.
 
           \param[out] byte When the buffer is not empty this variable will hold the oldest value.
           \return True when the buffer was not empty.
       */
       virtual bool pop(uint8_t& byte) = 0;
+
+      //! Copy a block of bytes out of the buffer, advancing the read index.
+      /*!
+          This is the batched counterpart of pop(uint8_t&): it lets callers read
+          a whole fixed-width value (or a run of them) in one virtual call instead
+          of one call per byte.
+
+          The operation is all-or-nothing: when fewer than length bytes are
+          available nothing is copied and the read index is left unmoved, matching
+          the advance(n_bytes) / pop() semantics which never partially consume the
+          buffer.
+
+          The default implementation pops the bytes one at a time. Concrete buffers
+          are encouraged to override it with a single block copy (e.g. memcpy) so
+          the batching actually reduces the number of operations.
+
+          \param[out] dest   Destination array which must be able to hold length bytes.
+          \param[in]  length The number of bytes to copy out of the buffer.
+          \return True when length bytes were available and copied into dest.
+      */
+      virtual bool pop(uint8_t* dest, const uint32_t length)
+      {
+        bool result = get_size() >= length;
+        for(uint32_t i = 0; result && (i < length); ++i)
+        {
+          result = pop(dest[i]);
+        }
+        return result;
+      }
 
   };
 

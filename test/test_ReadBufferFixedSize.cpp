@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -131,6 +131,40 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
 
     buffer.pop(byte);
     EXPECT_FALSE(buffer.peek(byte));
+  }
+
+  // The batched pop(dest, length) copies a whole block out and advances the read
+  // index by length. It is all-or-nothing: a request larger than the number of
+  // bytes available copies nothing and leaves the read index untouched, matching
+  // the pop(byte) / advance(n) semantics.
+  TEST(ReadBufferFixedSize, pop_block)
+  {
+    constexpr uint32_t BUFFER_SIZE = 5;
+    EmbeddedProto::ReadBufferFixedSize<BUFFER_SIZE> buffer;
+    constexpr std::array<uint8_t, BUFFER_SIZE> data = { 10, 11, 12, 13, 14 };
+
+    memcpy(buffer.get_data(), data.data(), BUFFER_SIZE);
+    buffer.set_bytes_written(BUFFER_SIZE);
+
+    // Pop the first three bytes in one call.
+    std::array<uint8_t, 3> dest = { 0, 0, 0 };
+    EXPECT_TRUE(buffer.pop(dest.data(), 3));
+    EXPECT_EQ(10, dest[0]);
+    EXPECT_EQ(11, dest[1]);
+    EXPECT_EQ(12, dest[2]);
+    EXPECT_EQ(2, buffer.get_size());
+
+    // Asking for more than remains must fail and consume nothing.
+    std::array<uint8_t, 3> dest2 = { 0xFF, 0xFF, 0xFF };
+    EXPECT_FALSE(buffer.pop(dest2.data(), 3));
+    EXPECT_EQ(0xFF, dest2[0]); // Untouched on a short read.
+    EXPECT_EQ(2, buffer.get_size());
+
+    // Exactly emptying the buffer is allowed.
+    EXPECT_TRUE(buffer.pop(dest2.data(), 2));
+    EXPECT_EQ(13, dest2[0]);
+    EXPECT_EQ(14, dest2[1]);
+    EXPECT_EQ(0, buffer.get_size());
   }
 
   TEST(ReadBufferFixedSize, advance)

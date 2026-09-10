@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -92,6 +92,13 @@ namespace EmbeddedProto
         // Ignore the unused parameter
         (void)bytes;
         size_ += length;
+        return true;
+      }
+
+      //! Only the count matters here, so account for the bytes without receiving them.
+      bool count_only(const uint32_t number_of_bytes) override
+      {
+        size_ += number_of_bytes;
         return true;
       }
 

@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -31,6 +31,7 @@
 #include "gtest/gtest.h"
 
 #include <WireFormatter.h>
+#include <ReadBufferFixedSize.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 
@@ -140,10 +141,8 @@ TEST(IncludeOtherFiles, get)
   InSequence s;
 
   ::IncludedMessages<RF_SIZE, ARRAY_SIZE> msg;
-  Mocks::ReadBufferMock buffer;
-  ON_CALL(buffer, get_size()).WillByDefault(Return(32));
-
-  std::array<uint8_t, 32> referee = { 0x08, 0x01, // state
+  ::EmbeddedProto::ReadBufferFixedSize<32> buffer(
+                                    { 0x08, 0x01, // state
                                       // cmsg
                                       0x12, 0x07, 
                                       0x08, 0x01, // msg.a
@@ -157,13 +156,8 @@ TEST(IncludeOtherFiles, get)
                                       0x22, 0x08, 
                                       0x08, 0x01, 
                                       0x12, 0x02, 0x01, 0x01,
-                                      0x18, 0x01 };
-
-  for(auto r: referee) {
-    EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(DoAll(SetArgReferee<0>(r), Return(true)));
-  }
-  EXPECT_CALL(buffer, pop(_)).Times(1).WillOnce(Return(false));    
-  
+                                      0x18, 0x01 });
+                                        
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
 
   EXPECT_EQ(1, msg.msg().a());

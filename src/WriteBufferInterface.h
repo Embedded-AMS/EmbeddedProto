@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -77,7 +77,25 @@ namespace EmbeddedProto
           \return True when there was space to add the bytes.
       */
       virtual bool push(const uint8_t* bytes, const uint32_t length) = 0;
-      
+
+      //! Account for a number of payload bytes without pushing their values.
+      /*!
+          A buffer storing data can not do this and returns false, the caller is to
+          push the actual bytes. A buffer only counting bytes, like the
+          MessageSizeCalculator, adds the given number to its count and returns true.
+          This way the caller can skip producing a payload of which the size is
+          already known.
+
+          \param[in] number_of_bytes The number of payload bytes to account for.
+          \return True when the bytes are accounted for and need not be pushed.
+      */
+      virtual bool count_only(const uint32_t number_of_bytes)
+      {
+        // Ignore the unused parameter, this buffer requires the actual data.
+        (void)number_of_bytes;
+        return false;
+      }
+
   };
 
 } // End of namespace EmbeddedProto

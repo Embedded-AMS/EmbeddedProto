@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -45,6 +45,13 @@ namespace EmbeddedProto
     INVALID_FIELD_ID = 5, //!< When the id obtained from the tag equeals zero.
     OVERLONG_VARINT  = 6, //!< The maximum number of bytes where read for this varint but we did not reach the end of the data.
     INDEX_OUT_OF_BOUND = 7, //!< You are trying to access an index outside of valid data.
+    // Errors for partial serialization/deserialization
+    STATE_MISMATCH   = 10, //!< The state object does not match the message type.
+    NESTING_TOO_DEEP = 11, //!< Message nesting exceeds the state stack depth.
+    // Errors for callback (streaming) field storage
+    CALLBACK_NOT_SET = 12, //!< A callback field was serialized/deserialized without a bound source/sink.
+    CALLBACK_SEQUENCE = 13, //!< Callback field requires single-pass access; a size pass or packed encoding attempted on a streaming field violates this constraint.
+    CALLBACK_SIZE_MISMATCH = 14, //!< The size reported by the user callback does not match the bytes streamed.
   };
 
 }; // End of namespace EmbeddedProto

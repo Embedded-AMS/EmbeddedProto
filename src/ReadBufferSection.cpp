@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -64,6 +64,16 @@ namespace EmbeddedProto
     return result;
   }
 
+  bool ReadBufferSection::peek(const uint32_t n_bytes, uint8_t& byte) const
+  {
+    bool result = n_bytes < size_;
+    if(result)
+    {
+      result = buffer_.peek(n_bytes, byte);
+    }
+    return result;
+  }
+
   bool ReadBufferSection::advance()
   {
     bool result = 0 < size_;
@@ -94,6 +104,20 @@ namespace EmbeddedProto
     {
       result = buffer_.pop(byte);
       --size_;
+    }
+    return result;
+  }
+
+  bool ReadBufferSection::pop(uint8_t* dest, const uint32_t length)
+  {
+    bool result = length <= size_;
+    if(result)
+    {
+      result = buffer_.pop(dest, length);
+      if(result)
+      {
+        size_ -= length;
+      }
     }
     return result;
   }

@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "array": "cpp",
+    "bitset": "cpp",
+    "string_view": "cpp"
+  },
+  "cmake.configureOnOpen": false
+}

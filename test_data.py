@@ -16,7 +16,7 @@
 # along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
 #
 # For commercial and closed source application please visit:
-# <https://EmbeddedProto.com/license/>.
+# <https://embeddedproto.com/pricing/>.
 #
 # Embedded AMS B.V.
 # Info:
@@ -30,6 +30,7 @@
 
 from sys import path
 path.append('./build/python/')
+path.append('./EmbeddedProto/')
 
 import simple_types_pb2 as st
 import nested_message_pb2 as nm
@@ -102,7 +103,7 @@ def test_simple_types():
 
 
 def test_nested_message():
-    #msg_b = nm.message_b()
+    msg_b = nm.message_b()
 
     #msg_b.u = 1.0
     #msg_b.v = 1
@@ -110,23 +111,31 @@ def test_nested_message():
     #msg_b.nested_a.y = 1.0
     #msg_b.nested_a.z = 1
 
+    # Multi byte size of nested message a.
+    msg_b.u = 1.0
+    msg_b.v = 1
+    for i in range(0, 127):
+        msg_b.nested_a.x.append(2)
+    msg_b.nested_a.y = 1.0
+    msg_b.nested_a.z = 1
+
     #msg_b.u = 1.7976931348623157e+308         # Max double 1.7976931348623157e+308
     #msg_b.v = pow(2, 31) - 1                  # Max int32
     #msg_b.nested_a.x.append(pow(2, 31) - 1)   # Max int32
     #msg_b.nested_a.y = 3.40282347e+38         # Max float
     #msg_b.nested_a.z = 9223372036854775807    # Max sint64
 
-    msg_c = nm.message_c()
-    msg_c.nested_b.u = 1.7976931348623157e+308          # Max double 1.7976931348623157e+308
-    msg_c.nested_b.v = pow(2, 31) - 1                   # Max int32
-    msg_c.nested_b.nested_a.x.append(pow(2, 31) - 1)    # Max int32
-    msg_c.nested_b.nested_a.y = 3.40282347e+38          # Max float
-    msg_c.nested_b.nested_a.z = 9223372036854775807     # Max sint64
-    msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
-    msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
-    msg_c.nested_g.g = pow(2, 31) - 1                   # Max int32
+    #msg_c = nm.message_c()
+    #msg_c.nested_b.u = 1.7976931348623157e+308          # Max double 1.7976931348623157e+308
+    #msg_c.nested_b.v = pow(2, 31) - 1                   # Max int32
+    #msg_c.nested_b.nested_a.x.append(pow(2, 31) - 1)    # Max int32
+    #msg_c.nested_b.nested_a.y = 3.40282347e+38          # Max float
+    #msg_c.nested_b.nested_a.z = 9223372036854775807     # Max sint64
+    #msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
+    #msg_c.nested_d.d.append(pow(2, 32) - 1)             # Max uint32
+    #msg_c.nested_g.g = pow(2, 31) - 1                   # Max int32
 
-    msg = msg_c
+    msg = msg_b
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -198,6 +207,28 @@ def test_repeated_fields():
 
 
 def test_repeated_message():
+    # Test data for C++ unit test: serialize_array_zero_messages
+    # This creates a repeated_message with three empty nested messages (u=0, v=0)
+    msg_zero = rf.repeated_message()
+    msg_zero.a = 0
+    for i in range(3):
+        nmsg = msg_zero.b.add()
+        nmsg.u = 0
+        nmsg.v = 0
+    msg_zero.c = 0
+
+    str = ""
+    msg_str = msg_zero.SerializeToString()
+    print("Test data for serialize_array_zero_messages:")
+    print(len(msg_str))
+    print(msg_str)
+    for x in msg_str:
+        str += "0x{:02x}, ".format(x)
+
+    print(str)
+    print()
+
+    # Test data for other repeated message tests (serialize_array_zero_one_zero_messages)
     msg = rf.repeated_message()
 
     msg.a = 0
@@ -212,6 +243,7 @@ def test_repeated_message():
 
     str = ""
     msg_str = msg.SerializeToString()
+    print("Test data for serialize_array_zero_one_zero_messages:")
     print(len(msg_str))
     print(msg_str)
     for x in msg_str:
@@ -238,7 +270,7 @@ def test_repeated_message():
 def test_string():
     msg = sb.text()
 
-    msg.txt = "Foo bar"
+    msg.txt = "Foo bar" * 20
 
     str = ""
     msg_str = msg.SerializeToString()
@@ -363,11 +395,11 @@ def test_optional_empty():
 
 #test_simple_types()
 #test_repeated_fields()
-#test_repeated_message()
+test_repeated_message()
 #test_string()
 #test_bytes()
 #test_repeated_string_bytes()
 #test_nested_message()
 #test_oneof_fields()
 #test_included_proto()
-test_optional_empty()
+#test_optional_empty()

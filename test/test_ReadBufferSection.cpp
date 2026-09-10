@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -36,6 +36,7 @@
 
 using ::testing::_;
 using ::testing::InSequence;
+using ::testing::Invoke;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 using ::testing::DoAll;
@@ -143,6 +144,43 @@ TEST(ReadBufferSection, pop)
   EXPECT_EQ(0, read_buffer_section.get_size());
   EXPECT_FALSE(read_buffer_section.peek(byte));
   EXPECT_EQ(0, byte);
+}
+
+TEST(ReadBufferSection, pop_block)
+{
+  // A block fully inside the section is delegated to the parent buffer in a
+  // single call and shrinks the section by that many bytes.
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(8));
+  const uint8_t src[3] = { 1, 2, 3 };
+  EXPECT_CALL(read_buffer_mock, pop(_, 3U)).WillOnce(Invoke(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, src, n); return true; }));
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 5);
+
+  uint8_t dest[3] = { 0, 0, 0 };
+  EXPECT_TRUE(read_buffer_section.pop(dest, 3));
+  EXPECT_EQ(1, dest[0]);
+  EXPECT_EQ(2, dest[1]);
+  EXPECT_EQ(3, dest[2]);
+  EXPECT_EQ(2, read_buffer_section.get_size());
+}
+
+TEST(ReadBufferSection, pop_block_respects_boundary)
+{
+  // A block larger than what the section exposes is refused without touching the
+  // parent buffer, so a fixed-width element straddling the section boundary is
+  // never half-consumed.
+  Mocks::ReadBufferMock read_buffer_mock;
+  EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(8));
+  EXPECT_CALL(read_buffer_mock, pop(_, _)).Times(0);
+
+  EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 3);
+
+  uint8_t dest[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+  EXPECT_FALSE(read_buffer_section.pop(dest, 4));
+  EXPECT_EQ(0xFF, dest[0]); // Untouched on a boundary-exceeding read.
+  EXPECT_EQ(3, read_buffer_section.get_size());
 }
 
 } // End of namespace ReadBufferSection
