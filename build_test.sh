@@ -33,30 +33,45 @@
 set -exuo pipefail
 
 # Convert user-friendly parameter to the compiler define enabling partial mode.
-MODE_ARG="${1:-}"
+# The serialization mode and, optionally, the extra build defines to test with.
+EP_DEFINES=""
+MODE_NAME="full"
+EXTRA_DEFINES=""
 
-if [[ -z "${MODE_ARG}" ]]; then
-  # Default to full serialization mode when no parameter is provided
-  EP_DEFINES=""
-  MODE_NAME="full"
-elif [[ "${MODE_ARG}" == "full" ]]; then
-  EP_DEFINES=""
-  MODE_NAME="full"
-elif [[ "${MODE_ARG}" == "partial" ]]; then
-  EP_DEFINES="-DPARTIAL_SERIALIZATION_ENABLED"
-  MODE_NAME="partial"
-else
-  echo "Usage: $0 [MODE]"
+usage() {
+  echo "Usage: $0 [MODE] [nullterm]"
   echo "  MODE: 'full' (default) or 'partial'"
   echo "        Full mode: Traditional serialization (complete in one call)"
   echo "        Partial mode: Chunked serialization for constrained environments"
+  echo "  nullterm: also define NULL_TERMINATED_STRINGS, reserving a null terminator per string"
   echo ""
   echo "Examples:"
   echo "  $0                    # Build with full serialization (default)"
   echo "  $0 full               # Build with full serialization"
   echo "  $0 partial            # Build with partial serialization"
-  exit 1
-fi
+  echo "  $0 partial nullterm   # Partial serialization with null terminated strings"
+}
+
+for ARG in "$@"; do
+  case "${ARG}" in
+    full)
+      EP_DEFINES=""
+      MODE_NAME="full"
+      ;;
+    partial)
+      EP_DEFINES="-DPARTIAL_SERIALIZATION_ENABLED"
+      MODE_NAME="partial"
+      ;;
+    nullterm)
+      EXTRA_DEFINES="-DNULL_TERMINATED_STRINGS"
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+done
+EP_DEFINES="${EP_DEFINES} ${EXTRA_DEFINES}"
 
 echo "Building tests with ${MODE_NAME} serialization mode..."
 

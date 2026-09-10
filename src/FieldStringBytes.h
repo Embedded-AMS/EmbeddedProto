@@ -471,11 +471,26 @@ namespace EmbeddedProto
 
       private:
 
+        //! The number of characters reserved behind MAX_LENGTH for a null terminator.
+        /*!
+            Define NULL_TERMINATED_STRINGS to reserve one character per string. It is zero from
+            construction on and no write path ever reaches it, every one of them stops at
+            MAX_LENGTH, so get_const() of a completely full string is a valid c style string
+            without any bookkeeping. The cost is one byte of RAM per string field. A bytes field
+            never reserves it, a byte array has no terminator. The default is to reserve nothing,
+            which keeps the memory layout of earlier versions.
+        */
+#ifdef NULL_TERMINATED_STRINGS
+        static constexpr uint32_t TERMINATOR_LENGTH = std::is_same<char, DATA_TYPE>::value ? 1U : 0U;
+#else
+        static constexpr uint32_t TERMINATOR_LENGTH = 0U;
+#endif
+
         //! Number of item in the data array.
         uint32_t current_length_ = 0;
 
-        //! The text.
-        std::array<DATA_TYPE, MAX_LENGTH> data_ = {{0}};
+        //! The text, plus the reserved terminator when enabled.
+        std::array<DATA_TYPE, MAX_LENGTH + TERMINATOR_LENGTH> data_ = {{0}};
 
     }; // End of class FieldStringBytes
 
