@@ -12,7 +12,6 @@ classifiers = [ ]
 dependencies = [
     "Jinja2>=3,<4",
     "MarkupSafe>=2.0,<4",
-    "six>=1.16.0,<2",
     "toposort>=1.7,<2",
     "protobuf==7.36.1",
     "grpcio-tools==1.83.1",
