@@ -105,6 +105,7 @@ def run_protoc(argv=sys.argv):
         # Exit the script after printing the source location
         return
 
-    protoc.main(build_protoc_argv(argv))
+    # Hand the exit code of protoc to the caller, so build scripts notice a failed generation.
+    sys.exit(protoc.main(build_protoc_argv(argv)))
 if __name__ == "__main__":
     run_protoc(sys.argv)

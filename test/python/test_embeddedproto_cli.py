@@ -32,6 +32,7 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _REPO_ROOT not in sys.path:
@@ -57,6 +58,15 @@ class BuildProtocArgvTest(unittest.TestCase):
     def test_user_plugin_is_kept(self):
         argv = cli.build_protoc_argv(["--plugin=protoc-gen-eams=/my/plugin", "a.proto"])
         self.assertEqual(["--plugin=protoc-gen-eams=/my/plugin"], [x for x in argv if x.startswith("--plugin")])
+
+
+class RunProtocTest(unittest.TestCase):
+
+    def test_exit_code_of_protoc_is_returned(self):
+        with mock.patch.object(cli.protoc, "main", return_value=3):
+            with self.assertRaises(SystemExit) as raised:
+                cli.run_protoc(["embeddedproto", "a.proto"])
+        self.assertEqual(3, raised.exception.code)
 
 
 if __name__ == "__main__":
