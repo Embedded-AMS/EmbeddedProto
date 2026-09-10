@@ -107,6 +107,7 @@ What is required to be able to generate source files based on .proto files:
 2. Pip
 3. Protobuf v32.0
 4. Git
+5. Optional: [uv](https://docs.astral.sh/uv/), a much faster replacement for pip during the installation.
 
 After installing the requirements, continue by cloning the Embedded Proto repo. We advised using Embedded Proto as a submodule in your project. This way, you can track the version of Embedded Proto with the version of your project.
 ```bash
@@ -117,17 +118,21 @@ git commit -m "Added the latest version of Embedded Proto as a submodule."
 Next, enter the Embedded Proto folder and run the setup script. The script will create a self-contained python environment. In this environment, various python packages will be installed, which are required by Embedded Proto.
 ```bash
 cd EmbeddedProto
-python setup.py
+python install.py
+```
+The environment is created with pip by default. When you have uv installed the same can be done a lot faster:
+```bash
+python install.py --installer uv
 ```
 Did you install protoc in a custom folder, or is the include folder of protobuf not in your path? In these cases, you may get an error from the setup script. You have to provide the location of the include with the --include parameter:
 ```bash
-python setup.py --include ~/protobuf/protoc-32.0/include
+python install.py --include ~/protobuf/protoc-32.0/include
 ```
 In this example, you have installed a specific version of protoc, and you named its installation folder `~/protobuf/protoc-32.0`.
 
 You can check out latest the command line parameters of the setup script using the help parameter:
 ```bash
-python setup.py --help
+python install.py --help
 ```
 
 More installation documentation can be found on the [documentation website](https://embeddedproto.com/documentation/installation/).

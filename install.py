@@ -111,36 +111,15 @@ def run(arguments):
         if arguments.clean:
             clean_folder()
 
-        # ---------------------------------------
-        print("Creating a virtual environment for Embedded Proto.", end='')
-        stdout.flush()
-        venv.create("venv", with_pip=True)
-        print(" [" + CGREEN + "Success" + CEND + "]")
-
         # Add extra include directories for protobuf build
         if arguments.include is not None:
             os.environ["EMBEDDEDPROTO_PROTOC_INCLUDE"] = str(arguments.include)
 
         # ---------------------------------------
-        print("Installing EmbeddedProto in the virtual environment.", end='')
-        stdout.flush()
-        on_windows = "Windows" == platform.system()
-        command = []
-        if on_windows:
-            command.append("./venv/Scripts/pip")
+        if "uv" == arguments.installer:
+            install_with_uv()
         else:
-            command.append("./venv/bin/pip")
-        command.extend(["install", "-e", "."])
-        result = subprocess.run(command, check=False, capture_output=True)
-        if result.returncode:
-            print(" [" + CRED + "Fail" + CEND + "]")
-            print(result.stderr.decode("utf-8"), end='', file=stderr)
-            print("If the error is related to protoc generating the options file it might be solved by providing"
-                  " the --include option. See --help for more info.", end='', file=stderr)
-            stdout.flush()
-            exit(1)
-        else:
-            print(" [" + CGREEN + "Success" + CEND + "]")
+            install_with_pip()
 
         # ---------------------------------------
         # Generate the license config (and store/verify a token if one was given).
@@ -150,6 +129,83 @@ def run(arguments):
         print(" [" + CRED + "Fail" + CEND + "]")
         print("Error: " + str(e), file=stderr)
         exit(1)
+
+
+####################################################################################
+
+def run_step(description, command):
+    # Run one install command, printing the description followed by the result. On failure the
+    # output of the command is shown and the script exits.
+    print(description, end='')
+    stdout.flush()
+    result = subprocess.run(command, check=False, capture_output=True)
+    if result.returncode:
+        print(" [" + CRED + "Fail" + CEND + "]")
+        print(result.stderr.decode("utf-8"), end='', file=stderr)
+        print("If the error is related to protoc generating the options file it might be solved by providing"
+              " the --include option. See --help for more info.", end='', file=stderr)
+        stdout.flush()
+        exit(1)
+    else:
+        print(" [" + CGREEN + "Success" + CEND + "]")
+
+
+####################################################################################
+
+def venv_made_by_uv():
+    # uv records its version in pyvenv.cfg, the standard library does not.
+    try:
+        with open("./venv/pyvenv.cfg", "r") as f:
+            return any(line.startswith("uv ") for line in f)
+    except FileNotFoundError:
+        return False
+
+
+####################################################################################
+
+def install_with_pip():
+    # Create the virtual environment with the standard library and install with pip. This is the default.
+
+    # The standard library can not reuse a virtual environment made by uv (it fails copying the interpreter over
+    # the symlink uv made), so such an environment is removed first.
+    if venv_made_by_uv():
+        print("The existing virtual environment was made by uv, removing it.")
+        shutil.rmtree("./venv", ignore_errors=True)
+
+    print("Creating a virtual environment for Embedded Proto using pip.", end='')
+    stdout.flush()
+    venv.create("venv", with_pip=True)
+    print(" [" + CGREEN + "Success" + CEND + "]")
+
+    on_windows = "Windows" == platform.system()
+    command = []
+    if on_windows:
+        command.append("./venv/Scripts/pip")
+    else:
+        command.append("./venv/bin/pip")
+    command.extend(["install", "-e", "."])
+    run_step("Installing EmbeddedProto in the virtual environment.", command)
+
+    print("Tip: python install.py --installer uv is much faster if you have uv installed.")
+
+
+####################################################################################
+
+def install_with_uv():
+    # Create the virtual environment and install with uv (https://docs.astral.sh/uv/). The venv gets the same
+    # layout as the one made by pip, so nothing else in the project needs to know which installer was used.
+
+    uv = shutil.which("uv")
+    if uv is None:
+        print("Error: uv was not found on the PATH. Install it from https://docs.astral.sh/uv/ or use "
+              "--installer pip.", file=stderr)
+        exit(1)
+
+    # Pin the venv to the interpreter running this script, the same as venv.create() does.
+    run_step("Creating a virtual environment for Embedded Proto using uv.",
+             [uv, "venv", "--python", sys.executable, "--allow-existing", "venv"])
+    run_step("Installing EmbeddedProto in the virtual environment.",
+             [uv, "pip", "install", "--python", "venv", "-e", "."])
 
 
 ####################################################################################
@@ -201,6 +257,11 @@ def add_parser_arguments(parser_obj):
 
     parser_obj.add_argument('-c', '--clean', action='store_true',
                             help="Clean aka delete  the virtual environment and previous build results.")
+
+    parser_obj.add_argument('--installer', choices=['pip', 'uv'], default='pip',
+                            help="The package installer used to create the virtual environment and install "
+                                 "EmbeddedProto in it. pip (the default) only needs Python. uv is much faster "
+                                 "but has to be installed separately, see https://docs.astral.sh/uv/.")
 
     parser_obj.add_argument('--ignore_version_diff', action='store_true',
                             help="Ignore differences in the version of Protoc and that of the installed python package."
