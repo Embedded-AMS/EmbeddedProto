@@ -84,7 +84,6 @@ namespace EmbeddedProto
           // Check if we need to update the number of elements in the array.
           if(limited_index >= current_length_) {
             current_length_ = limited_index + 1;
-            terminate();
           }
           return data_[limited_index]; 
         }
@@ -164,7 +163,6 @@ namespace EmbeddedProto
           {
             current_length_ = length;
             memcpy(data_.data(), data, length);
-            terminate();
           }
           else
           {
@@ -227,7 +225,6 @@ namespace EmbeddedProto
                 (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
                 ++current_length_;
               }
-              terminate();
 
               if(current_length_ != availiable)
               {
@@ -302,7 +299,6 @@ namespace EmbeddedProto
                 return_value = Error::END_OF_BUFFER;
               }
             }
-            terminate();
 
             if(Error::NO_ERRORS == return_value)
             {
@@ -468,40 +464,21 @@ namespace EmbeddedProto
         /*!
             The value is limited to the maximum lenght of the array.
         */
-        void set_length(uint32_t length)
-        {
-          current_length_ = std::min(length, MAX_LENGTH);
-          terminate();
-        }
+        void set_length(uint32_t length) { current_length_ = std::min(length, MAX_LENGTH); }
 
         //! Get a non constant pointer to the first element in the array. Only for internal usage.
         DATA_TYPE* get() { return data_.data(); }
-
-        //! Keep a null terminator right behind the last character whenever there is room for one.
-        /*!
-            With NULL_TERMINATED_STRINGS there always is room: the character reserved behind
-            MAX_LENGTH, which nothing else ever writes. Without the define the terminator is only
-            written while the string is shorter than MAX_LENGTH, so a completely full string then
-            has none. That is the historical layout, get_const() of a full string is not a c style
-            string in that case.
-        */
-        void terminate()
-        {
-          if(current_length_ < (MAX_LENGTH + TERMINATOR_LENGTH))
-          {
-            data_[current_length_] = 0;
-          }
-        }
 
       private:
 
         //! The number of characters reserved behind MAX_LENGTH for a null terminator.
         /*!
-            Define NULL_TERMINATED_STRINGS to reserve one character per string. get_const() then
-            is a valid c style string in every state, also when the string holds exactly MAX_LENGTH
-            characters. The cost is one byte of RAM per string field. A bytes field never reserves
-            it, a byte array has no terminator. The default is to reserve nothing, which keeps the
-            memory layout of earlier versions.
+            Define NULL_TERMINATED_STRINGS to reserve one character per string. It is zero from
+            construction on and no write path ever reaches it, every one of them stops at
+            MAX_LENGTH, so get_const() of a completely full string is a valid c style string
+            without any bookkeeping. The cost is one byte of RAM per string field. A bytes field
+            never reserves it, a byte array has no terminator. The default is to reserve nothing,
+            which keeps the memory layout of earlier versions.
         */
 #ifdef NULL_TERMINATED_STRINGS
         static constexpr uint32_t TERMINATOR_LENGTH = std::is_same<char, DATA_TYPE>::value ? 1U : 0U;

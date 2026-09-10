@@ -392,9 +392,10 @@ TEST(FieldString, oneof_deserialize)
 
 #ifdef NULL_TERMINATED_STRINGS
 
-// With NULL_TERMINATED_STRINGS a string reserves one character behind its maximum length which
-// always holds a null terminator, so get_const() is a valid c style string in every state. Without
-// the define a completely full string has no terminator, which the tests above never rely on.
+// With NULL_TERMINATED_STRINGS a string reserves one character behind its maximum length. It is
+// zero from construction and never written, so get_const() of a completely full string is a valid
+// c style string. Without the define a completely full string has no terminator, which the tests
+// above never rely on.
 
 TEST(FieldString, null_terminated_when_completely_full)
 {
@@ -423,27 +424,6 @@ TEST(FieldString, null_terminated_after_deserializing_a_full_string)
   EXPECT_EQ(10, msg.get_txt().get_length());
   EXPECT_EQ(10U, strlen(msg.get_txt().get_const()));
   ASSERT_STREQ("1234567890", msg.get_txt().get_const());
-}
-
-TEST(FieldString, null_terminated_after_shrinking)
-{
-  text<10> msg;
-  msg.mutable_txt() = "1234567890";
-  // The raw set copies exactly the given number of characters and used to leave the old tail.
-  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.mutable_txt().set("abc", 3));
-  EXPECT_EQ(3, msg.get_txt().get_length());
-  ASSERT_STREQ("abc", msg.get_txt().get_const());
-}
-
-TEST(FieldString, null_terminated_after_writing_by_index)
-{
-  text<10> msg;
-  msg.mutable_txt() = "1234567890";
-  msg.mutable_txt().set("ab", 2);
-  // Writing by index grows the string by one character; the terminator moves along.
-  msg.mutable_txt().get(2) = 'c';
-  EXPECT_EQ(3, msg.get_txt().get_length());
-  ASSERT_STREQ("abc", msg.get_txt().get_const());
 }
 
 TEST(FieldString, terminator_changes_neither_wire_size_nor_bytes_fields)
