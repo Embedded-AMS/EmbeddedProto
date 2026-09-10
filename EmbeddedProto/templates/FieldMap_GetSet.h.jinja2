@@ -1,0 +1,210 @@
+{#
+Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+
+This file is part of Embedded Proto.
+
+Embedded Proto is open source software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, version 3 of the license.
+
+Embedded Proto  is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial and closed source application please visit:
+<https://embeddedproto.com/pricing/>.
+
+Embedded AMS B.V.
+Info:
+  info at EmbeddedProto dot com
+
+Postal address:
+  Atoomweg 2
+  1627 LE, Hoorn
+  the Netherlands
+#}
+{#
+The accessors of a map field. A map is stored as a repeated field of entry messages, this template
+puts the map shaped API on top of that: look a key up, read and write its value and remove it.
+
+Key lookup scans the entries backwards. Protobuf requires the last value to win when a key occurs
+more than once, which only a peer can produce; scanning from the back gives that for free without
+touching the deserialize path.
+
+A map streaming its entries through callbacks holds no entries to search, so it only exposes the
+binding accessors.
+#}
+static constexpr char const* {{field.get_name()|upper}}_NAME = "{{field.get_name()}}";
+{% if field.has_callback_storage() %}
+{# Streaming storage: entries flow through the bound source and sink one at a time, there is no
+   resident collection to look a key up in. #}
+inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs) { {{field.get_variable_name()}}.set(rhs); }
+inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
+{% else %}
+//! The number of entries currently held in this map.
+inline uint32_t {{field.get_name()}}_size() const { return {{field.get_variable_name()}}.get_length(); }
+
+//! The number of entries this map can at most hold.
+inline uint32_t {{field.get_name()}}_max_size() const { return {{field.get_variable_name()}}.get_max_length(); }
+
+//! Return the index of the entry with the given key, or the number of entries when the key is absent.
+/*!
+    The entries are scanned backwards so the last entry with this key is found first. That is what
+    protobuf prescribes when a peer sends the same key more than once.
+*/
+inline uint32_t find_{{field.get_name()}}({{field.get_key_param_type()}} key) const
+{
+  uint32_t index = {{field.get_variable_name()}}.get_length();
+  bool found = false;
+  while((0U < index) && !found)
+  {
+    --index;
+    found = ({{field.get_variable_name()}}.get_const(index).get_key() == key);
+  }
+  return found ? index : {{field.get_variable_name()}}.get_length();
+}
+
+//! Is there an entry with the given key in this map?
+inline bool has_{{field.get_name()}}({{field.get_key_param_type()}} key) const
+{
+  return find_{{field.get_name()}}(key) < {{field.get_variable_name()}}.get_length();
+}
+{% if field.value_is_returned_by_value() %}
+
+//! Return the value stored under the given key, or the default value when the key is absent.
+{% if field.value_is_string() %}
+/*!
+    The returned pointer points into this message and stays valid until the entry is changed or
+    removed. An absent key yields an empty string.
+*/
+{% endif %}
+inline {{field.get_value_return_type()}} get_{{field.get_name()}}({{field.get_key_param_type()}} key) const
+{
+  {{field.get_value_return_type()}} result = {{field.get_value_absent_default()}};
+  const uint32_t index = find_{{field.get_name()}}(key);
+  if(index < {{field.get_variable_name()}}.get_length())
+  {
+    result = {{field.get_value_read_expression(field.get_variable_name() + ".get_const(index)")}};
+  }
+  return result;
+}
+{% endif %}
+
+//! Copy the value stored under the given key into the given object.
+/*!
+    \param[in] key The key to look up.
+    \param[out] value Written only when the key is present.
+    \return NO_ERRORS when the key was found, INDEX_OUT_OF_BOUND when it is absent.
+*/
+inline ::EmbeddedProto::Error get_{{field.get_name()}}({{field.get_key_param_type()}} key, {{field.get_value_out_type()}}& value) const
+{
+  ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::INDEX_OUT_OF_BOUND;
+  const uint32_t index = find_{{field.get_name()}}(key);
+  if(index < {{field.get_variable_name()}}.get_length())
+  {
+    value = {{field.get_variable_name()}}.get_const(index).get_value();
+    return_value = ::EmbeddedProto::Error::NO_ERRORS;
+  }
+  return return_value;
+}
+
+//! Store the given value under the given key, replacing the value when the key is already present.
+/*!
+    \param[in] key The key to store the value under.
+    \param[in] value The value to store.
+    \return NO_ERRORS when stored. ARRAY_FULL when the key is new and the map is full, or when a
+            string key or value is longer than its maximum; the map is then left unchanged.
+*/
+inline ::EmbeddedProto::Error set_{{field.get_name()}}({{field.get_key_param_type()}} key, {{field.get_value_param_type()}} value)
+{
+  ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::NO_ERRORS;
+{% if field.key_is_string() or field.value_is_string() %}
+  // A string longer than its maximum would be stored cut short: a key that could never be found
+  // again, or a value that silently differs from what was given. Refuse either before anything is
+  // touched, so a rejected call leaves the map exactly as it was.
+{% endif %}
+{% if field.key_is_string() %}
+  if(!{{field.get_key_field().get_type()}}::fits(key))
+  {
+    return_value = ::EmbeddedProto::Error::ARRAY_FULL;
+  }
+{% endif %}
+{% if field.value_is_string() %}
+  if(!{{field.get_value_field().get_type()}}::fits(value))
+  {
+    return_value = ::EmbeddedProto::Error::ARRAY_FULL;
+  }
+{% endif %}
+  if(::EmbeddedProto::Error::NO_ERRORS == return_value)
+  {
+    const uint32_t index = find_{{field.get_name()}}(key);
+    if(index < {{field.get_variable_name()}}.get_length())
+    {
+      {{field.get_value_assign_statement(field.get_variable_name() + "[index]", "value")}}
+    }
+    else
+    {
+      {{field.get_entry_type()}} entry;
+      {{field.get_key_assign_statement("entry", "key")}}
+      {{field.get_value_assign_statement("entry", "value")}}
+      return_value = {{field.get_variable_name()}}.add(entry);
+    }
+  }
+  return return_value;
+}
+
+//! Remove the entry with the given key from this map.
+/*!
+    Every entry with this key is removed, a peer may have sent the same key more than once.
+
+    \param[in] key The key to remove.
+    \return NO_ERRORS when at least one entry was removed, INDEX_OUT_OF_BOUND when the key is absent.
+*/
+inline ::EmbeddedProto::Error remove_{{field.get_name()}}({{field.get_key_param_type()}} key)
+{
+  ::EmbeddedProto::Error return_value = ::EmbeddedProto::Error::INDEX_OUT_OF_BOUND;
+  bool more = true;
+  while(more)
+  {
+    const uint32_t index = find_{{field.get_name()}}(key);
+    if(index < {{field.get_variable_name()}}.get_length())
+    {
+      more = (::EmbeddedProto::Error::NO_ERRORS == {{field.get_variable_name()}}.erase(index));
+      if(more)
+      {
+        return_value = ::EmbeddedProto::Error::NO_ERRORS;
+      }
+    }
+    else
+    {
+      more = false;
+    }
+  }
+  return return_value;
+}
+
+//! Remove all entries from this map.
+inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear(); }
+
+//! Access one entry by index, to iterate over the map.
+inline const {{field.get_entry_type()}}& {{field.get_name()}}(uint32_t index) const { return {{field.get_variable_name()}}[index]; }
+
+//! Access one entry by index for modification, to iterate over the map.
+inline {{field.get_entry_type()}}& mutable_{{field.get_name()}}(uint32_t index) { return {{field.get_variable_name()}}[index]; }
+
+//! Append an entry as is, without checking whether its key is already present.
+inline ::EmbeddedProto::Error add_{{field.get_name()}}(const {{field.get_entry_type()}}& value) { return {{field.get_variable_name()}}.add(value); }
+
+//! Replace all entries at once, used among others by the copy constructor.
+inline void set_{{field.get_name()}}(const {{field.get_type()}}& values) { {{field.get_variable_name()}} = values; }
+
+//! Access the entries as the repeated field they are stored in.
+inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}; }
+{% endif %}
+inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
+inline const {{field.get_type()}}& {{field.get_name()}}() const { return {{field.get_variable_name()}}; }

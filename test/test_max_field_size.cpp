@@ -188,12 +188,20 @@ TEST(MaxFieldSize, RepeatedFieldFixedSize_Unpacked)
   EmbeddedProto::WriteBufferFixedSize<500> buffer;
 
   constexpr uint32_t max_ser_size_A = EmbeddedProto::RepeatedFieldFixedSize<Test_Simple_Types, 3>::max_serialized_size(1);
-  rffs.serialize_with_id(1, buffer, false);
+  // Unpacked repeated fields: iterate and serialize each element
+  for(uint32_t i = 0; i < rffs.get_length(); ++i)
+  {
+    rffs.get_const(i).serialize_len(1, rffs.get_const(i).serialized_size(), buffer, false);
+  }
   EXPECT_EQ(buffer.get_size(), max_ser_size_A);
 
   buffer.clear();
   constexpr uint32_t max_ser_size_B = EmbeddedProto::RepeatedFieldFixedSize<Test_Simple_Types, 3>::max_serialized_size(16);
-  rffs.serialize_with_id(16, buffer, false);
+  // Unpacked repeated fields: iterate and serialize each element
+  for(uint32_t i = 0; i < rffs.get_length(); ++i)
+  {
+    rffs.get_const(i).serialize_len(16, rffs.get_const(i).serialized_size(), buffer, false);
+  }
   EXPECT_EQ(buffer.get_size(), max_ser_size_B);
 }
 

@@ -1,0 +1,131 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+edition = "2023";
+
+message Edition2023Message {
+  uint32 value = 1;
+}
+
+// Field presence (ED-2). In edition 2023 plain scalars are EXPLICIT by default.
+message PresenceMessage {
+  uint32 explicit_field = 1;                                         // EXPLICIT (2023 default)
+  uint32 implicit_field = 2 [features.field_presence = IMPLICIT];
+  uint32 required_field = 3 [features.field_presence = LEGACY_REQUIRED];
+}
+
+// Custom default values (ED-3). Editions allow defaults only on explicit-presence
+// fields (the edition 2023 default), so the value is what the getter returns while
+// the field is absent.
+enum DefaultColor {
+  DC_RED = 0;
+  DC_GREEN = 1;
+  DC_BLUE = 2;
+}
+
+message DefaultsMessage {
+  int32 a = 1 [default = 42];
+  bool b = 2 [default = true];
+  float f = 3 [default = 1.5];
+  DefaultColor c = 4 [default = DC_BLUE];
+  int64 big = 5 [default = -9000000000];
+}
+
+// Repeated field encoding (ED-4). PACKED is the edition 2023 default; EXPANDED
+// emits one tag+value per element.
+message RepeatedEncodingMessage {
+  repeated int32 packed_values = 1;                                            // PACKED (default)
+  repeated int32 expanded_values = 2 [features.repeated_field_encoding = EXPANDED];
+}
+
+// Enum type (ED-5). OPEN (default) stores any decoded value; CLOSED validates the
+// decoded value against the declared enumerators and drops unknown values.
+enum OpenEnum {
+  OE_A = 0;
+  OE_B = 1;
+}
+
+enum ClosedEnum {
+  option features.enum_type = CLOSED;
+  CE_A = 0;
+  CE_B = 1;
+  CE_C = 2;
+}
+
+message EnumTypeMessage {
+  OpenEnum open_field = 1;
+  ClosedEnum closed_field = 2;
+}
+
+// A CLOSED enum as a oneof member. Dropping an unknown value must leave the
+// oneof unset instead of reporting the member as present with a default value.
+message ClosedEnumOneofMessage {
+  oneof choice {
+    ClosedEnum ce = 1;
+    int32 num = 2;
+  }
+}
+
+// A CLOSED enum whose first declared enumerator is non-zero. Its default value
+// (used while the field is absent and when an unknown value is dropped) must be
+// that first enumerator, not a raw zero that is not even a member of the enum.
+enum ClosedNonZeroEnum {
+  option features.enum_type = CLOSED;
+  CNZ_A = 1;
+  CNZ_B = 2;
+}
+
+message ClosedDefaultMessage {
+  ClosedNonZeroEnum e = 1;
+}
+
+// Message encoding (ED-6/7/8). A DELIMITED nested message field is framed with
+// START_GROUP / END_GROUP tags instead of a length prefix, enabling single-pass
+// encoding (no size pre-pass).
+message Inner {
+  int32 x = 1;
+}
+
+message DelimitedMessage {
+  Inner sub = 3 [features.message_encoding = DELIMITED];
+}
+
+// LENGTH_PREFIXED twin of DelimitedMessage (same field number / inner type) used
+// to prove both framings decode to the same field values.
+message LengthPrefixedMessage {
+  Inner sub = 3;
+}
+
+// Used to verify unknown DELIMITED (group) fields are skipped while surrounding
+// known fields decode. Field number 3 is intentionally absent.
+message GroupSkipMessage {
+  int32 before = 1;
+  int32 after = 5;
+}

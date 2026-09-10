@@ -1,0 +1,53 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or 
+ *  modify it under the terms of the GNU General Public License as published 
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+syntax = "proto3";
+
+package OptionsFromFileSecond;
+
+// A second schema, in its own package, whose options come from the very same
+// test/options/embedded_proto_test.options.json as options_from_file.proto.
+// One options file serving several schemas is the point of keying it by package
+// and message rather than by the location of a *.proto.
+//
+// Each proto file is generated in its own protoc run, so while this file is
+// generated the entries for the other package match nothing. Those are skipped
+// rather than reported, which is what lets one file cover a whole product while
+// a build compiles only a part of it.
+message Reading {
+  repeated bytes chunks = 1;
+  string unit = 2;
+
+  message Limits {
+    repeated uint32 thresholds = 1;
+  }
+
+  Limits limits = 3;
+}

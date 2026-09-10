@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -79,6 +79,13 @@ namespace EmbeddedProto
       */
       bool peek(uint8_t& byte) const override;
 
+      //! Expose the function of the parent buffer.
+      /*!
+        This will not do anything if size zero is reached.
+        \return True when the buffer was not empty.
+      */
+      bool peek(const uint32_t n_bytes, uint8_t& byte) const override;
+      
       //! Decrement the size and call advance on the parent buffer.
       /*!
         This will not do anything if size zero is reached.
@@ -99,6 +106,16 @@ namespace EmbeddedProto
         \return True while the end of the buffer is not reached.
       */
       bool pop(uint8_t& byte) override;
+
+      //! Copy a block of bytes from the parent buffer, respecting the section size.
+      /*!
+        All-or-nothing: nothing is copied and the section size is left unchanged
+        when length exceeds the number of bytes remaining in this section. This
+        keeps a fixed-width element that straddles the section boundary from being
+        half-consumed.
+        \return True when length bytes were available within the section and copied.
+      */
+      bool pop(uint8_t* dest, const uint32_t length) override;
 
     private:
 

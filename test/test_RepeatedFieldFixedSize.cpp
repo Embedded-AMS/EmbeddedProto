@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -29,12 +29,30 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <Fields.h>
 #include <RepeatedFieldFixedSize.h>
+#include <WriteBufferFixedSize.h>
+#include <ReadBufferFixedSize.h>
+#include <MessageState.h>
+
+#include <WriteBufferMock.h>
+#include "mock/ReadBufferMock.h"
+
+#include <array>
+#include <cstring>
 
 namespace test_EmbeddedAMS_RepeatedFieldFixedSize
 {
+
+using ::testing::_;
+using ::testing::An;
+using ::testing::Invoke;
+using ::testing::NiceMock;
+using ::testing::Return;
+using ::testing::SetArgReferee;
+using ::testing::DoAll;
 
 static constexpr int32_t UINT32_SIZE = sizeof(::EmbeddedProto::uint32);
 
@@ -166,7 +184,7 @@ TEST(RepeatedFieldFixedSize, set_element)
   EXPECT_EQ(3U, x.get_const(2));
 }
 
-TEST(RepeatedFieldFixedSize, clear) 
+TEST(RepeatedFieldFixedSize, clear)
 {
   static constexpr uint32_t LENGTH = 3;
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, LENGTH> x;
@@ -177,6 +195,251 @@ TEST(RepeatedFieldFixedSize, clear)
   EXPECT_EQ(0U, x.get_const(1));
   EXPECT_EQ(0U, x.get_length());
 }
+
+// --------------------------------------------------------------------------
+// Batched push for packed repeated fixed-width fields.
+//
+// These tests exercise the packed serialization at the buffer seam: a packed
+// fixed-width field must reach the buffer as batched push(bytes, length) calls
+// rather than one virtual push(byte) per byte, while remaining byte-identical
+// and wire-compatible with the previous per-byte implementation.
+// --------------------------------------------------------------------------
+
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+// On a little-endian target the whole packed block is written with a single
+// push(bytes, length) call; no per-byte push(byte) calls are made.
+TEST(RepeatedFieldPacked, full_serialize_fixed32_is_one_whole_block_push)
+{
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 4> field;
+  field.add(0x11223344U);
+  field.add(0x55667788U);
+  field.add(0x99AABBCCU);
+  field.add(0xDDEEFF00U);
+
+  Mocks::WriteBufferMock buffer;
+  // Whole 4 * 4 = 16 byte payload in a single array push, and never a per-byte push.
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_, 16U)).Times(1).WillOnce(Return(true));
+
+  EXPECT_EQ(EmbeddedProto::Error::NO_ERRORS, field.serialize(buffer));
+}
+
+TEST(RepeatedFieldPacked, full_serialize_fixed64_is_one_whole_block_push)
+{
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed64, 3> field;
+  field.add(0x0102030405060708ULL);
+  field.add(0x1122334455667788ULL);
+  field.add(0xAABBCCDDEEFF0011ULL);
+
+  Mocks::WriteBufferMock buffer;
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_, 24U)).Times(1).WillOnce(Return(true));
+
+  EXPECT_EQ(EmbeddedProto::Error::NO_ERRORS, field.serialize(buffer));
+}
+#endif // EMBEDDED_PROTO_LITTLE_ENDIAN
+
+// The serialized bytes are the little-endian packed layout, byte-for-byte, and
+// round-trip cleanly back through deserialize (wire compatible).
+TEST(RepeatedFieldPacked, full_serialize_fixed32_bytes_and_roundtrip)
+{
+  const std::array<uint32_t, 4> values = {0x11223344U, 0x55667788U, 0x99AABBCCU, 0xDDEEFF00U};
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;
+  for(const uint32_t v : values) { field.add(v); }
+
+  EmbeddedProto::WriteBufferFixedSize<64> buffer;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, field.serialize(buffer));
+  ASSERT_EQ(values.size() * 4U, buffer.get_size());
+
+  // Expected little-endian packed layout.
+  const uint8_t* data = buffer.get_data();
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    EXPECT_EQ(static_cast<uint8_t>(values[i] & 0xFF),         data[(i * 4) + 0]);
+    EXPECT_EQ(static_cast<uint8_t>((values[i] >> 8) & 0xFF),  data[(i * 4) + 1]);
+    EXPECT_EQ(static_cast<uint8_t>((values[i] >> 16) & 0xFF), data[(i * 4) + 2]);
+    EXPECT_EQ(static_cast<uint8_t>((values[i] >> 24) & 0xFF), data[(i * 4) + 3]);
+  }
+
+  // Round-trip: [size varint][packed data] -> deserialize.
+  EmbeddedProto::ReadBufferFixedSize<64> read;
+  read.push(static_cast<uint8_t>(values.size() * 4U)); // size fits in one varint byte
+  for(uint32_t i = 0; i < buffer.get_size(); ++i) { read.push(data[i]); }
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> restored;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, restored.deserialize(read));
+  ASSERT_EQ(values.size(), restored.get_length());
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    EXPECT_EQ(values[i], restored.get_const(i));
+  }
+}
+
+// Float payloads survive the batched path bit-for-bit.
+TEST(RepeatedFieldPacked, full_serialize_float_roundtrip)
+{
+  const std::array<float, 3> values = {1.5F, -2.25F, 3.0e10F};
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::floatfixed, 4> field;
+  for(const float v : values) { field.add(v); }
+
+  EmbeddedProto::WriteBufferFixedSize<64> buffer;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, field.serialize(buffer));
+  ASSERT_EQ(values.size() * 4U, buffer.get_size());
+
+  EmbeddedProto::ReadBufferFixedSize<64> read;
+  read.push(static_cast<uint8_t>(values.size() * 4U));
+  for(uint32_t i = 0; i < buffer.get_size(); ++i) { read.push(buffer.get_data()[i]); }
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::floatfixed, 4> restored;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, restored.deserialize(read));
+  ASSERT_EQ(values.size(), restored.get_length());
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    EXPECT_EQ(values[i], restored.get_const(i));
+  }
+}
+
+// A packed varint (non-fixed) field is unaffected: it still serializes
+// element-by-element through the base implementation and round-trips.
+TEST(RepeatedFieldPacked, full_serialize_varint_unaffected)
+{
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 4> field;
+  field.add(1);
+  field.add(300);   // two-byte varint
+  field.add(2);
+
+  EmbeddedProto::WriteBufferFixedSize<32> buffer;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, field.serialize(buffer));
+  // 1 + 2 + 1 = 4 bytes of varint data.
+  EXPECT_EQ(4U, buffer.get_size());
+}
+
+// --------------------------------------------------------------------------
+// Batched read for packed repeated fixed-width deserialization (receive side).
+// --------------------------------------------------------------------------
+
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+// On a little-endian target a full packed fixed-width block is read out of the
+// buffer with a single batched pop(bytes, length) call. The only per-byte peek
+// is the length prefix; the payload is never read byte-by-byte.
+TEST(RepeatedFieldPacked, full_deserialize_fixed32_is_one_block_pop)
+{
+  const std::array<uint32_t, 4> values = {0x11223344U, 0x55667788U, 0x99AABBCCU, 0xDDEEFF00U};
+  const uint8_t payload[16] = {0x44, 0x33, 0x22, 0x11, 0x88, 0x77, 0x66, 0x55,
+                               0xCC, 0xBB, 0xAA, 0x99, 0x00, 0xFF, 0xEE, 0xDD};
+
+  NiceMock<Mocks::ReadBufferMock> buffer;
+  ON_CALL(buffer, get_size()).WillByDefault(Return(16));
+
+  // Size varint (0x10 == 16) is the only per-byte peek.
+  EXPECT_CALL(buffer, peek(_, _)).Times(1)
+      .WillOnce(DoAll(SetArgReferee<1>(0x10), Return(true)));
+  EXPECT_CALL(buffer, advance(1)).Times(1).WillOnce(Return(true));
+  // Whole 16 byte block read in a single batched pop, never a per-byte pop.
+  EXPECT_CALL(buffer, pop(_, 16U)).Times(1).WillOnce(Invoke(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; }));
+  EXPECT_CALL(buffer, pop(An<uint8_t&>())).Times(0);
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;
+  ASSERT_EQ(EmbeddedProto::Error::NO_ERRORS, field.deserialize(buffer));
+  ASSERT_EQ(values.size(), field.get_length());
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    EXPECT_EQ(values[i], field.get_const(i));
+  }
+}
+#endif // EMBEDDED_PROTO_LITTLE_ENDIAN
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+// Partial (chunked) packed serialization must batch per element and resume at
+// the correct element on BUFFER_FULL. Using 4-byte chunks forces every fixed32
+// element to be written by an atomic, exactly-filling push; the reassembled
+// output equals the full-mode packed encoding (tag + size + little-endian data).
+TEST(RepeatedFieldPacked, partial_serialize_fixed32_resumes_per_element)
+{
+  const std::array<uint32_t, 4> values = {0x11223344U, 0x55667788U, 0x99AABBCCU, 0xDDEEFF00U};
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;
+  for(const uint32_t v : values) { field.add(v); }
+
+  EmbeddedProto::MessageState state;
+  std::array<uint8_t, 32> out = {0};
+  uint32_t out_len = 0;
+  uint32_t guard = 0;
+  EmbeddedProto::Error r = EmbeddedProto::Error::NO_ERRORS;
+  while((EmbeddedProto::FieldProcessingPhase::COMPLETE != state.phase) && (guard++ < 100))
+  {
+    // 4-byte chunks: holds tag+size in one call, then exactly one element each.
+    EmbeddedProto::WriteBufferFixedSize<4> chunk;
+    r = field.serialize_partial_as_field(1, chunk, state, false);
+    ASSERT_TRUE((EmbeddedProto::Error::NO_ERRORS == r)
+                || (EmbeddedProto::Error::BUFFER_FULL == r));
+    for(uint32_t i = 0; i < chunk.get_size(); ++i) { out[out_len++] = chunk.get_data()[i]; }
+  }
+  EXPECT_EQ(EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+
+  // Golden: tag (field 1, LEN) = 0x0A, size = 16, then the LE fixed32 payload.
+  std::array<uint8_t, 2 + (4 * 4)> expected = {0x0A, 0x10};
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    expected[2 + (i * 4) + 0] = static_cast<uint8_t>(values[i] & 0xFF);
+    expected[2 + (i * 4) + 1] = static_cast<uint8_t>((values[i] >> 8) & 0xFF);
+    expected[2 + (i * 4) + 2] = static_cast<uint8_t>((values[i] >> 16) & 0xFF);
+    expected[2 + (i * 4) + 3] = static_cast<uint8_t>((values[i] >> 24) & 0xFF);
+  }
+  ASSERT_EQ(expected.size(), out_len);
+  for(uint32_t i = 0; i < expected.size(); ++i)
+  {
+    EXPECT_EQ(expected[i], out[i]) << "byte " << i;
+  }
+}
+
+// Partial (chunked) packed deserialization must batch fixed-width reads yet keep
+// resuming correctly across a buffer refill, including when a fixed-width element
+// straddles the split. The all-or-nothing batched read must stop cleanly at the
+// section boundary (END_OF_BUFFER) leaving element_index/bytes_remaining pointing
+// at the straddling element, which is then read whole from the next buffer.
+TEST(RepeatedFieldPacked, partial_deserialize_fixed32_resumes_across_split)
+{
+  const std::array<uint32_t, 4> values = {0x11223344U, 0x55667788U, 0x99AABBCCU, 0xDDEEFF00U};
+
+  EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;
+  EmbeddedProto::MessageState state;
+  // Enter as the message loop would after reading the field tag.
+  state.phase = EmbeddedProto::FieldProcessingPhase::SIZE;
+
+  // Buffer 1: size prefix (0x10 == 16) + element 0 + the first 2 bytes of
+  // element 1 (element 1 straddles the split).
+  EmbeddedProto::ReadBufferFixedSize<7> buffer1(
+      { 0x10, 0x44, 0x33, 0x22, 0x11, 0x88, 0x77 });
+
+  EXPECT_EQ(EmbeddedProto::Error::END_OF_BUFFER,
+            field.deserialize_partial_as_field(buffer1, state));
+
+  // Only element 0 fully present: the straddling element is not half-consumed.
+  EXPECT_EQ(EmbeddedProto::FieldProcessingPhase::DATA, state.phase);
+  EXPECT_EQ(1U, state.element_index);
+  EXPECT_EQ(12U, state.bytes_remaining);
+  ASSERT_EQ(1U, field.get_length());
+  EXPECT_EQ(values[0], field.get_const(0));
+
+  // Buffer 2: the retained tail re-presents element 1 whole, then elements 2 & 3.
+  EmbeddedProto::ReadBufferFixedSize<12> buffer2(
+      { 0x88, 0x77, 0x66, 0x55, 0xCC, 0xBB, 0xAA, 0x99, 0x00, 0xFF, 0xEE, 0xDD });
+
+  EXPECT_EQ(EmbeddedProto::Error::NO_ERRORS,
+            field.deserialize_partial_as_field(buffer2, state));
+
+  EXPECT_EQ(EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  ASSERT_EQ(values.size(), field.get_length());
+  for(uint32_t i = 0; i < values.size(); ++i)
+  {
+    EXPECT_EQ(values[i], field.get_const(i));
+  }
+}
+#endif // PARTIAL_SERIALIZATION_ENABLED
 
 
 } // End namespace test_EmbeddedAMS_RepeatedField

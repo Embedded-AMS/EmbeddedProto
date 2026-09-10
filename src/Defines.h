@@ -41,6 +41,12 @@
 namespace EmbeddedProto
 {
 
+//! Define PARTIAL_SERIALIZATION_ENABLED to enable partial (chunked) serialization
+//! and deserialization. When defined the generated messages and the library gain
+//! the serialize_partial()/deserialize_partial() methods, which allow (de)serialization
+//! to be paused when a buffer is exhausted and resumed with a fresh buffer.
+//! When the macro is not defined only the regular, single-call serialize()/deserialize()
+//! are available.
 
 #if __cplusplus >= 201703L // C++17 and up
   
@@ -61,7 +67,7 @@ namespace EmbeddedProto
 #elif __cplusplus >= 201103L // C++11
 
   template<class T>
-  inline void destroy_at(T* p) 
+  constexpr void destroy_at(T* p) 
   {
     p->~T(); 
   }
@@ -86,13 +92,7 @@ namespace EmbeddedProto
   //! Simple max function as constexpr
   constexpr uint32_t max(const uint32_t a, const uint32_t b)
   {
-    return (a > b) ? a : b;
-  }
-
-  //! Simple min function as constexpr
-  constexpr uint32_t min(const uint32_t a, const uint32_t b)
-  {
-    return (a < b) ? a : b;
+    return (a > b) ? a : b;    
   }
 }
 

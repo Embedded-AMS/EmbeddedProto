@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -51,7 +51,7 @@
  * along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.</p>
  *
  * <p>For commercial and closed source application please visit:
- * <https://EmbeddedProto.com/license/>.</p>
+ * <https://embeddedproto.com/pricing/>.</p>
  *
  * <p>
  * Embedded AMS B.V.<br>

@@ -17,7 +17,7 @@
 # along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
 #
 # For commercial and closed source application please visit:
-# <https://EmbeddedProto.com/license/>.
+# <https://embeddedproto.com/pricing/>.
 #
 # Embedded AMS B.V.
 # Info:
@@ -32,36 +32,49 @@
 # Fail on first non-zero return code
 set -exuo pipefail
 
-# Generate sources using the EAMS plugin.
-mkdir -p ./build/EAMS
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/simple_types.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/nested_message.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/repeated_fields.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/oneof_fields.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/include_other_files.proto
-# Delibertly do not manually generate file_to_include.proto and subfolder/file_to_include_from_subfolder.proto 
-# to test the automatic generation of files from including them in include_other_files.proto.
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto -I./generator --eams_out=./build/EAMS ./test/proto/string_bytes.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/empty_message.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/optional_fields.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto -I./generator --eams_out=./build/EAMS ./test/proto/field_options.proto
-protoc --plugin=protoc-gen-eams=protoc-gen-eams -I./test/proto --eams_out=./build/EAMS ./test/proto/custom_options.proto
+# Convert user-friendly parameter to the compiler define enabling partial mode.
+# The serialization mode and, optionally, the extra build defines to test with.
+EP_DEFINES=""
+MODE_NAME="full"
+EXTRA_DEFINES=""
 
-# For validation and testing generate the same message using python
-mkdir -p ./build/python
-mkdir -p ./build/python/subfolder
-protoc -I./test/proto --python_out=./build/python ./test/proto/simple_types.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/nested_message.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/repeated_fields.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/oneof_fields.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/include_other_files.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/file_to_include.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/subfolder/file_to_include_from_subfolder.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/empty_file_to_include.proto
-protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/string_bytes.proto
-protoc -I./test/proto --python_out=./build/python ./test/proto/optional_fields.proto
-protoc -I./test/proto -I./generator --python_out=./build/python ./test/proto/field_options.proto
+usage() {
+  echo "Usage: $0 [MODE] [nullterm]"
+  echo "  MODE: 'full' (default) or 'partial'"
+  echo "        Full mode: Traditional serialization (complete in one call)"
+  echo "        Partial mode: Chunked serialization for constrained environments"
+  echo "  nullterm: also define NULL_TERMINATED_STRINGS, reserving a null terminator per string"
+  echo ""
+  echo "Examples:"
+  echo "  $0                    # Build with full serialization (default)"
+  echo "  $0 full               # Build with full serialization"
+  echo "  $0 partial            # Build with partial serialization"
+  echo "  $0 partial nullterm   # Partial serialization with null terminated strings"
+}
+
+for ARG in "$@"; do
+  case "${ARG}" in
+    full)
+      EP_DEFINES=""
+      MODE_NAME="full"
+      ;;
+    partial)
+      EP_DEFINES="-DPARTIAL_SERIALIZATION_ENABLED"
+      MODE_NAME="partial"
+      ;;
+    nullterm)
+      EXTRA_DEFINES="-DNULL_TERMINATED_STRINGS"
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+done
+EP_DEFINES="${EP_DEFINES} ${EXTRA_DEFINES}"
+
+echo "Building tests with ${MODE_NAME} serialization mode..."
 
 # Build the tests
-cmake -DCMAKE_BUILD_TYPE=Debug -B./build/test
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${EP_DEFINES}" -B./build/test
 make -j16 -C ./build/test

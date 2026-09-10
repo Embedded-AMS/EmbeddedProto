@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -171,36 +171,30 @@ namespace EmbeddedProto
           return return_value;
         }
 
+        //! Compare the data held by this object with that of another string or bytes field.
+        /*!
+            The maximum lengths of the two objects may differ, only the data actually held is
+            compared. Used among others to look up a key in a map field.
 
-        Error serialize_with_id(uint32_t field_number, WriteBufferInterface& buffer, const bool optional) const override 
+            \param[in] rhs The object to compare this one with.
+            \return True when both hold the same number of bytes and all of them are equal.
+        */
+        template<uint32_t RHS_LENGTH>
+        bool operator==(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs) const
         {
-          Error return_value = Error::NO_ERRORS;
+          return (current_length_ == rhs.get_length()) &&
+                 (0 == memcmp(data_.data(), rhs.get_const(), current_length_));
+        }
 
-          if((0 < current_length_) || optional) 
-          {
-            const auto n_bytes_available = buffer.get_available_size();
-            if(current_length_ <= n_bytes_available)
-            {
-              uint32_t tag = WireFormatter::MakeTag(field_number, 
-                                                    WireFormatter::WireType::LENGTH_DELIMITED);
-              return_value = WireFormatter::SerializeVarint(tag, buffer);
-              if(Error::NO_ERRORS == return_value) 
-              {
-                return_value = WireFormatter::SerializeVarint(current_length_, buffer);
-              }
-              // Check check the number of elements again for optional fields.
-              if((Error::NO_ERRORS == return_value) && (0 < current_length_)) 
-              {
-                return_value = serialize(buffer);
-              }
-            }
-            else 
-            {
-              return_value = Error::BUFFER_FULL;
-            }
-          }
-
-          return return_value;
+        //! Compare the data held by this object with that of another string or bytes field.
+        /*!
+            \param[in] rhs The object to compare this one with.
+            \return True when the two differ in length or in any of the bytes held.
+        */
+        template<uint32_t RHS_LENGTH>
+        bool operator!=(const FieldStringBytes<RHS_LENGTH, DATA_TYPE>& rhs) const
+        {
+          return !(*this == rhs);
         }
 
         Error serialize(WriteBufferInterface& buffer) const override 
@@ -247,21 +241,194 @@ namespace EmbeddedProto
           return return_value;
         }
         
-        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer, 
+        Error deserialize_check_type(::EmbeddedProto::ReadBufferInterface& buffer,
                                      const ::EmbeddedProto::WireFormatter::WireType& wire_type) final
         {
-          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type 
+          Error return_value = ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED == wire_type
                                ? Error::NO_ERRORS : Error::INVALID_WIRETYPE;
-          if(Error::NO_ERRORS == return_value)  
+          if(Error::NO_ERRORS == return_value)
           {
             return_value = this->deserialize(buffer);
           }
           return return_value;
         }
 
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+        Error deserialize_partial_as_field(ReadBufferInterface& buffer,
+                                           MessageState& state) override
+        {
+          Error return_value = Error::NO_ERRORS;
+          bool size_phase_processed = false;
+
+          if((::EmbeddedProto::FieldProcessingPhase::SIZE != state.phase) && (::EmbeddedProto::FieldProcessingPhase::DATA != state.phase))
+          {
+            return_value = Error::STATE_MISMATCH;
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::SIZE == state.phase))
+          {
+            return_value = deserialize_partial_size_phase(buffer, state);
+            if(Error::NO_ERRORS == return_value)
+            {
+              size_phase_processed = true;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && size_phase_processed)
+          {
+            clear();
+            if(MAX_LENGTH < state.bytes_remaining)
+            {
+              return_value = Error::ARRAY_FULL;
+            }
+          }
+
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
+            for(uint32_t i = 0U; i < bytes_to_read; ++i)
+            {
+              uint8_t byte = 0U;
+              if(buffer.pop(byte))
+              {
+                data_[current_length_] = static_cast<DATA_TYPE>(byte);
+                ++current_length_;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+
+            if(Error::NO_ERRORS == return_value)
+            {
+              state.bytes_remaining -= bytes_to_read;
+              if(0U == state.bytes_remaining)
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+              }
+              else
+              {
+                return_value = Error::END_OF_BUFFER;
+              }
+            }
+          }
+
+          return return_value;
+        }
+
+        Error serialize_partial_as_field(uint32_t field_number,
+                                         WriteBufferInterface& buffer,
+                                         MessageState& state,
+                                         bool optional) const override
+        {
+          Error return_value = Error::NO_ERRORS;
+
+          // Handle TAG and SIZE phases using helper method
+          if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
+          {
+            return_value = serialize_partial_tag_and_size(field_number, get_length(), buffer, state, optional);
+          }
+
+          // Handle DATA phase
+          if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
+          {
+            // Calculate how many bytes we can write (limited by buffer space and remaining data)
+            const uint32_t bytes_to_write = std::min(state.bytes_remaining, buffer.get_available_size());
+
+            if(bytes_to_write > 0)
+            {
+              // Calculate starting position in data array
+              const uint32_t start_offset = get_length() - state.bytes_remaining;
+              const auto* void_pointer = static_cast<const void*>(&(data_[start_offset]));
+              const auto* byte_pointer = static_cast<const uint8_t*>(void_pointer);
+
+              // Try to write all bytes at once first
+              if(buffer.push(byte_pointer, bytes_to_write))
+              {
+                state.bytes_remaining -= bytes_to_write;
+                if(0 == state.bytes_remaining)
+                {
+                  state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                  return_value = Error::NO_ERRORS;
+                }
+                else
+                {
+                  return_value = Error::BUFFER_FULL;
+                }
+              }
+              else
+              {
+                // Buffer push failed - this can happen when the buffer's push method
+                // uses > instead of >=, so we can't fill the buffer completely.
+                // In this case, try to write bytes one at a time.
+                uint32_t bytes_written = 0;
+                bool push_more = true;
+                for(uint32_t i = 0; (i < bytes_to_write) && push_more; ++i)
+                {
+                  push_more = buffer.push(byte_pointer[i]);
+                  if(push_more)
+                  {
+                      bytes_written++;
+                  }
+                }
+
+                if(bytes_written > 0)
+                {
+                  state.bytes_remaining -= bytes_written;
+                  if(0 == state.bytes_remaining)
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
+                  else
+                  {
+                    return_value = Error::BUFFER_FULL;
+                  }
+                }
+                else
+                {
+                  // Couldn't write any bytes - this should not happen unless buffer is completely full
+                  // To prevent infinite loops, we need to ensure progress is made
+                  // If we can't write any bytes and there are still bytes remaining, we have a problem
+                  if(state.bytes_remaining > 0)
+                  {
+                    // This is the infinite loop scenario - buffer is full but we can't write any bytes
+                    // We need to return BUFFER_FULL to indicate we need a new buffer
+                    return_value = Error::BUFFER_FULL;
+                  }
+                  else
+                  {
+                    state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                    return_value = Error::NO_ERRORS;
+                  }
+                }
+              }
+            }
+            else
+            {
+              // No space available in buffer - this can happen if buffer is completely full
+              // In this case, we need to ensure we don't get stuck in an infinite loop
+              // by checking if we've made any progress
+              if(state.bytes_remaining > 0)
+              {
+                return_value = Error::BUFFER_FULL;
+              }
+              else
+              {
+                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
+                return_value = Error::NO_ERRORS;
+              }
+            }
+          }
+
+          return return_value;
+        }
+#endif
+
         //! Reset the field to it's initial value.
-        void clear() override 
-        { 
+        void clear() override
+        {
           data_.fill(0);
           current_length_ = 0;
         }
@@ -276,7 +443,7 @@ namespace EmbeddedProto
         {
           return MAX_LENGTH // The number of bytes of the data.
                   + WireFormatter::VarintSize(MAX_LENGTH) // The varint indicating the actual number of bytes.
-                  + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number,
+                  + WireFormatter::VarintSize(WireFormatter::MakeTag(field_number, 
                                                                      WireFormatter::WireType::LENGTH_DELIMITED)); // The field and tag comby
         }
 
@@ -304,11 +471,26 @@ namespace EmbeddedProto
 
       private:
 
+        //! The number of characters reserved behind MAX_LENGTH for a null terminator.
+        /*!
+            Define NULL_TERMINATED_STRINGS to reserve one character per string. It is zero from
+            construction on and no write path ever reaches it, every one of them stops at
+            MAX_LENGTH, so get_const() of a completely full string is a valid c style string
+            without any bookkeeping. The cost is one byte of RAM per string field. A bytes field
+            never reserves it, a byte array has no terminator. The default is to reserve nothing,
+            which keeps the memory layout of earlier versions.
+        */
+#ifdef NULL_TERMINATED_STRINGS
+        static constexpr uint32_t TERMINATOR_LENGTH = std::is_same<char, DATA_TYPE>::value ? 1U : 0U;
+#else
+        static constexpr uint32_t TERMINATOR_LENGTH = 0U;
+#endif
+
         //! Number of item in the data array.
         uint32_t current_length_ = 0;
 
-        //! The text.
-        std::array<DATA_TYPE, MAX_LENGTH> data_ = {{0}};
+        //! The text, plus the reserved terminator when enabled.
+        std::array<DATA_TYPE, MAX_LENGTH + TERMINATOR_LENGTH> data_ = {{0}};
 
     }; // End of class FieldStringBytes
 
@@ -346,8 +528,6 @@ namespace EmbeddedProto
           
           \param[in] rhs The c style string from which to take the characters and copy it to this object.
           \return A reference to this object used for function chaining.
-
-          \warning Please do not assign strings equal or larger than the defined MAX_LENTHG. The null terminator will get lost.
       */
       FieldString<MAX_LENGTH>& operator=(const char* const rhs)
       {
@@ -355,10 +535,52 @@ namespace EmbeddedProto
         return *this;
       }
 
+      //! Compare the characters in this object with a c style string.
+      /*!
+          A short example:
+            if(msg.get_name() == "Foo bar") { }
+
+          \param[in] rhs The c style string to compare the characters in this object with.
+          \return True when both hold the same number of characters and all of them are equal.
+      */
+      bool operator==(const char* const rhs) const
+      {
+        bool result = false;
+        if(nullptr != rhs)
+        {
+          const uint32_t rhs_length = strnlen(rhs, MAX_LENGTH + 1);
+          result = (rhs_length == this->get_length()) &&
+                   (0 == memcmp(this->get_const(), rhs, rhs_length));
+        }
+        return result;
+      }
+
+      //! Compare the characters in this object with a c style string.
+      /*!
+          \param[in] rhs The c style string to compare the characters in this object with.
+          \return True when the two differ in length or in any of the characters held.
+      */
+      bool operator!=(const char* const rhs) const
+      {
+        return !(*this == rhs);
+      }
+
+      //! Does the given c style string fit in this object without being cut short?
+      /*!
+          set() stores at most MAX_LENGTH characters and drops the rest. Check first when a cut
+          short string would be wrong rather than merely shorter, as with a map key.
+
+          \param[in] str The c style string to check. A nullptr counts as an empty string.
+          \return True when the string is at most MAX_LENGTH characters long.
+      */
+      static bool fits(const char* const str)
+      {
+        return (nullptr == str) || (MAX_LENGTH >= strnlen(str, MAX_LENGTH + 1));
+      }
+
       //! Assign the data from the given c style string to this object.
       /*!
           \param[in] str The c style string from which to take the characters and copy it to this object.
-          \warning Please do not assign strings equal or larger than the defined MAX_LENTHG. The null terminator will get lost.
       */
       void set(const char* const str)
       {
@@ -391,9 +613,8 @@ namespace EmbeddedProto
           if(0 < n_chars_used)
           {
             // Update the character pointer and characters left in the array.
-            const int32_t actual_chars_used = EmbeddedProto::min(n_chars_used, left_chars.size);
-            left_chars.data += actual_chars_used;
-            left_chars.size -= actual_chars_used;
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
           }
         }
 
@@ -408,9 +629,8 @@ namespace EmbeddedProto
         
         if(0 < n_chars_used) 
         {
-          const int32_t actual_chars_used = EmbeddedProto::min(n_chars_used, left_chars.size);
-          left_chars.data += actual_chars_used;
-          left_chars.size -= actual_chars_used;
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
         }
 
         return left_chars;
@@ -426,7 +646,7 @@ namespace EmbeddedProto
           
           \return The length of this character array will be returned or the value of len.
       */
-      uint32_t strnlen(const char* s, uint32_t len) 
+      static uint32_t strnlen(const char* s, uint32_t len)
       {
         uint32_t i = 0;
         for(; (i < len) && (s[i] != '\0'); ++i)
@@ -473,9 +693,8 @@ namespace EmbeddedProto
           if(0 < n_chars_used)
           {
             // Update the character pointer and characters left in the array.
-            const int32_t actual_chars_used = EmbeddedProto::min(n_chars_used, left_chars.size);
-            left_chars.data += actual_chars_used;
-            left_chars.size -= actual_chars_used;
+            left_chars.data += n_chars_used;
+            left_chars.size -= n_chars_used;
           }
         }
 
@@ -490,9 +709,8 @@ namespace EmbeddedProto
         
         if(0 < n_chars_used) 
         {
-          const int32_t actual_chars_used = EmbeddedProto::min(n_chars_used, left_chars.size);
-          left_chars.data += actual_chars_used;
-          left_chars.size -= actual_chars_used;
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
         }
 
         uint32 field;
@@ -506,9 +724,8 @@ namespace EmbeddedProto
         
         if(0 < n_chars_used)
         {
-          const int32_t actual_chars_used = EmbeddedProto::min(n_chars_used, left_chars.size);
-          left_chars.data += actual_chars_used;
-          left_chars.size -= actual_chars_used;
+          left_chars.data += n_chars_used;
+          left_chars.size -= n_chars_used;
         }
 
         return left_chars;

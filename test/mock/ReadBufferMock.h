@@ -16,7 +16,7 @@
  *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
  *
  *  For commercial and closed source application please visit:
- *  <https://EmbeddedProto.com/license/>.
+ *  <https://embeddedproto.com/pricing/>.
  *
  *  Embedded AMS B.V.
  *  Info:
@@ -46,12 +46,14 @@ namespace Mocks
       MOCK_CONST_METHOD0(get_max_size, uint32_t());
       
       MOCK_CONST_METHOD1(peek, bool(uint8_t&));
+      MOCK_CONST_METHOD2(peek, bool(const uint32_t, uint8_t&));
       
       MOCK_METHOD0(advance, bool());
       MOCK_METHOD1(advance, bool(uint32_t));
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
+      MOCK_METHOD2(pop, bool(uint8_t*, const uint32_t));
   };
 
 } // End of namespace Mocks
