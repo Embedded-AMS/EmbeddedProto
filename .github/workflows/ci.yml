@@ -42,7 +42,7 @@ jobs:
       run: pip install gcovr==7.0
     - name: Install uv
       if: matrix.installer == 'uv'
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10
     - name: Setup venv
       run: python install.py --installer ${{ matrix.installer }}
     - name: Check EmbeddedProto license
