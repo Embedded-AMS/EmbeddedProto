@@ -62,6 +62,29 @@ def _run_license_command(argv):
                                    check_only=args.check_license)
 
 
+def get_options_proto_location():
+    # Obtain the folder holding embedded_proto_options.proto, it ships with this package.
+    return str(resources.files("EmbeddedProto").resolve())
+
+
+def build_protoc_argv(argv):
+    # Turn the command line of embeddedproto into the one handed to protoc.
+    #
+    # The include paths for embedded_proto_options.proto and the Protobuf well known types
+    # (google/protobuf/descriptor.proto, imported by the options file) are always appended,
+    # so a user only lists the folders holding their own proto files. The flag
+    # --IncludeWellKnownTypes from earlier versions is accepted and ignored.
+    argv = [x for x in argv if x != "--IncludeWellKnownTypes"]
+    argv = argv + ["-I" + get_options_proto_location(), "-I" + get_well_known_types_location()]
+
+    # Check if a plugin is included
+    if not [x for x in argv if x.startswith("--plugin")]:
+        # If not add the EmbeddedProto plugin
+        argv.insert(0, "--plugin=protoc-gen-eams")
+
+    return argv
+
+
 def run_protoc(argv=sys.argv):
     # Remove the program name
     argv.pop(0)
@@ -82,18 +105,6 @@ def run_protoc(argv=sys.argv):
         # Exit the script after printing the source location
         return
 
-    # Check if the well known types should be included.
-    argv = ["-I" + get_well_known_types_location() if x == "--IncludeWellKnownTypes" else x for x in argv]
-
-    # Check if a plugin is included
-    if not [x for x in argv if x.startswith("--plugin")]:
-        # If not add the EmbeddedProto plugin
-        argv.insert(0, "--plugin=protoc-gen-eams")
-
-    protoc.main(argv)
-
-
-####################################################################################
-
+    protoc.main(build_protoc_argv(argv))
 if __name__ == "__main__":
     run_protoc(sys.argv)
