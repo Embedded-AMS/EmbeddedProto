@@ -35,6 +35,17 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 * Added support for `map<K, V>` fields. A map is declared as in any other protobuf implementation and sized with `maxLength` (the number of entries) plus `keyMaxLength` and `valueMaxLength` for a string or bytes key and value. The generated API is map shaped: `set_`, `get_`, `has_`, `remove_`, `clear_`, `find_` and `_size`. Entries may also be streamed through callbacks with `callbackStorage`, in which case no entries are stored in the message. See [doc/maps.md](doc/maps.md).
 * Added the `customStorage` field option. With `[(EmbeddedProto.options).customStorage = true]` you take control of the storage type of a repeated, string, bytes or message field. The generated message exposes the storage type as a plain template parameter (without a size parameter and without a default), so you supply the complete type yourself. The supplied type must derive from `::EmbeddedProto::RepeatedField<T>` (repeated), `::EmbeddedProto::internal::BaseStringBytes` (string/bytes) or `::EmbeddedProto::MessageInterface` (message); this is enforced with a `static_assert`. The option takes precedence over `maxLength`. Fields without the option keep their existing behaviour, so existing `.proto` files and generated user code are unchanged.
 
+## 3.6.2
+* Fixed an error when a proto file imports `google/protobuf/descriptor.proto` to declare protoc custom options. No code is generated for that file anymore, it is only used by protoc and other plugins.
+* Fixed the retry loop registering template parameters, it could fail when messages spread over multiple files reference each other.
+* Improved the error messages reporting which file could not be processed.
+
+## 3.6.1
+* Backported the max_serialized_size() function from develop-v4
+* Added a saveguard around the output of the snprintf functions as is may not return the actual number of bytes writen.
+* Fix C++11 destroy_at declaration
+* Copyright year bump
+
 ## 3.6.0
 * Update to Protobuf version 32.0.
 * Increated the minimum python version to 3.10.
