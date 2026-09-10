@@ -27,7 +27,7 @@ protoc-gen-eams = "EmbeddedProto.main:main_plugin"
 embeddedproto = "EmbeddedProto.EmbeddedProto:run_protoc"
 
 [tool.setuptools.package-data]
-EmbeddedProto = ["templates/*", "version.json", "src/*"]
+EmbeddedProto = ["templates/*", "version.json", "src/*", "embedded_proto_options.proto"]
 
 [build-system]
 requires = ["setuptools>=64", "grpcio-tools==1.75.0"]
