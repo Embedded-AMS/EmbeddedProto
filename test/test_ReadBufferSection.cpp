@@ -36,7 +36,6 @@
 
 using ::testing::_;
 using ::testing::InSequence;
-using ::testing::Invoke;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 using ::testing::DoAll;
@@ -153,8 +152,8 @@ TEST(ReadBufferSection, pop_block)
   Mocks::ReadBufferMock read_buffer_mock;
   EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(8));
   const uint8_t src[3] = { 1, 2, 3 };
-  EXPECT_CALL(read_buffer_mock, pop(_, 3U)).WillOnce(Invoke(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, src, n); return true; }));
+  EXPECT_CALL(read_buffer_mock, pop(_, 3U)).WillOnce(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, src, n); return true; });
 
   EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 5);
 
