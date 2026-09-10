@@ -528,6 +528,29 @@ TEST(NestedMessage, to_string)
   EXPECT_EQ(str + TXT_LEN, str_left.data);
 }
 
+TEST(NestedMessage, to_string_buffer_overrun)
+{
+  ::demo::space::message_b<SIZE_MSG_A> msg;
+
+  constexpr uint32_t N = 100;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  // Test if a nested message can be serialized with values set to one.
+  msg.set_u(1.0F);
+  msg.mutable_nested_a().add_x(1);
+  msg.mutable_nested_a().add_x(2);
+  msg.mutable_nested_a().add_x(3);
+  msg.mutable_nested_a().set_y(1.0F);
+  msg.mutable_nested_a().set_z(1);
+  msg.set_v(1);
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+  
+  EXPECT_EQ(0, str_left.size);
+  EXPECT_EQ(str + N, str_left.data);
+}
+
 #endif // MSG_TO_STRING
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED

@@ -754,6 +754,37 @@ TEST(SimpleTypes, to_string)
 
 }
 
+TEST(SimpleTypes, to_string_buffer_overrun)
+{
+  constexpr uint32_t N = 100;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+ 
+  ::Test_Simple_Types msg;
+
+  msg.set_a_int32(1);   
+  msg.set_a_int64(1);     
+  msg.set_a_uint32(1);    
+  msg.set_a_uint64(1);
+  msg.set_a_sint32(1);
+  msg.set_a_sint64(1);
+  msg.set_a_bool(true);
+  msg.set_a_enum(Test_Enum::ONE);
+  msg.set_a_fixed64(1);
+  msg.set_a_sfixed64(1);
+  msg.set_a_double(1.0);
+  msg.set_a_fixed32(1);
+  msg.set_a_sfixed32(1); 
+  msg.set_a_float(1.0F);
+  msg.set_a_nested_enum(::Test_Simple_Types::Nested_Enum::NE_B); 
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+
+  EXPECT_EQ(0, str_left.size);
+  EXPECT_EQ(str + N, str_left.data);  
+
+}
+
 #endif // MSG_TO_STRING
 
 //==============================================================================

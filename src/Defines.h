@@ -94,6 +94,12 @@ namespace EmbeddedProto
   {
     return (a > b) ? a : b;    
   }
+
+  //! Simple min function as constexpr
+  constexpr uint32_t min(const uint32_t a, const uint32_t b)
+  {
+    return (a < b) ? a : b;
+  }
 }
 
 #endif //_EMBEDDED_PROTO_DEFINES_H_

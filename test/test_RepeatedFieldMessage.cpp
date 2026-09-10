@@ -1041,6 +1041,33 @@ TEST(RepeatedFieldMessage, to_string)
   EXPECT_EQ(str + TXT_LEN, str_left.data);
 }
 
+TEST(RepeatedFieldMessage, to_string_buffer_overun)
+{
+  repeated_message<Y_SIZE> msg;
+  repeated_nested_message rnm;
+
+  constexpr uint32_t N = 100;
+  char str[N];
+  ::EmbeddedProto::string_view str_view = { str, N };
+
+  rnm.set_u(0);
+  rnm.set_v(1);
+  msg.add_b(rnm);
+
+  rnm.set_u(2);
+  rnm.set_v(3);
+  msg.add_b(rnm);
+
+  rnm.set_u(4);
+  rnm.set_v(5);
+  msg.add_b(rnm);
+
+  ::EmbeddedProto::string_view str_left = msg.to_string(str_view);
+  
+  EXPECT_EQ(0, str_left.size);
+  EXPECT_EQ(str + N, str_left.data);
+}
+
 #endif // MSG_TO_STRING
 
 } // End of namespace test_EmbeddedAMS_RepeatedFieldMessage
