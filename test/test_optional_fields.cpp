@@ -79,6 +79,13 @@ TEST(OptionalFields, zero)
   msg.clear_state();
   EXPECT_FALSE(msg.has_state());
 
+  // Assign through the mutable reference, this must set the presence bit as well.
+  msg.mutable_state() = states::C;
+  EXPECT_TRUE(msg.has_state());
+  EXPECT_EQ(states::C, msg.get_state());
+  msg.clear_state();
+  EXPECT_FALSE(msg.has_state());
+
   // Address a bytes array but do not set anything in it.
   EXPECT_FALSE(msg.has_bytes_array());
   msg.mutable_bytes_array().clear();

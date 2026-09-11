@@ -81,6 +81,11 @@ inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& val
   presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
   {{field.get_variable_name()}} = value;
 }
+inline {{field.get_type_as_defined()}}& mutable_{{field.get_name()}}()
+{
+  presence_[presence::index(presence::fields::{{field.get_name().upper()}})] |= presence::mask(presence::fields::{{field.get_name().upper()}});
+  return {{field.get_variable_name()}}.get();
+}
 {% else %}
 {% if field.assign_default_on_clear() %}
 inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}} = {{field.get_default_value()}}; }
@@ -89,6 +94,7 @@ inline void clear_{{field.get_name()}}() { {{field.get_variable_name()}}.clear()
 {% endif %}
 inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}& value) { {{field.get_variable_name()}} = value; }
 inline void set_{{field.get_name()}}(const {{field.get_type_as_defined()}}&& value) { {{field.get_variable_name()}} = value; }
+inline {{field.get_type_as_defined()}}& mutable_{{field.get_name()}}() { return {{field.get_variable_name()}}.get(); }
 {% endif %}
 inline const {{field.get_type_as_defined()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
 inline {{field.get_type_as_defined()}} {{field.get_name()}}() const { return {{field.get_variable_name()}}.get(); }
