@@ -29,106 +29,126 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+# Release Embedded Proto following git flow. Publishing is done by the GitHub Actions workflow in
+# .github/workflows/distribute_pypi.yml, this script only manages branches, version files and tags:
+#
+#   --stage    branch release/X.Y.Z off develop, set the version files to X.Y.Z and push. From then on
+#              every push of that branch to the github remote publishes a beta X.Y.ZbN to PyPI.
+#   --release  merge release/X.Y.Z into master and develop, tag master with X.Y.Z and push. The tag
+#              publishes the final release to PyPI.
 
-# Function to show usage information
+set -eu
+
+REMOTES="origin github"
+VERSION_H="src/EmbeddedProto/Version.h"
+VERSION_JSON="EmbeddedProto/version.json"
+
 show_usage() {
-  echo "Usage: ./release_to_github.sh [OPTIONS]"
+  echo "Usage: scripts/release.sh --version MAJOR.MINOR.PATCH (--stage | --release)"
   echo "Options:"
-  echo "  --version MAJOR.MINOR.PATCH   Set version number (required)"
-  echo "  --stage                       Stage changes in release branch"
-  echo "  --release                     Perform release merge and tagging"
+  echo "  --version MAJOR.MINOR.PATCH   The version to release (required)"
+  echo "  --stage                       Create the release branch and set the version files"
+  echo "  --release                     Merge the release branch into master and develop and tag it"
   echo ""
   echo "Example:"
-  echo "  ./release_to_github.sh --version 4.0.1 --stage    # Stage changes"
-  echo "  ./release_to_github.sh --version 4.0.1 --release  # Perform release"
+  echo "  scripts/release.sh --version 4.1.0 --stage      # from develop"
+  echo "  git push github release/4.1.0                   # every push publishes a beta 4.1.0bN"
+  echo "  scripts/release.sh --version 4.1.0 --release    # publishes the final 4.1.0"
 }
 
-# Function to parse and validate version
+fail() {
+  echo "Error: $1" >&2
+  exit 1
+}
+
 parse_version() {
   if ! echo "$1" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$" > /dev/null; then
-    echo "Error: Version must be in format MAJOR.MINOR.PATCH"
-    exit 1
+    fail "Version must be in format MAJOR.MINOR.PATCH"
   fi
-  
   VERSION_MAJOR=$(echo "$1" | cut -d. -f1)
   VERSION_MINOR=$(echo "$1" | cut -d. -f2)
   VERSION_PATCH=$(echo "$1" | cut -d. -f3)
 }
 
-# Function to update version files
+require_clean_tree() {
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    fail "The working tree has uncommitted changes"
+  fi
+}
+
+require_branch() {
+  if [ "$(git rev-parse --abbrev-ref HEAD)" != "$1" ]; then
+    fail "Run this from the $1 branch"
+  fi
+}
+
 update_version_files() {
-  # Update Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_MAJOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MAJOR $VERSION_MAJOR/" src/EmbeddedProto/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_MINOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MINOR $VERSION_MINOR/" src/EmbeddedProto/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_PATCH [0-9]*/#define EMBEDDEDPROTO_VERSION_PATCH $VERSION_PATCH/" src/EmbeddedProto/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_STRING \".*\"/#define EMBEDDEDPROTO_VERSION_STRING \"$VERSION\"/" src/EmbeddedProto/Version.h
-  
-  # Update version.json
-  echo "{" > EmbeddedProto/version.json
-  echo "  \"version\": \"$VERSION\"" >> EmbeddedProto/version.json
-  echo "}" >> EmbeddedProto/version.json
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MAJOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MAJOR $VERSION_MAJOR/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MINOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MINOR $VERSION_MINOR/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_PATCH [0-9]*/#define EMBEDDEDPROTO_VERSION_PATCH $VERSION_PATCH/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_STRING \".*\"/#define EMBEDDEDPROTO_VERSION_STRING \"$VERSION\"/" "$VERSION_H"
+
+  printf '{\n  "version": "%s"\n}\n' "$VERSION" > "$VERSION_JSON"
 }
 
-# Function to create staging branch
 create_stage() {
-  BRANCH="release/$VERSION"
-  
-  # Create and switch to release branch
+  require_branch develop
+  if git rev-parse --verify --quiet "refs/heads/$BRANCH" > /dev/null || \
+     git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" > /dev/null; then
+    fail "Branch $BRANCH already exists"
+  fi
+
   git checkout -b "$BRANCH"
-  
-  # Update version files
   update_version_files
-  
-  # Stage and commit changes
-  git add src/EmbeddedProto/Version.h EmbeddedProto/version.json
+  git add "$VERSION_H" "$VERSION_JSON"
   git commit -m "Preparing for release $VERSION"
-  
-  # Push to both remotes
-  git push origin "$BRANCH"
-  git push github "$BRANCH"
+
+  for remote in $REMOTES; do
+    git push "$remote" "$BRANCH"
+  done
+
+  echo ""
+  echo "Branch $BRANCH is staged. Every push of it to the github remote publishes a beta:"
+  echo "  git push github $BRANCH"
+  echo "When done run: scripts/release.sh --version $VERSION --release"
 }
 
-# Function to perform release
 perform_release() {
-  BRANCH="release/$VERSION"
-  
-  # Ensure we're on the release branch
-  git checkout "$BRANCH"
-  
-  # Merge into master
+  if ! git rev-parse --verify --quiet "refs/heads/$BRANCH" > /dev/null; then
+    fail "Branch $BRANCH does not exist locally"
+  fi
+  if git rev-parse --verify --quiet "refs/tags/$VERSION" > /dev/null; then
+    fail "Tag $VERSION already exists"
+  fi
+
+  # Merge into master and tag the master merge commit, not whatever is checked out afterwards.
   git checkout master
+  git pull --ff-only origin master
   git merge --no-ff "$BRANCH" -m "Merge release $VERSION into master"
-  
-  # Merge into develop
+  git tag -a "$VERSION" master -m "Release $VERSION"
+
   git checkout develop
+  git pull --ff-only origin develop
   git merge --no-ff "$BRANCH" -m "Merge release $VERSION into develop"
-  
-  # Create version tag
-  git tag -d latest
-  git push --delete origin latest
-  git push --delete github latest
-  
-  git tag latest
-  git push origin latest
-  git push github latest
-  
-  git tag "$VERSION"
-  git push origin "$VERSION"
-  git push github "$VERSION"
-  
-  # Push master and develop
-  git checkout master
-  git push origin master
-  git push github master
-  
-  git checkout develop
-  git push origin develop
-  git push github develop
-  
-  # Clean up release branch
+
+  # Push develop before the tag: the tag push triggers the release workflow on github.
+  for remote in $REMOTES; do
+    git push "$remote" develop
+    git push "$remote" master
+    git push "$remote" "$VERSION"
+  done
+
+  # Clean up the release branch.
   git branch -d "$BRANCH"
-  git push origin --delete "$BRANCH"
-  git push github --delete "$BRANCH"
+  for remote in $REMOTES; do
+    git push "$remote" --delete "$BRANCH"
+  done
+
+  # The workflow created a X.Y.ZbN tag on github for every beta, mirror them to origin.
+  git fetch github --tags
+  for tag in $(git tag -l "${VERSION}b*"); do
+    git push origin "$tag"
+  done
 }
 
 # Parse command line arguments
@@ -162,31 +182,24 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-# Validate arguments
 if [ -z "$VERSION" ]; then
-  echo "Error: Version is required"
   show_usage
-  exit 1
+  fail "Version is required"
+fi
+if [ "$DO_STAGE" = "$DO_RELEASE" ]; then
+  show_usage
+  fail "Specify exactly one of --stage or --release"
 fi
 
-# Parse version into components
 parse_version "$VERSION"
+BRANCH="release/$VERSION"
 
-# Fetch latest changes
-git fetch --prune
+cd "$(git rev-parse --show-toplevel)"
+require_clean_tree
+git fetch --all --tags --prune
 
-# Execute requested operations
 if [ "$DO_STAGE" = true ]; then
   create_stage
-fi
-
-if [ "$DO_RELEASE" = true ]; then
+else
   perform_release
-fi
-
-# If no operation specified, show usage
-if [ "$DO_STAGE" = false ] && [ "$DO_RELEASE" = false ]; then
-  echo "Error: Either --stage or --release must be specified"
-  show_usage
-  exit 1
 fi
