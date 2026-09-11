@@ -30,7 +30,7 @@
 
 #include <gtest/gtest.h>
 
-#include <ReadBufferSection.h>
+#include <EmbeddedProto/ReadBufferSection.h>
 
 #include "mock/ReadBufferMock.h"
 

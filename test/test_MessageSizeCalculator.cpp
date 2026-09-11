@@ -30,7 +30,7 @@
 
 #include "gtest/gtest.h"
 
-#include <MessageSizeCalculator.h>
+#include <EmbeddedProto/MessageSizeCalculator.h>
 
 #include <cstdint>
 #include <limits> 

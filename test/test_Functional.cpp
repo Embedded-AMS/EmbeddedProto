@@ -30,8 +30,8 @@
 
 #include <gtest/gtest.h>
 
-#include <Functional.h>
-#include <Errors.h>
+#include <EmbeddedProto/Functional.h>
+#include <EmbeddedProto/Errors.h>
 
 namespace test_EmbeddedAMS_Functional
 {

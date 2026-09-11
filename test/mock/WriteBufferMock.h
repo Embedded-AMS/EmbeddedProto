@@ -33,7 +33,7 @@
 
 #include <gmock/gmock.h>
 
-#include <WriteBufferInterface.h>
+#include <EmbeddedProto/WriteBufferInterface.h>
 
 namespace Mocks
 {

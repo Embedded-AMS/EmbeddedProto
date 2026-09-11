@@ -37,6 +37,7 @@ import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _REPO_ROOT not in sys.path:
@@ -293,3 +294,67 @@ class ValidateAgainstSchema(_Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Settings(_Base):
+    """Generator wide settings under the reserved key, next to the field options."""
+
+    def test_the_default_extension_is_h(self):
+        path = self.write({"pkg": {"Msg": {"field": {"maxLength": 12}}}})
+        self.assertEqual(".h", field_options.load([path]).header_extension())
+        self.assertEqual(".h", field_options.OptionsFile().header_extension())
+
+    def test_the_extension_is_read_and_leaves_the_tree(self):
+        path = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".pb.hpp"},
+                           "pkg": {"Msg": {"field": {"maxLength": 12}}}})
+        options = field_options.load([path])
+        self.assertEqual(".pb.hpp", options.header_extension())
+        self.assertEqual({"maxLength": 12}, options.resolve(["pkg", "Msg"], "field"))
+        # The key is no package, validation against a schema without it passes.
+        options.validate_against({"pkg": {"Msg": {"field": None}}})
+
+    def test_a_file_with_only_settings_is_accepted(self):
+        path = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".hpp"}})
+        options = field_options.load([path])
+        self.assertEqual(".hpp", options.header_extension())
+        self.assertFalse(options)
+
+    def test_the_first_file_wins_and_a_conflict_is_reported(self):
+        first = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".pb.hpp"}}, "first.json")
+        second = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".hxx"}}, "second.json")
+        with unittest.mock.patch.object(field_options, "warn") as warn:
+            options = field_options.load([first, second])
+        self.assertEqual(".pb.hpp", options.header_extension())
+        self.assertEqual(1, warn.call_count)
+        self.assertIn("second.json", warn.call_args[0][0])
+
+    def test_the_same_value_twice_is_no_conflict(self):
+        first = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".hpp"}}, "first.json")
+        second = self.write({"$EmbeddedProtoSetting": {"headerExtension": ".hpp"}}, "second.json")
+        with unittest.mock.patch.object(field_options, "warn") as warn:
+            field_options.load([first, second])
+        self.assertEqual(0, warn.call_count)
+
+    def test_an_extension_without_a_dot_is_an_error(self):
+        path = self.write({"$EmbeddedProtoSetting": {"headerExtension": "hpp"}})
+        with self.assertRaises(Exception) as context:
+            field_options.load([path])
+        self.assertIn("headerExtension", str(context.exception))
+
+    def test_a_non_string_extension_is_an_error(self):
+        path = self.write({"$EmbeddedProtoSetting": {"headerExtension": 7}})
+        with self.assertRaises(Exception) as context:
+            field_options.load([path])
+        self.assertIn("headerExtension", str(context.exception))
+
+    def test_an_unknown_setting_is_an_error(self):
+        path = self.write({"$EmbeddedProtoSetting": {"namespace": "x"}})
+        with self.assertRaises(Exception) as context:
+            field_options.load([path])
+        self.assertIn("unknown setting namespace", str(context.exception))
+
+    def test_settings_that_are_not_an_object_are_an_error(self):
+        path = self.write({"$EmbeddedProtoSetting": ".hpp"})
+        with self.assertRaises(Exception) as context:
+            field_options.load([path])
+        self.assertIn("expected an object", str(context.exception))

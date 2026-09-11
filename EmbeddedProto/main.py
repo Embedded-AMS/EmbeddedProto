@@ -189,7 +189,7 @@ def generate_code(request, respones):
         file_str = fd.render(template_env)
         if file_str:
             f = respones.file.add()
-            f.name = fd.filename_with_folder + ".h"
+            f.name = fd.filename_with_folder + options_file.header_extension()
             f.content = file_str
         else:
             break

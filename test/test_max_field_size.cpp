@@ -31,11 +31,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include <WireFormatter.h>
-#include <Fields.h>
-#include <FieldStringBytes.h>
-#include <RepeatedFieldFixedSize.h>
-#include <WriteBufferFixedSize.h>
+#include <EmbeddedProto/WireFormatter.h>
+#include <EmbeddedProto/Fields.h>
+#include <EmbeddedProto/FieldStringBytes.h>
+#include <EmbeddedProto/RepeatedFieldFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
 
 #include <simple_types.h>
 #include <oneof_fields.h>

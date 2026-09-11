@@ -62,6 +62,7 @@ field names of the same spelling.
 
 import json
 import os
+import re
 import sys
 
 from EmbeddedProto import embedded_proto_options_pb2
@@ -76,6 +77,13 @@ OPTION_TYPES = {"maxLength": UNSIGNED,
                 "callbackStorage": BOOLEAN,
                 "keyMaxLength": UNSIGNED,
                 "valueMaxLength": UNSIGNED}
+
+# Generator wide settings live under one reserved top level key. A proto identifier can not start with a dollar
+# sign, so the key can never collide with a package name.
+SETTINGS_KEY = "$EmbeddedProtoSetting"
+DEFAULT_HEADER_EXTENSION = ".h"
+SETTING_TYPES = {"headerExtension": "extension"}
+EXTENSION_PATTERN = re.compile(r"^\.[A-Za-z0-9_.]+$")
 
 
 def warn(message):
@@ -133,6 +141,33 @@ def check_structure(node, path, source):
         check_structure(node[name], path + [name], source)
 
 
+# Check the settings object of one file and return it. Settings are plain values under a reserved key, they never
+# mix with the scope tree.
+def check_settings(node, source):
+    location = source + ": " + SETTINGS_KEY + ": "
+    if not isinstance(node, dict):
+        raise Exception(location + "expected an object, got " + json.dumps(node) + ".")
+    for name, value in node.items():
+        if name not in SETTING_TYPES:
+            raise Exception(location + "unknown setting " + name + ". Known settings are "
+                            + ", ".join(sorted(SETTING_TYPES)) + ".")
+        if not isinstance(value, str) or not EXTENSION_PATTERN.match(value):
+            raise Exception(location + name + ": expected a file extension starting with a dot, like \".pb.hpp\", got "
+                            + json.dumps(value) + ".")
+    return node
+
+
+# Merge the settings of one file into the settings read so far. The first file to set a value wins, a later file that
+# disagrees is reported, as a setting applies to the whole build and can not be overlaid per board.
+def merge_settings(target, addition, source):
+    for name, value in addition.items():
+        if name in target and target[name] != value:
+            warn(source + ": " + SETTINGS_KEY + "." + name + " is already set to " + json.dumps(target[name])
+                 + " by an earlier file, ignoring " + json.dumps(value) + ".")
+        else:
+            target[name] = value
+
+
 # Merge the tree of one file into the tree read so far. Values from the later file win, per option, so a project can
 # keep a shared base file and a board specific overlay.
 def merge_tree(target, addition):
@@ -170,11 +205,17 @@ def expand_dotted_keys(node, path, source):
 class OptionsFile:
     """The merged content of zero or more field options files."""
 
-    def __init__(self, tree=None, sources=None):
+    def __init__(self, tree=None, sources=None, settings=None):
         # The scope tree as read from the file(s), keys mirroring the proto.
         self.tree = tree if tree is not None else {}
         # The paths the tree was read from, in the order given, for error messages.
         self.sources = list(sources) if sources else []
+        # The generator wide settings read from the file(s).
+        self.settings = settings if settings is not None else {}
+
+    def header_extension(self):
+        """The extension of the generated header files, including the dot."""
+        return self.settings.get("headerExtension", DEFAULT_HEADER_EXTENSION)
 
     # An options file that holds nothing behaves exactly like no options file at all.
     def __bool__(self):
@@ -257,6 +298,7 @@ def load(paths):
     """
     tree = {}
     sources = []
+    settings = {}
     for path in paths:
         if not os.path.isfile(path):
             raise Exception("The options file " + path + " does not exist.")
@@ -270,12 +312,16 @@ def load(paths):
             raise Exception("The options file " + path + " could not be read: "
                             + error.strerror + ".")
 
+        # The settings leave the tree before it is walked, they are no scope.
+        if isinstance(content, dict) and SETTINGS_KEY in content:
+            merge_settings(settings, check_settings(content.pop(SETTINGS_KEY), path), path)
+
         content = expand_dotted_keys(content, [], path)
         check_structure(content, [], path)
         merge_tree(tree, content)
         sources.append(path)
 
-    return OptionsFile(tree, sources)
+    return OptionsFile(tree, sources, settings)
 
 
 def schema_from_descriptors(proto_files):

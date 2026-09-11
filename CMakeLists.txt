@@ -99,7 +99,6 @@ set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
 add_subdirectory(external/googletest)
 
 file(GLOB src_files
-    "src/*.cpp"
     "test/*.cpp"
     "build/EAMS/*.cpp"
 )

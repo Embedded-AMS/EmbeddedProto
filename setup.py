@@ -142,7 +142,7 @@ def update_version_json(version_string):
 def update_version_h(version_string):
     """Update the Version.h file with the new version string."""
     try:
-        version_h_file = 'src/Version.h'
+        version_h_file = 'src/EmbeddedProto/Version.h'
         
         # Parse the version string to extract components
         version_parts = re.match(r'(\d+)\.(\d+)\.(\d+)(.*)', version_string)

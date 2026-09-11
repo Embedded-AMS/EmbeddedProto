@@ -30,7 +30,7 @@
 
 #include <gtest/gtest.h>
 
-#include <ReadBufferFixedSize.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
 
 namespace test_EmbeddedAMS_ReadBufferFixedSize
 {

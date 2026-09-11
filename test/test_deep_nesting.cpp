@@ -31,9 +31,9 @@
 
 #include "gtest/gtest.h"
 
-#include <MessageSizeCalculator.h>
-#include <WriteBufferFixedSize.h>
-#include <Errors.h>
+#include <EmbeddedProto/MessageSizeCalculator.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/Errors.h>
 
 #include <array>
 #include <cstdint>

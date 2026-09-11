@@ -33,8 +33,8 @@
 
 #include "custom_options.h"
 
-#include <WriteBufferFixedSize.h>
-#include <ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
 
 namespace test_EmbeddedAMS_custom_options
 {

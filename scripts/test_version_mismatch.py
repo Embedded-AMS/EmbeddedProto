@@ -18,7 +18,7 @@ class VersionTest:
     def __init__(self):
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.root_dir = os.path.dirname(self.script_dir)
-        self.version_h_path = os.path.join(self.root_dir, 'src', 'Version.h')
+        self.version_h_path = os.path.join(self.root_dir, 'src', 'EmbeddedProto', 'Version.h')
         self.backup_path = self.version_h_path + '.bak'
         self.build_script = os.path.join(self.root_dir, 'build_test.sh')
 

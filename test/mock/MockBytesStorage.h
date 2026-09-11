@@ -11,7 +11,7 @@
 #ifndef _MOCK_BYTES_STORAGE_H_
 #define _MOCK_BYTES_STORAGE_H_
 
-#include <FieldStringBytes.h>
+#include <EmbeddedProto/FieldStringBytes.h>
 
 namespace Mocks
 {

@@ -39,12 +39,12 @@
 
 #include "gtest/gtest.h"
 
-#include <ReadBufferFixedSize.h>
-#include <WriteBufferFixedSize.h>
-#include <MessageCallback.h>
-#include <MessageState.h>
-#include <WireFormatter.h>
-#include <Errors.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/MessageCallback.h>
+#include <EmbeddedProto/MessageState.h>
+#include <EmbeddedProto/WireFormatter.h>
+#include <EmbeddedProto/Errors.h>
 
 #include <array>
 #include <cstddef>

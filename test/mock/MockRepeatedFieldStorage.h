@@ -11,8 +11,8 @@
 #ifndef _MOCK_REPEATED_FIELD_STORAGE_H_
 #define _MOCK_REPEATED_FIELD_STORAGE_H_
 
-#include <RepeatedField.h>
-#include <Errors.h>
+#include <EmbeddedProto/RepeatedField.h>
+#include <EmbeddedProto/Errors.h>
 
 #include <algorithm>
 #include <array>
