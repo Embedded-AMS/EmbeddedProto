@@ -8,6 +8,11 @@ To run just one unit test to specifically test the code you are working on use: 
 Activate the virtual env if not already active: `source ./venv/bin/activate`
 Build the package: `build_package.sh`
 
+# Releasing
+The version lives in `EmbeddedProto/version.json` and `src/EmbeddedProto/Version.h`, always as plain `X.Y.Z`.
+`scripts/release.sh` manages the git flow release branch and tags, `scripts/set_version.py` derives the beta or
+development version in CI. See the release process in `CONTRIBUTING.md`.
+
 # Standarts
 * C++ code should comply with MISRA C++ 2023.
 * One important rull is to use just one return statement in C++ functions.
