@@ -34,6 +34,7 @@
 #include "ReadBufferInterface.h"
 
 #include <cstdint>
+#include <algorithm>
 
 
 namespace EmbeddedProto 
@@ -128,6 +129,96 @@ namespace EmbeddedProto
       //! The total number of bytes masked of by this section.
       const uint32_t max_size_;
   };
+
+
+  // Definitions of the member functions declared above. The library is header only, so they are
+  // inline.
+
+  inline ReadBufferSection::ReadBufferSection(ReadBufferInterface& buffer, const uint32_t size)
+    : buffer_(buffer),
+      size_(std::min(size, buffer.get_size())),
+      max_size_(std::min(size, buffer.get_size()))
+  {
+    
+  }
+
+  inline uint32_t ReadBufferSection::get_size() const
+  {
+    return size_;
+  }
+
+  inline uint32_t ReadBufferSection::get_max_size() const
+  {
+    return max_size_;
+  }
+
+  inline bool ReadBufferSection::peek(uint8_t& byte) const
+  {
+    bool result = 0 < size_;
+    if(result)
+    {
+      result = buffer_.peek(byte);
+    }
+    return result;
+  }
+
+  inline bool ReadBufferSection::peek(const uint32_t n_bytes, uint8_t& byte) const
+  {
+    bool result = n_bytes < size_;
+    if(result)
+    {
+      result = buffer_.peek(n_bytes, byte);
+    }
+    return result;
+  }
+
+  inline bool ReadBufferSection::advance()
+  {
+    bool result = 0 < size_;
+    if(result) 
+    {
+      result = buffer_.advance();
+      --size_;
+    }
+    return result;
+  }
+
+  inline bool ReadBufferSection::advance(const uint32_t n_bytes)
+  {
+    bool result = 0 < size_;
+    if(result) 
+    {
+      uint32_t n = (n_bytes <= size_) ? n_bytes : size_;
+      result = buffer_.advance(n);
+      size_ -= n;
+    }
+    return result;
+  }
+
+  inline bool ReadBufferSection::pop(uint8_t& byte)
+  {
+    bool result = 0 < size_;
+    if(result)
+    {
+      result = buffer_.pop(byte);
+      --size_;
+    }
+    return result;
+  }
+
+  inline bool ReadBufferSection::pop(uint8_t* dest, const uint32_t length)
+  {
+    bool result = length <= size_;
+    if(result)
+    {
+      result = buffer_.pop(dest, length);
+      if(result)
+      {
+        size_ -= length;
+      }
+    }
+    return result;
+  }
 
 } // End of namespace EmbeddedProto
 
