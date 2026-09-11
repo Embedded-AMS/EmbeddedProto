@@ -79,6 +79,26 @@ TEST(SimpleTypes, mutable_enum)
   EXPECT_EQ(::Test_Simple_Types::Nested_Enum::NE_B, msg.get_a_nested_enum());
 }
 
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+TEST(SimpleTypes, serialize_fixed_is_one_block_push)
+{
+  InSequence s;
+
+  ::Test_Simple_Types msg;
+  msg.set_a_fixed32(1);
+  msg.set_a_float(1.0F);
+
+  Mocks::WriteBufferMock buffer;
+  // Tag byte by byte, value as one block, for both fixed32 and float.
+  EXPECT_CALL(buffer, push(0x65)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(_, 4U)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(0x75)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, push(_, 4U)).Times(1).WillOnce(Return(true));
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
+}
+#endif // EMBEDDED_PROTO_LITTLE_ENDIAN
+
 TEST(SimpleTypes, serialize_one) 
 {
   InSequence s;

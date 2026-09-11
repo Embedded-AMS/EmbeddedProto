@@ -38,29 +38,47 @@
 namespace Mocks
 {
 
-  class WriteBufferMock : public EmbeddedProto::WriteBufferInterface
+  //! Raw gmock class for the write buffer, use WriteBufferMock in tests.
+  class WriteBufferMockBase : public EmbeddedProto::WriteBufferInterface
   {
     public:
+      WriteBufferMockBase()
+      {
+        // Forward a block push byte by byte to push(uint8_t) unless a test expects the
+        // block call itself. Tests that list the expected bytes keep working this way.
+        ON_CALL(*this, push(::testing::_, ::testing::_))
+            .WillByDefault(::testing::Invoke(this, &WriteBufferMockBase::push_each_byte));
+      }
 
       MOCK_METHOD0(clear, void());
-
       MOCK_CONST_METHOD0(get_size, uint32_t());
       MOCK_CONST_METHOD0(get_max_size, uint32_t());
       MOCK_CONST_METHOD0(get_available_size, uint32_t());
       
       MOCK_METHOD1(push, bool(uint8_t));
       MOCK_METHOD2(push, bool(const uint8_t*, const uint32_t));
+
+      bool push_each_byte(const uint8_t* bytes, const uint32_t length)
+      {
+        bool result = true;
+        for(uint32_t i = 0; result && (i < length); ++i)
+        {
+          result = push(bytes[i]);
+        }
+        return result;
+      }
       
       MOCK_CONST_METHOD1(peak, bool(uint8_t&));
       MOCK_CONST_METHOD0(peak, uint8_t());
-
       MOCK_METHOD0(advance, void());
       MOCK_METHOD1(advance, void(uint32_t));
       
       MOCK_METHOD1(pop, bool(uint8_t&));
       MOCK_METHOD0(pop, uint8_t());
-
   };
+
+  //! Nice so the forwarded block pushes do not produce uninteresting-call warnings.
+  using WriteBufferMock = ::testing::NiceMock<WriteBufferMockBase>;
 
 } // End of namespace Mocks
 
