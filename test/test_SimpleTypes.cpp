@@ -69,6 +69,16 @@ TEST(SimpleTypes, zero)
 }
 
 
+TEST(SimpleTypes, mutable_enum)
+{
+  // Enum fields expose a mutable reference like the other scalar fields do.
+  ::Test_Simple_Types msg;
+  msg.mutable_a_enum() = Test_Enum::TWO;
+  EXPECT_EQ(Test_Enum::TWO, msg.get_a_enum());
+  msg.mutable_a_nested_enum() = ::Test_Simple_Types::Nested_Enum::NE_B;
+  EXPECT_EQ(::Test_Simple_Types::Nested_Enum::NE_B, msg.get_a_nested_enum());
+}
+
 TEST(SimpleTypes, serialize_one) 
 {
   InSequence s;
