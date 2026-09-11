@@ -184,15 +184,18 @@ namespace EmbeddedProto
                       std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerializeFixedNoTag.");
 
         // Push the data little endian to the buffer.
-        // TODO Define a little endian flag to support memcpy the data to the buffer.
-
         bool result = true;
 
+#if EMBEDDED_PROTO_LITTLE_ENDIAN
+        // The in-memory bytes already are the wire order, push them as one block.
+        result = buffer.push(reinterpret_cast<const uint8_t*>(&value), sizeof(UINT_TYPE));
+#else
         // Loop over all bytes in the integer.
         for(uint8_t i = 0; (i < std::numeric_limits<UINT_TYPE>::digits) && result; i += 8) {
           // Shift the value using the current value of i.
           result = buffer.push(static_cast<uint8_t>((value >> i) & 0x00FF));
         }
+#endif
         return result ? Error::NO_ERRORS : Error::BUFFER_FULL;
       }
 
@@ -492,7 +495,6 @@ namespace EmbeddedProto
                       std::is_same<TYPE, uint64_t>::value, "Wrong type passed to DeserializeFixed.");
 
         // Deserialize the data little endian to the buffer.
-        // TODO Define a little endian flag to support memcpy the data from the buffer.
 
         TYPE temp_value = 0;
         bool result(true);
