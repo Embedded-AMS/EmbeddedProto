@@ -184,7 +184,6 @@ namespace EmbeddedProto
                       std::is_same<UINT_TYPE, uint64_t>::value, "Wrong type passed to SerializeFixedNoTag.");
 
         // Push the data little endian to the buffer.
-        // TODO Define a little endian flag to support memcpy the data to the buffer.
 
         bool result = true;
 
@@ -492,7 +491,6 @@ namespace EmbeddedProto
                       std::is_same<TYPE, uint64_t>::value, "Wrong type passed to DeserializeFixed.");
 
         // Deserialize the data little endian to the buffer.
-        // TODO Define a little endian flag to support memcpy the data from the buffer.
 
         TYPE temp_value = 0;
         bool result(true);
