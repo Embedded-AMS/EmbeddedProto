@@ -96,13 +96,15 @@ THE_SAME_OPTIONS_IN_A_FILE = {
 GENERATED_ON = re.compile(r"^.*Generated on:.*$", re.MULTILINE)
 
 
-def run_generator(message_definition, options_files=None, parameters=(), proto_sub_dir=""):
+def run_generator(message_definition, options_files=None, parameters=(), proto_sub_dir="",
+                  header_name="case.h", extra_protos=None):
     """Generate code for one message and return (result, generated header text or None).
 
     ``options_files`` maps a file name to the object to write as JSON; the file lands next to the .proto unless the
     name is an absolute path. ``parameters`` are passed as --eams_opt flags, ``{dir}`` in them is replaced by the
     temporary directory so a test can point at a file by absolute path. ``proto_sub_dir`` puts the .proto in a
-    sub directory, standing in for a schema that lives somewhere you do not control.
+    sub directory, standing in for a schema that lives somewhere you do not control. ``header_name`` is the generated
+    file to read back. ``extra_protos`` maps a file name to proto text written next to case.proto, for imports.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         proto_dir = os.path.join(tmp_dir, proto_sub_dir) if proto_sub_dir else tmp_dir
@@ -111,6 +113,9 @@ def run_generator(message_definition, options_files=None, parameters=(), proto_s
         proto_path = os.path.join(proto_dir, "case.proto")
         with open(proto_path, "w") as proto_file:
             proto_file.write(PROTO_HEADER + message_definition)
+        for name, content in (extra_protos or {}).items():
+            with open(os.path.join(proto_dir, name), "w") as extra_file:
+                extra_file.write(content)
 
         for name, content in (options_files or {}).items():
             path = name if os.path.isabs(name) else os.path.join(tmp_dir, name)
@@ -131,7 +136,7 @@ def run_generator(message_definition, options_files=None, parameters=(), proto_s
         command.append(proto_path)
         result = subprocess.run(command, capture_output=True, text=True, cwd=REPO_ROOT)
 
-        header_path = os.path.join(out_dir, "case.h")
+        header_path = os.path.join(out_dir, header_name)
         header = None
         if os.path.isfile(header_path):
             with open(header_path) as generated:
@@ -271,3 +276,37 @@ class RejectedByTheGenerator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HeaderExtension(unittest.TestCase):
+    """The headerExtension setting names the generated file and the includes of imported definitions."""
+
+    DEPENDENCY_PROTO = (
+        'syntax = "proto3";\n'
+        'package opttest;\n'
+        'message Dep { int32 a = 1; }\n'
+    )
+    MESSAGE_WITH_IMPORT = (
+        'import "dep.proto";\n'
+        'message M { Dep dep = 1; }\n'
+    )
+    SETTING = {"$EmbeddedProtoSetting": {"headerExtension": ".pb.hpp"}}
+
+    def test_the_setting_names_the_output_and_the_includes(self):
+        result, header = run_generator(
+            self.MESSAGE_WITH_IMPORT,
+            options_files={"board.options.json": self.SETTING},
+            parameters=("options_file={dir}/board.options.json",),
+            header_name="case.pb.hpp",
+            extra_protos={"dep.proto": self.DEPENDENCY_PROTO})
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIsNotNone(header)
+        self.assertIn('#include "dep.pb.hpp"', header)
+
+    def test_without_the_setting_the_name_stays_h(self):
+        result, header = run_generator(
+            self.MESSAGE_WITH_IMPORT,
+            extra_protos={"dep.proto": self.DEPENDENCY_PROTO})
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIsNotNone(header)
+        self.assertIn('#include "dep.h"', header)

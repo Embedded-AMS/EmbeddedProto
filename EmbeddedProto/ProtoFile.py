@@ -30,6 +30,7 @@
 
 from .TypeDefinitions import *
 from .Features import FeatureResolver
+from . import field_options
 import os
 import sys
 from toposort import CircularDependencyError, toposort_flatten
@@ -165,7 +166,8 @@ class ProtoFile:
     def get_dependencies(self):
         imported_dependencies = []
         if self.descriptor.dependency:
-            imported_dependencies = [os.path.splitext(dependency)[0] + ".h" for dependency in
+            extension = self.options_file.header_extension() if self.options_file is not None else field_options.DEFAULT_HEADER_EXTENSION
+            imported_dependencies = [os.path.splitext(dependency)[0] + extension for dependency in
                                      self.descriptor.dependency if not is_excluded_proto_file(dependency)]
         return imported_dependencies
 
