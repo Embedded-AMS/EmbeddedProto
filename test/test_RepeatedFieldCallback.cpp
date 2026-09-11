@@ -30,15 +30,15 @@
 
 #include <gtest/gtest.h>
 
-#include <Fields.h>
-#include <RepeatedField.h>
-#include <RepeatedFieldCallback.h>
-#include <RepeatedFieldFixedSize.h>
-#include <ReadBufferFixedSize.h>
-#include <WriteBufferFixedSize.h>
-#include <WireFormatter.h>
-#include <MessageState.h>
-#include <Errors.h>
+#include <EmbeddedProto/Fields.h>
+#include <EmbeddedProto/RepeatedField.h>
+#include <EmbeddedProto/RepeatedFieldCallback.h>
+#include <EmbeddedProto/RepeatedFieldFixedSize.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/WireFormatter.h>
+#include <EmbeddedProto/MessageState.h>
+#include <EmbeddedProto/Errors.h>
 
 #include <array>
 #include <cstddef>

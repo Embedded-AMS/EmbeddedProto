@@ -30,8 +30,8 @@
 
 #include "gtest/gtest.h"
 
-#include <Defines.h>
-#include <MessageState.h>
+#include <EmbeddedProto/Defines.h>
+#include <EmbeddedProto/MessageState.h>
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 

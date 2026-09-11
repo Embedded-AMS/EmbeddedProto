@@ -30,8 +30,8 @@
 
 #include "gtest/gtest.h"
 
-#include <WireFormatter.h>
-#include <ReadBufferFixedSize.h>
+#include <EmbeddedProto/WireFormatter.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 

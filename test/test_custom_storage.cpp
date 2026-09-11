@@ -35,8 +35,8 @@
 
 #include "gtest/gtest.h"
 
-#include <ReadBufferFixedSize.h>
-#include <WriteBufferFixedSize.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
 
 #include <MockStringStorage.h>
 #include <MockBytesStorage.h>

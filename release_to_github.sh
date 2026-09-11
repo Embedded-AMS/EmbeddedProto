@@ -58,10 +58,10 @@ parse_version() {
 # Function to update version files
 update_version_files() {
   # Update Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_MAJOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MAJOR $VERSION_MAJOR/" src/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_MINOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MINOR $VERSION_MINOR/" src/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_PATCH [0-9]*/#define EMBEDDEDPROTO_VERSION_PATCH $VERSION_PATCH/" src/Version.h
-  sed -i "s/#define EMBEDDEDPROTO_VERSION_STRING \".*\"/#define EMBEDDEDPROTO_VERSION_STRING \"$VERSION\"/" src/Version.h
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MAJOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MAJOR $VERSION_MAJOR/" src/EmbeddedProto/Version.h
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MINOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MINOR $VERSION_MINOR/" src/EmbeddedProto/Version.h
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_PATCH [0-9]*/#define EMBEDDEDPROTO_VERSION_PATCH $VERSION_PATCH/" src/EmbeddedProto/Version.h
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_STRING \".*\"/#define EMBEDDEDPROTO_VERSION_STRING \"$VERSION\"/" src/EmbeddedProto/Version.h
   
   # Update version.json
   echo "{" > EmbeddedProto/version.json
@@ -80,7 +80,7 @@ create_stage() {
   update_version_files
   
   # Stage and commit changes
-  git add src/Version.h EmbeddedProto/version.json
+  git add src/EmbeddedProto/Version.h EmbeddedProto/version.json
   git commit -m "Preparing for release $VERSION"
   
   # Push to both remotes

@@ -33,7 +33,7 @@
 
 #include "empty_message.h"
 
-#include <WireFormatter.h>
+#include <EmbeddedProto/WireFormatter.h>
 #include <ReadBufferMock.h>
 #include <WriteBufferMock.h>
 

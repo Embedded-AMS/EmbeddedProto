@@ -38,12 +38,12 @@
 
 #include "gtest/gtest.h"
 
-#include <ReadBufferFixedSize.h>
-#include <WriteBufferFixedSize.h>
-#include <RepeatedFieldFixedSize.h>
-#include <RepeatedFieldCallback.h>
-#include <MessageState.h>
-#include <Errors.h>
+#include <EmbeddedProto/ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+#include <EmbeddedProto/RepeatedFieldFixedSize.h>
+#include <EmbeddedProto/RepeatedFieldCallback.h>
+#include <EmbeddedProto/MessageState.h>
+#include <EmbeddedProto/Errors.h>
 
 #include <array>
 #include <cstddef>

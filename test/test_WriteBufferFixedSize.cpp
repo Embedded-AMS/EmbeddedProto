@@ -30,7 +30,7 @@
 
 #include <gtest/gtest.h>
 
-#include <WriteBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
 
 namespace test_EmbeddedAMS_WriteBufferFixedSize
 {

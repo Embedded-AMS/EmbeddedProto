@@ -33,7 +33,7 @@
 
 #include <gmock/gmock.h>
 
-#include <ReadBufferInterface.h>
+#include <EmbeddedProto/ReadBufferInterface.h>
 
 namespace Mocks
 {
