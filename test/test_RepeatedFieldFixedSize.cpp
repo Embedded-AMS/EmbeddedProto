@@ -441,4 +441,64 @@ TEST(RepeatedFieldPacked, partial_deserialize_fixed32_resumes_across_split)
 #endif // PARTIAL_SERIALIZATION_ENABLED
 
 
+// --------------------------------------------------------------------------
+// Zero capacity. A field with MAX_LENGTH 0 holds no element and reserves no
+// element storage on any standard library. Out of range access lands on a
+// scratch element and never changes the length.
+// --------------------------------------------------------------------------
+
+static_assert(sizeof(::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 0>)
+                <= sizeof(::EmbeddedProto::RepeatedField<::EmbeddedProto::uint32>) + sizeof(uint32_t) + alignof(void*),
+              "A zero capacity repeated field must not reserve element storage.");
+
+TEST(RepeatedFieldZeroLength, holds_nothing)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 0> field;
+  EXPECT_EQ(0U, field.get_length());
+  EXPECT_EQ(0U, field.get_max_length());
+  EXPECT_EQ(0U, field.get_size());
+  EXPECT_EQ(0U, field.get_max_size());
+
+  ::EmbeddedProto::uint32 value = 7;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, field.add(value));
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, field.set_data(&value, 1));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, field.set_data(&value, 0));
+  EXPECT_EQ(::EmbeddedProto::Error::INDEX_OUT_OF_BOUND, field.get_const(0, value));
+  EXPECT_EQ(::EmbeddedProto::Error::INDEX_OUT_OF_BOUND, field.erase(0));
+
+  // Out of range access is memory safe, reads back the default and leaves the length zero.
+  field.set(5, value);
+  field.get(5) = 9;
+  EXPECT_EQ(0U, field.get_const(5).get());
+  EXPECT_EQ(0U, field.get_length());
+  field.clear();
+  EXPECT_EQ(0U, field.get_length());
+
+  // Tag plus a zero size, nothing else.
+  EXPECT_EQ(2U, field.max_serialized_size(1));
+}
+
+TEST(RepeatedFieldZeroLength, serialize_pushes_nothing)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 0> fixed;
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 0> varint;
+
+  Mocks::WriteBufferMock buffer;
+  EXPECT_CALL(buffer, push(_)).Times(0);
+  EXPECT_CALL(buffer, push(_, _)).Times(0);
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, fixed.serialize(buffer));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, varint.serialize(buffer));
+}
+
+TEST(RepeatedFieldZeroLength, deserialize_one_element_is_array_full)
+{
+  ::EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::uint32, 0> field;
+  // Packed block: size 1, one varint element with value 5.
+  ::EmbeddedProto::ReadBufferFixedSize<4> buffer({0x01, 0x05});
+
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, field.deserialize(buffer));
+  EXPECT_EQ(0U, field.get_length());
+}
+
 } // End namespace test_EmbeddedAMS_RepeatedField
