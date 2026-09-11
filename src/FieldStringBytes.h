@@ -33,6 +33,7 @@
 
 #include "Defines.h"
 #include "Fields.h"
+#include "EmptyArray.h"
 #include "Errors.h"
 
 #include <cstdint>
@@ -80,12 +81,12 @@ namespace EmbeddedProto
         */
         DATA_TYPE& get(uint32_t index) 
         { 
-          uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+          uint32_t limited_index = clamp_index(index);
           // Check if we need to update the number of elements in the array.
           if(limited_index >= current_length_) {
-            current_length_ = limited_index + 1;
+            current_length_ = std::min(limited_index + 1U, MAX_LENGTH);
           }
-          return data_[limited_index]; 
+          return element(limited_index); 
         }
 
         //! Get a constant reference to the value at the given index. 
@@ -96,8 +97,7 @@ namespace EmbeddedProto
         */
         const DATA_TYPE& get_const(uint32_t index) const 
         { 
-          uint32_t limited_index = std::min(index, MAX_LENGTH-1);
-          return data_[limited_index]; 
+          return element(clamp_index(index)); 
         }
 
         //! Get a constant reference to the value at the given index.
@@ -489,8 +489,48 @@ namespace EmbeddedProto
         //! Number of item in the data array.
         uint32_t current_length_ = 0;
 
+        //! Storage type, an empty stand-in when there is nothing to store, see EmptyArray.
+        using Storage = typename std::conditional<(0U < (MAX_LENGTH + TERMINATOR_LENGTH)),
+                                                  std::array<DATA_TYPE, MAX_LENGTH + TERMINATOR_LENGTH>,
+                                                  internal::EmptyArray<DATA_TYPE>>::type;
+
         //! The text, plus the reserved terminator when enabled.
-        std::array<DATA_TYPE, MAX_LENGTH + TERMINATOR_LENGTH> data_ = {{0}};
+        Storage data_ = {};
+
+        //! Clamp an index to the last element, zero when there is no element at all.
+        static constexpr uint32_t clamp_index(const uint32_t index)
+        {
+          return (0U < MAX_LENGTH) ? std::min(index, MAX_LENGTH - 1U) : 0U;
+        }
+
+        //! The element at a clamped index, or the scratch element when there is no element at all.
+        /*!
+            With a maximum length of zero the storage may still hold the reserved terminator. That
+            slot must never be handed out, so index access goes to the EmptyArray scratch element.
+        */
+        DATA_TYPE& element(const uint32_t index)
+        {
+          if constexpr(0U < MAX_LENGTH)
+          {
+            return data_[index];
+          }
+          else
+          {
+            return internal::EmptyArray<DATA_TYPE>()[index];
+          }
+        }
+
+        const DATA_TYPE& element(const uint32_t index) const
+        {
+          if constexpr(0U < MAX_LENGTH)
+          {
+            return data_[index];
+          }
+          else
+          {
+            return internal::EmptyArray<DATA_TYPE>()[index];
+          }
+        }
 
     }; // End of class FieldStringBytes
 

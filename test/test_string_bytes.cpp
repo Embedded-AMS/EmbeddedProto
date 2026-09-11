@@ -2196,3 +2196,31 @@ TEST(RepeatedStringBytes, PartialSerialize_RepeatedBytes_ThreeArrays_LargeBuffer
 }
 
 #endif // PARTIAL_SERIALIZATION_ENABLED
+
+// A field with MAX_LENGTH 0 holds nothing. Out of range access lands on a scratch
+// element, reads back zero and never changes the length.
+TEST(FieldStringBytes, zero_length_holds_nothing)
+{
+  ::EmbeddedProto::FieldBytes<0> bytes;
+  ::EmbeddedProto::FieldString<0> str;
+
+  EXPECT_EQ(0U, bytes.get_max_length());
+  EXPECT_EQ(0U, str.get_max_length());
+
+  const uint8_t one = 1;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, bytes.set(&one, 1));
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, bytes.set(&one, 0));
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, str.set("abc", 3));
+
+  bytes.get(3) = 9;
+  str.get(3) = 'x';
+  EXPECT_EQ(0, bytes.get_const(3));
+  EXPECT_EQ(0, str.get_const(3));
+  EXPECT_EQ(0U, bytes.get_length());
+  EXPECT_EQ(0U, str.get_length());
+
+  bytes.clear();
+  str.clear();
+  EXPECT_EQ(0U, bytes.get_length());
+  EXPECT_EQ(0U, str.get_length());
+}

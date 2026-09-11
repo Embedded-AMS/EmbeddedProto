@@ -32,6 +32,7 @@
 #define _REPEATED_FIELD_SIZE_H_
 
 #include "RepeatedField.h"
+#include "EmptyArray.h"
 #include "Errors.h"
 
 #include <cstdint>
@@ -53,6 +54,11 @@ namespace EmbeddedProto
   class RepeatedFieldFixedSize : public RepeatedField<DATA_TYPE>
   { 
       static constexpr uint32_t BYTES_PER_ELEMENT = sizeof(DATA_TYPE);
+
+      //! Element storage, an empty stand-in when MAX_LENGTH is zero, see EmptyArray.
+      using Storage = typename std::conditional<(0U < MAX_LENGTH),
+                                                std::array<DATA_TYPE, MAX_LENGTH>,
+                                                internal::EmptyArray<DATA_TYPE>>::type;
 
     public:
 
@@ -109,17 +115,17 @@ namespace EmbeddedProto
 
       DATA_TYPE& get(uint32_t index) override 
       { 
-        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        uint32_t limited_index = clamp_index(index);
         // Check if we need to update the number of elements in the array.
         if(limited_index >= current_length_) {
-          current_length_ = limited_index + 1;
+          current_length_ = std::min(limited_index + 1U, MAX_LENGTH);
         }
         return data_[limited_index]; 
       }
 
       const DATA_TYPE& get_const(uint32_t index) const override 
       { 
-        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        uint32_t limited_index = clamp_index(index);
         return data_[limited_index]; 
       }
 
@@ -139,10 +145,10 @@ namespace EmbeddedProto
 
       void set(uint32_t index, const DATA_TYPE& value) override 
       { 
-        uint32_t limited_index = std::min(index, MAX_LENGTH-1);
+        uint32_t limited_index = clamp_index(index);
         // Check if we need to update the number of elements in the array.
         if(limited_index >= current_length_) {
-          current_length_ = limited_index + 1;
+          current_length_ = std::min(limited_index + 1U, MAX_LENGTH);
         }
         data_[limited_index] = value;  
       }
@@ -242,7 +248,7 @@ namespace EmbeddedProto
       }
 
       //! Return a reference to the internal data storage array.
-      const std::array<DATA_TYPE, MAX_LENGTH>& get_data_const() const { return data_; }
+      const Storage& get_data_const() const { return data_; }
 
       //! When serialized with the most unfavrouble value how much bytes does this field need.
       /*!
@@ -333,8 +339,13 @@ namespace EmbeddedProto
                       "Fixed-width field must be layout-compatible with its scalar type.");
         static_assert(std::is_standard_layout<DATA_TYPE>::value,
                       "Fixed-width field must be standard-layout for block serialization.");
-        const VAR* const raw = reinterpret_cast<const VAR*>(data_.data());
-        return WireFormatter::SerializeFixedArrayNoTag(raw, current_length_, buffer);
+        Error return_value = Error::NO_ERRORS;
+        if(0U < current_length_)
+        {
+          const VAR* const raw = reinterpret_cast<const VAR*>(data_.data());
+          return_value = WireFormatter::SerializeFixedArrayNoTag(raw, current_length_, buffer);
+        }
+        return return_value;
       }
 
       //! Fallback to the element-by-element base implementation.
@@ -347,7 +358,13 @@ namespace EmbeddedProto
       uint32_t current_length_ = 0;
 
       //! The actual data 
-      std::array<DATA_TYPE, MAX_LENGTH> data_ = {};
+      Storage data_ = {};
+
+      //! Clamp an index to the last element, zero when there is no element at all.
+      static constexpr uint32_t clamp_index(const uint32_t index)
+      {
+        return (0U < MAX_LENGTH) ? std::min(index, MAX_LENGTH - 1U) : 0U;
+      }
   };
 
 } // End of namespace EmbeddedProto
