@@ -69,18 +69,47 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 
 # License
 
-Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
+Embedded Proto is dual licensed. See [LICENSE](LICENSE) for the full notice.
 
-## Open Source
-You can use Embedded Proto for free in open source projects or for testing. The code is licensed under the GNU General Public License V3.0, which you can use for all your non-commercial projects. On demand support is only available with a commercial license.
+## Open source
+Embedded Proto is free under the GNU General Public License v3.0 for any project whose own source code is released under a GPLv3-compatible open source license. Evaluation and testing before purchase are free as well. The GPL version comes without support.
 
-## Commercial License
-Are you developing a commercial product? If so, you need to buy a commercial license from Embedded Proto. There is a suitable license for each type of business, from startup to enterprise. Depending on the license, it may give you access to the following:
-* An unlimited number of mcu’s
+## Commercial
+Building a closed source product? Then you need a commercial license. It removes the GPL obligation to publish your source code, and depending on the tier includes:
+* An unlimited number of MCUs
 * Professional support
-* Code quality report
+* A code quality report
 
-You can request more information about a commercial license on our [website](https://EmbeddedProto.com/pricing/). How to set your license token is described on the [installation](https://EmbeddedProto.com/documentation/installation/) page.
+See [embeddedproto.com/pricing](https://EmbeddedProto.com/pricing/). Setting your license token is described on the [installation](https://EmbeddedProto.com/documentation/installation/) page.
+
+
+# Third-party software
+
+For compliance reviews, this is every piece of software Embedded Proto relies on, split by whether it ends up in your product or is only used while generating code.
+
+## In your product
+Only code from Embedded Proto itself ends up in your firmware. It contains no third-party code. It does use the C++ standard library, which comes from your own toolchain and is licensed by its vendor, not by Embedded Proto.
+
+| Component | Copyright | License |
+| --- | --- | --- |
+| Embedded Proto header-only library | Embedded AMS B.V. | GPL-3.0-only OR commercial |
+| Generated message code | Embedded AMS B.V. for the template code, you for your `.proto` definitions | GPL-3.0-only OR commercial |
+| C++ standard library | The vendor of your toolchain | Whatever your toolchain uses, for example GCC's libstdc++ is GPL-3.0 with the runtime library exception |
+
+## During code generation
+These run on your development machine and are not linked into your product. Python comes from your own installation, the packages are installed from PyPI. None of them are redistributed by Embedded Proto.
+
+| Component | Use | License |
+| --- | --- | --- |
+| [Python](https://www.python.org/) 3.11 or newer | Runs the generator | PSF License |
+| [protobuf](https://github.com/protocolbuffers/protobuf) | Parses `.proto` files, `descriptor.proto` is imported by the options file | BSD-3-Clause |
+| [grpcio-tools](https://github.com/grpc/grpc) | Bundles the `protoc` compiler | Apache-2.0, bundled protoc is BSD-3-Clause |
+| [Jinja2](https://github.com/pallets/jinja) | Renders the code templates | BSD-3-Clause |
+| [MarkupSafe](https://github.com/pallets/markupsafe) | Dependency of Jinja2 | BSD-3-Clause |
+| [toposort](https://gitlab.com/ericvsmith/toposort) | Orders message definitions | Apache-2.0 |
+
+## Development only
+[GoogleTest](https://github.com/google/googletest) (BSD-3-Clause) is a git submodule used for the unit tests of the library. It is not part of the generator package or of your product.
 
 
 # Development
