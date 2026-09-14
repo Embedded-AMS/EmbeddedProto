@@ -39,7 +39,9 @@ message Options {
                                   // - repeated scalar/enum: emits ::EmbeddedProto::RepeatedFieldCallback<T>,
                                   //   serialized EXPANDED (one tag per element)
                                   // - singular string/bytes: emits ::EmbeddedProto::BytesStringCallback<T>,
-                                  //   whole-value streaming
+                                  //   streamed in windows staged in memory bound at run time with
+                                  //   set_<field>_window(), so the window size is a platform choice
+                                  //   and not part of the schema
                                   // - repeated message: emits ::EmbeddedProto::MessageCallback<T>,
                                   //   requires DELIMITED (group) framing; rejected if LENGTH_DELIMITED
                                   // - map: emits ::EmbeddedProto::MessageCallback<Entry>, entries stay

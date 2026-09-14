@@ -28,92 +28,94 @@
  *    the Netherlands
  */
 
-#include <gtest/gtest.h>
+/*!
+  \brief Unit tests for BytesStringCallback.
 
-#include <EmbeddedProto/Fields.h>
-#include <EmbeddedProto/FieldStringBytes.h>
-#include <EmbeddedProto/BytesStringCallback.h>
+  A callback storage string/bytes field streams in windows. The window is the interface seam: serialize pulls windows from the user until the
+  declared length is written, deserialize offers each parsed window to the user. The
+  tests check the framing against a resident FieldBytes, the window sizes offered and
+  the two stop conditions (a short serialize source, a short deserialize accept).
+*/
+
+#include "gtest/gtest.h"
+
 #include <EmbeddedProto/ReadBufferFixedSize.h>
 #include <EmbeddedProto/WriteBufferFixedSize.h>
-#include <EmbeddedProto/WireFormatter.h>
+#include <EmbeddedProto/BytesStringCallback.h>
+#include <EmbeddedProto/FieldStringBytes.h>
 #include <EmbeddedProto/MessageState.h>
 #include <EmbeddedProto/Errors.h>
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <initializer_list>
-#include <type_traits>
 
 namespace test_EmbeddedAMS_BytesStringCallback
 {
 
 using ::EmbeddedProto::Error;
-using ::EmbeddedProto::WireFormatter;
-using Callback = ::EmbeddedProto::BytesStringCallback<uint8_t>;
+using ::EmbeddedProto::MessageState;
+using ::EmbeddedProto::FieldProcessingPhase;
 
-// A callback field must be usable anywhere the customStorage static_assert expects
-// an internal::BaseStringBytes.
-static_assert(std::is_base_of<::EmbeddedProto::internal::BaseStringBytes, Callback>::value,
-              "BytesStringCallback must derive from internal::BaseStringBytes.");
+using Chunked = ::EmbeddedProto::BytesStringCallback<uint8_t>;
 
-// --- Test doubles (fixed-size, no dynamic allocation, representative of MCU use) ---
+//! The window bound to a field in these tests holds three bytes, so a payload of five needs two windows.
+static constexpr uint32_t WINDOW = 3U;
 
-//! Size callback reporting a fixed payload length (the LEN prefix written on serialize).
-struct SizeReporter
-{
-  uint32_t value = 0U;
-  uint32_t operator()() const { return value; }
-};
-
-//! Source yielding a fixed list of bytes, then signalling an early end-of-stream.
+//! Serialize source: copies a fixed payload out in windows and records every window size offered.
 template<std::size_t N>
-struct ByteProducer
+struct WindowSource
 {
   std::array<uint8_t, N> values{};
-  std::size_t size = 0U;
-  std::size_t index = 0U;
-  bool operator()(uint8_t& element)
+  uint32_t size = 0U;       //!< Bytes the source really has, may be less than declared.
+  uint32_t sent = 0U;
+  std::array<uint32_t, 8> offered{};
+  uint32_t calls = 0U;
+
+  uint32_t operator()(::EmbeddedProto::bytes_view window)
   {
-    const bool produced = index < size;
-    if(produced)
-    {
-      element = values[index];
-      ++index;
-    }
-    return produced;
+    offered[calls] = window.size;
+    ++calls;
+    const uint32_t remaining = size - sent;
+    const uint32_t n = (remaining < window.size) ? remaining : window.size;
+    std::memcpy(window.data, values.data() + sent, n);
+    sent += n;
+    return n;
   }
 };
 
-//! Sink recording every byte it receives, in order, into a fixed buffer.
+//! Deserialize sink: appends each window to a fixed buffer, accepting at most accept_limit bytes per window.
 template<std::size_t N>
-struct ByteCollector
+struct WindowSink
 {
   std::array<uint8_t, N> values{};
-  std::size_t count = 0U;
-  Error operator()(const uint8_t& element)
+  uint32_t count = 0U;
+  uint32_t accept_limit = UINT32_MAX;
+  std::array<uint32_t, 8> offered{};
+  uint32_t calls = 0U;
+
+  uint32_t operator()(::EmbeddedProto::bytes_view window)
   {
-    Error return_value = Error::ARRAY_FULL;
-    if(count < N)
-    {
-      values[count] = element;
-      ++count;
-      return_value = Error::NO_ERRORS;
-    }
-    return return_value;
+    offered[calls] = window.size;
+    ++calls;
+    const uint32_t n = (accept_limit < window.size) ? accept_limit : window.size;
+    std::memcpy(values.data() + count, window.data, n);
+    count += n;
+    return n;
   }
 };
 
-//! Assert a ByteCollector received exactly the expected bytes, in order.
+//! Assert a sink received exactly the expected bytes, in order.
 template<std::size_t N>
-static void expect_collected(const ByteCollector<N>& collector,
-                             std::initializer_list<uint8_t> expected)
+static void expect_received(const WindowSink<N>& sink, std::initializer_list<uint8_t> expected)
 {
-  ASSERT_EQ(expected.size(), collector.count);
+  ASSERT_EQ(expected.size(), sink.count);
   std::size_t i = 0U;
   for(uint8_t value : expected)
   {
-    EXPECT_EQ(value, collector.values[i]);
+    EXPECT_EQ(value, sink.values[i]);
     ++i;
   }
 }
@@ -132,311 +134,331 @@ static void transfer(WriteBuffer& from, ReadBuffer& to)
 
 TEST(BytesStringCallback, default_state)
 {
-  Callback field;
-
-  EXPECT_EQ(0U, field.get_length());
-  EXPECT_FALSE(field.is_size_set());
-  EXPECT_FALSE(field.is_source_set());
-  EXPECT_FALSE(field.is_sink_set());
-  EXPECT_GT(field.get_max_length(), field.get_length());
+  Chunked unbound;
+  EXPECT_FALSE(unbound.is_on_serialize_chunk_set());
+  EXPECT_FALSE(unbound.is_on_deserialize_chunk_set());
+  EXPECT_FALSE(unbound.is_strict());
+  EXPECT_EQ(0U, unbound.get_length());
+  EXPECT_FALSE(unbound.is_window_set());
+  EXPECT_EQ(0U, unbound.get_window_size());
+  EXPECT_EQ(UINT32_MAX, unbound.get_max_length());
 }
 
-TEST(BytesStringCallback, bindings_set_and_clear)
+TEST(BytesStringCallback, set_copies_bindings_and_length_clear_forgets_length)
 {
-  Callback field;
+  WindowSource<1> source;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
 
-  SizeReporter size;
-  ByteProducer<1> producer;
-  ByteCollector<1> collector;
-  Callback::SizeCallback size_cb;
-  Callback::SourceCallback source;
-  Callback::SinkCallback sink;
-  size_cb.set(size);
-  source.set(producer);
-  sink.set(collector);
-
-  field.set_size(size_cb);
-  field.set_source(source);
-  field.set_sink(sink);
-  EXPECT_TRUE(field.is_size_set());
-  EXPECT_TRUE(field.is_source_set());
-  EXPECT_TRUE(field.is_sink_set());
-
-  field.clear_size();
-  field.clear_source();
-  field.clear_sink();
-  EXPECT_FALSE(field.is_size_set());
-  EXPECT_FALSE(field.is_source_set());
-  EXPECT_FALSE(field.is_sink_set());
-}
-
-TEST(BytesStringCallback, get_length_reports_the_size_callback)
-{
-  SizeReporter size;
-  size.value = 5U;
-  Callback::SizeCallback size_cb;
-  size_cb.set(size);
-
-  Callback field;
-  field.set_size(size_cb);
-  EXPECT_EQ(5U, field.get_length());
-}
-
-// --- Serialize (pull) -------------------------------------------------------
-
-TEST(BytesStringCallback, serialize_payload_matches_resident_field)
-{
-  // Reference: a resident FieldBytes serializes only the raw payload (the caller
-  // frames it). A callback field pulling the same bytes must emit the same payload.
-  ::EmbeddedProto::FieldBytes<8> resident;
-  const uint8_t data[] = {0xDEU, 0xADU, 0xBEU, 0xEFU};
-  (void)resident.set(data, 4U);
-  ::EmbeddedProto::WriteBufferFixedSize<16> expected;
-  ASSERT_EQ(Error::NO_ERRORS, resident.serialize(expected));
-
-  SizeReporter size;
-  size.value = 4U;
-  ByteProducer<4> producer;
-  producer.values = {0xDEU, 0xADU, 0xBEU, 0xEFU};
-  producer.size = 4U;
-  Callback::SizeCallback size_cb;
-  Callback::SourceCallback source;
-  size_cb.set(size);
-  source.set(producer);
-
-  Callback field;
-  field.set_size(size_cb);
-  field.set_source(source);
-
-  ::EmbeddedProto::WriteBufferFixedSize<16> actual;
-  ASSERT_EQ(Error::NO_ERRORS, field.serialize(actual));
-
-  ASSERT_EQ(expected.get_size(), actual.get_size());
-  EXPECT_EQ(0, std::memcmp(expected.get_data(), actual.get_data(), expected.get_size()));
-}
-
-TEST(BytesStringCallback, full_frame_round_trips_through_sink)
-{
-  // Prove the whole LEN framing: serialize_len writes [tag][size][payload] using
-  // get_length() (== size()) as the prefix, and the same bytes stream back through
-  // the sink via deserialize_check_type, exactly as the message loop drives it.
-  const uint32_t field_number = 3U;
-
-  SizeReporter size;
-  size.value = 5U;
-  ByteProducer<5> producer;
-  producer.values = {1U, 2U, 3U, 4U, 5U};
-  producer.size = 5U;
-  Callback::SizeCallback size_cb;
-  Callback::SourceCallback source;
-  size_cb.set(size);
-  source.set(producer);
-
-  Callback out;
-  out.set_size(size_cb);
-  out.set_source(source);
-
-  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
-  ASSERT_EQ(Error::NO_ERRORS, out.serialize_len(field_number, out.get_length(), buffer, true));
-
-  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
-  transfer(buffer, read_buffer);
-
-  // The message loop reads the tag first, then dispatches on the wire type.
-  uint32_t tag = 0U;
-  ASSERT_EQ(Error::NO_ERRORS, WireFormatter::DeserializeVarint(read_buffer, tag));
-
-  ByteCollector<8> collector;
-  Callback::SinkCallback sink;
-  sink.set(collector);
-
-  Callback in;
-  in.set_sink(sink);
-  ASSERT_EQ(Error::NO_ERRORS,
-            in.deserialize_check_type(read_buffer, WireFormatter::WireType::LENGTH_DELIMITED));
-
-  expect_collected(collector, {1U, 2U, 3U, 4U, 5U});
-}
-
-TEST(BytesStringCallback, serialize_source_shorter_than_size_is_mismatch)
-{
-  SizeReporter size;
-  size.value = 4U; // declare four, produce only two
-  ByteProducer<4> producer;
-  producer.values = {0xAAU, 0xBBU, 0U, 0U};
-  producer.size = 2U;
-  Callback::SizeCallback size_cb;
-  Callback::SourceCallback source;
-  size_cb.set(size);
-  source.set(producer);
-
-  Callback field;
-  field.set_size(size_cb);
-  field.set_source(source);
-
-  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
-  EXPECT_EQ(Error::CALLBACK_SIZE_MISMATCH, field.serialize(buffer));
-}
-
-TEST(BytesStringCallback, serialize_size_without_source_errors)
-{
-  SizeReporter size;
-  size.value = 3U;
-  Callback::SizeCallback size_cb;
-  size_cb.set(size);
-
-  Callback field; // size declared, but no source bound to fulfil the prefix
-  field.set_size(size_cb);
-
-  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
-  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.serialize(buffer));
-}
-
-TEST(BytesStringCallback, serialize_empty_emits_nothing)
-{
-  Callback field; // no size, no source
-
-  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
-  EXPECT_EQ(Error::NO_ERRORS, field.serialize(buffer));
-  EXPECT_EQ(0U, buffer.get_size());
-}
-
-// --- Deserialize (push) -----------------------------------------------------
-
-TEST(BytesStringCallback, deserialize_without_sink_discards)
-{
-  Callback field; // no sink bound, not strict
-
-  // [size=3][0x0A][0x0B][0x0C]
-  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x0AU, 0x0BU, 0x0CU});
-  EXPECT_EQ(Error::NO_ERRORS,
-            field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
-  EXPECT_EQ(0U, buffer.get_size());
-}
-
-TEST(BytesStringCallback, deserialize_strict_without_sink_errors)
-{
-  Callback field;
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+  field.set_length(7U);
   field.set_strict(true);
 
-  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x0AU, 0x0BU, 0x0CU});
-  EXPECT_EQ(Error::CALLBACK_NOT_SET,
-            field.deserialize_check_type(buffer, WireFormatter::WireType::LENGTH_DELIMITED));
+  Chunked copy;
+  EXPECT_EQ(Error::NO_ERRORS, copy.set(field));
+  EXPECT_TRUE(copy.is_on_serialize_chunk_set());
+  EXPECT_EQ(WINDOW, copy.get_window_size());
+  EXPECT_EQ(7U, copy.get_length());
+  EXPECT_TRUE(copy.is_strict());
+
+  copy.clear();
+  EXPECT_EQ(0U, copy.get_length());
+  EXPECT_TRUE(copy.is_on_serialize_chunk_set());
 }
 
-TEST(BytesStringCallback, deserialize_rejects_wrong_wire_type)
-{
-  Callback field;
+// --- Serialize ---------------------------------------------------------------
 
-  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x03U, 0x0AU, 0x0BU, 0x0CU});
-  EXPECT_EQ(Error::INVALID_WIRETYPE,
-            field.deserialize_check_type(buffer, WireFormatter::WireType::VARINT));
-}
-
-// --- String (char) instantiation -------------------------------------------
-
-TEST(BytesStringCallback, string_char_round_trips_through_sink)
-{
-  using StringCallback = ::EmbeddedProto::BytesStringCallback<char>;
-  const uint32_t field_number = 1U;
-
-  SizeReporter size;
-  size.value = 3U;
-  ByteProducer<3> producer; // bytes reinterpreted as chars on the wire
-  producer.values = {static_cast<uint8_t>('a'), static_cast<uint8_t>('b'), static_cast<uint8_t>('c')};
-  producer.size = 3U;
-
-  // Adapt the byte producer to a char source.
-  struct CharProducer
-  {
-    ByteProducer<3>* inner;
-    bool operator()(char& element)
-    {
-      uint8_t byte = 0U;
-      const bool produced = (*inner)(byte);
-      element = static_cast<char>(byte);
-      return produced;
-    }
-  } char_producer{&producer};
-
-  StringCallback::SizeCallback size_cb;
-  StringCallback::SourceCallback source;
-  size_cb.set(size);
-  source.set(char_producer);
-
-  StringCallback out;
-  out.set_size(size_cb);
-  out.set_source(source);
-
-  ::EmbeddedProto::WriteBufferFixedSize<32> buffer;
-  ASSERT_EQ(Error::NO_ERRORS, out.serialize_len(field_number, out.get_length(), buffer, true));
-
-  ::EmbeddedProto::ReadBufferFixedSize<32> read_buffer;
-  transfer(buffer, read_buffer);
-  uint32_t tag = 0U;
-  ASSERT_EQ(Error::NO_ERRORS, WireFormatter::DeserializeVarint(read_buffer, tag));
-
-  std::array<char, 8> received{};
-  std::size_t received_count = 0U;
-  struct CharCollector
-  {
-    std::array<char, 8>* out;
-    std::size_t* count;
-    Error operator()(const char& element)
-    {
-      (*out)[*count] = element;
-      ++(*count);
-      return Error::NO_ERRORS;
-    }
-  } char_collector{&received, &received_count};
-
-  StringCallback::SinkCallback sink;
-  sink.set(char_collector);
-
-  StringCallback in;
-  in.set_sink(sink);
-  ASSERT_EQ(Error::NO_ERRORS,
-            in.deserialize_check_type(read_buffer, WireFormatter::WireType::LENGTH_DELIMITED));
-
-  ASSERT_EQ(3U, received_count);
-  EXPECT_EQ('a', received[0]);
-  EXPECT_EQ('b', received[1]);
-  EXPECT_EQ('c', received[2]);
-}
-
-// --- Partial (resumable) streaming -----------------------------------------
-
-#ifdef PARTIAL_SERIALIZATION_ENABLED
-
-using ::EmbeddedProto::FieldProcessingPhase;
-using ::EmbeddedProto::MessageState;
-
-TEST(BytesStringCallback, serialize_partial_resumes_without_double_pull)
+// The declared length frames the field exactly like a resident FieldBytes, and the payload is
+// pulled in windows of at most WINDOW_SIZE without pulling anything for serialized_size().
+TEST(BytesStringCallback, serialize_frames_like_resident_field_in_windows)
 {
   const uint32_t field_number = 3U;
 
-  // Reference: a resident FieldBytes framed in one pass ([tag][size][payload]).
   ::EmbeddedProto::FieldBytes<8> resident;
   const uint8_t data[] = {1U, 2U, 3U, 4U, 5U};
   (void)resident.set(data, 5U);
   ::EmbeddedProto::WriteBufferFixedSize<16> expected;
   ASSERT_EQ(Error::NO_ERRORS, resident.serialize_len(field_number, resident.get_length(), expected, true));
 
-  SizeReporter size;
-  size.value = 5U;
-  ByteProducer<5> producer;
-  producer.values = {1U, 2U, 3U, 4U, 5U};
-  producer.size = 5U;
-  Callback::SizeCallback size_cb;
-  Callback::SourceCallback source;
-  size_cb.set(size);
-  source.set(producer);
+  WindowSource<5> source;
+  source.values = {1U, 2U, 3U, 4U, 5U};
+  source.size = 5U;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
 
-  Callback field;
-  field.set_size(size_cb);
-  field.set_source(source);
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+  field.set_length(5U);
 
-  // A small buffer forces the payload to split across several resumes.
+  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
+  ASSERT_EQ(Error::NO_ERRORS, field.serialize_len(field_number, field.get_length(), buffer, true));
+
+  ASSERT_EQ(expected.get_size(), buffer.get_size());
+  EXPECT_EQ(0, std::memcmp(expected.get_data(), buffer.get_data(), buffer.get_size()));
+
+  // Two windows: a full one of three and the remaining two.
+  ASSERT_EQ(2U, source.calls);
+  EXPECT_EQ(3U, source.offered[0]);
+  EXPECT_EQ(2U, source.offered[1]);
+}
+
+// A source that runs dry before the declared length can not honour the prefix.
+TEST(BytesStringCallback, serialize_source_shorter_than_length_is_mismatch)
+{
+  WindowSource<5> source;
+  source.size = 2U;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+  field.set_length(5U);
+
+  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
+  EXPECT_EQ(Error::CALLBACK_SIZE_MISMATCH, field.serialize(buffer));
+}
+
+TEST(BytesStringCallback, serialize_length_without_callback_errors)
+{
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_length(5U);
+  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
+  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.serialize(buffer));
+}
+
+// A callback without memory to stage a window in can not run.
+TEST(BytesStringCallback, streaming_without_window_errors)
+{
+  WindowSource<1> source;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
+  WindowSink<8> sink;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  Chunked field;
+  field.set_on_serialize_chunk(source_cb);
+  field.set_on_deserialize_chunk(sink_cb);
+  field.set_length(5U);
+
+  ::EmbeddedProto::WriteBufferFixedSize<16> write_buffer;
+  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.serialize(write_buffer));
+  ::EmbeddedProto::ReadBufferFixedSize<16> read_buffer({0x05U, 1U, 2U, 3U, 4U, 5U});
+  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.deserialize(read_buffer));
+  EXPECT_EQ(0U, sink.calls);
+}
+
+TEST(BytesStringCallback, serialize_zero_length_pulls_nothing)
+{
+  WindowSource<1> source;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+
+  ::EmbeddedProto::WriteBufferFixedSize<16> buffer;
+  EXPECT_EQ(Error::NO_ERRORS, field.serialize_len(1U, field.get_length(), buffer, false));
+  EXPECT_EQ(0U, buffer.get_size());
+  EXPECT_EQ(0U, source.calls);
+}
+
+// A window is never larger than the room left, so a produced window always fits.
+TEST(BytesStringCallback, serialize_window_limited_by_buffer_room)
+{
+  WindowSource<5> source;
+  source.values = {1U, 2U, 3U, 4U, 5U};
+  source.size = 5U;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+  field.set_length(5U);
+
+  ::EmbeddedProto::WriteBufferFixedSize<4> buffer;
+  EXPECT_EQ(Error::BUFFER_FULL, field.serialize(buffer));
+  EXPECT_EQ(4U, buffer.get_size());
+  EXPECT_EQ(3U, source.offered[0]);
+  EXPECT_EQ(1U, source.offered[1]);
+}
+
+// --- Deserialize -------------------------------------------------------------
+
+TEST(BytesStringCallback, deserialize_offers_windows_until_length)
+{
+  WindowSink<8> sink;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_deserialize_chunk(sink_cb);
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U, 1U, 2U, 3U, 4U, 5U, 0xFFU});
+  EXPECT_EQ(Error::NO_ERRORS, field.deserialize_check_type(buffer, ::EmbeddedProto::WireFormatter::WireType::LENGTH_DELIMITED));
+  expect_received(sink, {1U, 2U, 3U, 4U, 5U});
+  ASSERT_EQ(2U, sink.calls);
+  EXPECT_EQ(3U, sink.offered[0]);
+  EXPECT_EQ(2U, sink.offered[1]);
+  // The byte behind the value is left for the next field.
+  EXPECT_EQ(1U, buffer.get_size());
+}
+
+// Accepting less than offered stops the field; only the accepted bytes are consumed.
+TEST(BytesStringCallback, deserialize_short_accept_stops)
+{
+  WindowSink<8> sink;
+  sink.accept_limit = 2U;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_deserialize_chunk(sink_cb);
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U, 1U, 2U, 3U, 4U, 5U});
+  EXPECT_EQ(Error::CALLBACK_STOPPED, field.deserialize(buffer));
+  expect_received(sink, {1U, 2U});
+  EXPECT_EQ(3U, buffer.get_size());
+}
+
+TEST(BytesStringCallback, deserialize_without_callback_discards)
+{
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U, 1U, 2U, 3U, 4U, 5U, 0xFFU});
+  EXPECT_EQ(Error::NO_ERRORS, field.deserialize(buffer));
+  EXPECT_EQ(1U, buffer.get_size());
+}
+
+TEST(BytesStringCallback, deserialize_strict_without_callback_errors)
+{
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_strict(true);
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U, 1U, 2U, 3U, 4U, 5U});
+  EXPECT_EQ(Error::CALLBACK_NOT_SET, field.deserialize(buffer));
+}
+
+TEST(BytesStringCallback, deserialize_truncated_value_is_end_of_buffer)
+{
+  WindowSink<8> sink;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_deserialize_chunk(sink_cb);
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U, 1U, 2U});
+  EXPECT_EQ(Error::END_OF_BUFFER, field.deserialize(buffer));
+  expect_received(sink, {1U, 2U});
+}
+
+TEST(BytesStringCallback, deserialize_rejects_wrong_wire_type)
+{
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  ::EmbeddedProto::ReadBufferFixedSize<16> buffer({0x05U});
+  EXPECT_EQ(Error::INVALID_WIRETYPE, field.deserialize_check_type(buffer, ::EmbeddedProto::WireFormatter::WireType::VARINT));
+}
+
+// A string field hands out a string_view and round trips characters.
+TEST(BytesStringCallback, string_round_trips_through_string_view)
+{
+  using ChunkedString = ::EmbeddedProto::BytesStringCallback<char>;
+  std::array<char, 4> window{};
+
+  const char text[] = "hello";
+  uint32_t sent = 0U;
+  auto source = [&](::EmbeddedProto::string_view window) -> uint32_t
+  {
+    const uint32_t remaining = 5U - sent;
+    const uint32_t n = (remaining < window.size) ? remaining : window.size;
+    std::memcpy(window.data, text + sent, n);
+    sent += n;
+    return n;
+  };
+  ChunkedString::ChunkCallback source_cb;
+  source_cb.set(source);
+
+  ChunkedString out;
+  out.set_window({window.data(), 4U});
+  out.set_on_serialize_chunk(source_cb);
+  out.set_length(5U);
+  ::EmbeddedProto::WriteBufferFixedSize<16> write_buffer;
+  ASSERT_EQ(Error::NO_ERRORS, out.serialize_len(1U, out.get_length(), write_buffer, false));
+
+  std::array<char, 8> received{};
+  uint32_t count = 0U;
+  auto sink = [&](::EmbeddedProto::string_view window) -> uint32_t
+  {
+    std::memcpy(received.data() + count, window.data, window.size);
+    count += window.size;
+    return window.size;
+  };
+  ChunkedString::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  ChunkedString in;
+  in.set_window({window.data(), 4U});
+  in.set_on_deserialize_chunk(sink_cb);
+  ::EmbeddedProto::ReadBufferFixedSize<16> read_buffer;
+  transfer(write_buffer, read_buffer);
+  uint8_t tag = 0U;
+  ASSERT_TRUE(read_buffer.pop(tag));
+  ASSERT_EQ(Error::NO_ERRORS, in.deserialize(read_buffer));
+  ASSERT_EQ(5U, count);
+  EXPECT_EQ(0, std::memcmp(text, received.data(), 5U));
+}
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+
+// --- Partial -----------------------------------------------------------------
+
+// A small write buffer splits the payload; every byte is pulled exactly once.
+TEST(BytesStringCallback, serialize_partial_resumes_without_double_pull)
+{
+  const uint32_t field_number = 3U;
+
+  ::EmbeddedProto::FieldBytes<8> resident;
+  const uint8_t data[] = {1U, 2U, 3U, 4U, 5U};
+  (void)resident.set(data, 5U);
+  ::EmbeddedProto::WriteBufferFixedSize<16> expected;
+  ASSERT_EQ(Error::NO_ERRORS, resident.serialize_len(field_number, resident.get_length(), expected, true));
+
+  WindowSource<5> source;
+  source.values = {1U, 2U, 3U, 4U, 5U};
+  source.size = 5U;
+  Chunked::ChunkCallback source_cb;
+  source_cb.set(source);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_serialize_chunk(source_cb);
+  field.set_length(5U);
+
   ::EmbeddedProto::WriteBufferFixedSize<4> buffer;
   MessageState state;
 
@@ -457,29 +479,61 @@ TEST(BytesStringCallback, serialize_partial_resumes_without_double_pull)
   EXPECT_EQ(0, std::memcmp(expected.get_data(), accumulated.data(), total));
 }
 
+// The value straddles a refill: the refill boundary ends a window and bytes_remaining resumes.
 TEST(BytesStringCallback, deserialize_partial_streams_across_split)
 {
-  ByteCollector<8> collector;
-  Callback::SinkCallback sink;
-  sink.set(collector);
+  WindowSink<8> sink;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
 
-  Callback field;
-  field.set_sink(sink);
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_deserialize_chunk(sink_cb);
 
   MessageState state;
   state.phase = FieldProcessingPhase::SIZE;
 
-  // [size=5][1][2] arrive first; the value straddles the refill boundary.
   ::EmbeddedProto::ReadBufferFixedSize<8> buffer1({0x05U, 0x01U, 0x02U});
   EXPECT_EQ(Error::END_OF_BUFFER, field.deserialize_partial_as_field(buffer1, state));
-  expect_collected(collector, {1U, 2U});
+  expect_received(sink, {1U, 2U});
   EXPECT_EQ(FieldProcessingPhase::DATA, state.phase);
   EXPECT_EQ(3U, state.bytes_remaining);
 
-  // The refill delivers the remaining three bytes; none are re-pushed.
   ::EmbeddedProto::ReadBufferFixedSize<8> buffer2({0x03U, 0x04U, 0x05U});
   EXPECT_EQ(Error::NO_ERRORS, field.deserialize_partial_as_field(buffer2, state));
-  expect_collected(collector, {1U, 2U, 3U, 4U, 5U});
+  expect_received(sink, {1U, 2U, 3U, 4U, 5U});
+  EXPECT_EQ(FieldProcessingPhase::COMPLETE, state.phase);
+  ASSERT_EQ(2U, sink.calls);
+  EXPECT_EQ(2U, sink.offered[0]);
+  EXPECT_EQ(3U, sink.offered[1]);
+}
+
+// A stopped field keeps a resumable state: after the sink has room again the rest streams.
+TEST(BytesStringCallback, deserialize_partial_stop_is_resumable)
+{
+  WindowSink<8> sink;
+  sink.accept_limit = 1U;
+  Chunked::ChunkCallback sink_cb;
+  sink_cb.set(sink);
+
+  std::array<uint8_t, WINDOW> window{};
+  Chunked field;
+  field.set_window({window.data(), WINDOW});
+  field.set_on_deserialize_chunk(sink_cb);
+
+  MessageState state;
+  state.phase = FieldProcessingPhase::SIZE;
+
+  ::EmbeddedProto::ReadBufferFixedSize<8> buffer({0x05U, 1U, 2U, 3U, 4U, 5U});
+  EXPECT_EQ(Error::CALLBACK_STOPPED, field.deserialize_partial_as_field(buffer, state));
+  expect_received(sink, {1U});
+  EXPECT_EQ(FieldProcessingPhase::DATA, state.phase);
+  EXPECT_EQ(4U, state.bytes_remaining);
+
+  sink.accept_limit = UINT32_MAX;
+  EXPECT_EQ(Error::NO_ERRORS, field.deserialize_partial_as_field(buffer, state));
+  expect_received(sink, {1U, 2U, 3U, 4U, 5U});
   EXPECT_EQ(FieldProcessingPhase::COMPLETE, state.phase);
 }
 

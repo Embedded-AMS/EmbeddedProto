@@ -30,11 +30,14 @@
 
 //! End-to-end proof of the dedicated callbackStorage generator option on bytes/string.
 /*!
+  \brief End-to-end proof of the callbackStorage generator option on bytes/string.
+
   A singular bytes field (blob) and a singular string field (label) are emitted by the
-  generator as concrete BytesStringCallback types. The message serialize() writes the LEN
-  prefix from size() and pulls the payload from a bound source; deserialize() streams each
-  parsed element to a bound sink. A full source -> serialize -> deserialize -> sink round
-  trip therefore runs through the generated message with nothing resident.
+  generator as BytesStringCallback fields. The generated setters bind the window, the chunk
+  callbacks and the length; serialize() writes the LEN prefix from the declared length and
+  pulls the payload in windows, deserialize() offers each parsed window to the callback. A
+  source -> serialize -> deserialize -> sink round trip therefore runs through the generated
+  message with only the windows the test owns resident.
 */
 
 #include "gtest/gtest.h"
@@ -48,6 +51,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include <callback_storage_bytes.h>
 
@@ -60,115 +64,116 @@ using Msg = callback_storage_bytes::CallbackBlobMsg;
 using BytesField = ::EmbeddedProto::BytesStringCallback<uint8_t>;
 using StringField = ::EmbeddedProto::BytesStringCallback<char>;
 
-//! Size callback reporting a fixed payload length.
-struct SizeReporter
-{
-  uint32_t value = 0U;
-  uint32_t operator()() const { return value; }
-};
-
-//! Source yielding a fixed list of elements, then signalling end-of-stream.
+//! Window source or sink over a fixed array, tracking its own position; the library passes no offset.
 template<class T, std::size_t N>
-struct Producer
+struct WindowCursor
 {
   std::array<T, N> values{};
-  std::size_t size = 0U;
-  std::size_t index = 0U;
-  bool operator()(T& element)
+  uint32_t length = 0U;
+  uint32_t position = 0U;
+
+  //! Serialize side: copy the next window out.
+  uint32_t produce(::EmbeddedProto::array_view<T> window)
   {
-    const bool produced = index < size;
-    if(produced)
-    {
-      element = values[index];
-      ++index;
-    }
-    return produced;
+    const uint32_t remaining = length - position;
+    const uint32_t n = (remaining < window.size) ? remaining : window.size;
+    std::memcpy(window.data, values.data() + position, n);
+    position += n;
+    return n;
+  }
+
+  //! Deserialize side: append the offered window.
+  uint32_t consume(::EmbeddedProto::array_view<T> window)
+  {
+    std::memcpy(values.data() + position, window.data, window.size);
+    position += window.size;
+    return window.size;
   }
 };
 
-//! Sink recording received elements into a fixed buffer.
-template<class T, std::size_t N>
-struct Collector
+using BlobCursor = WindowCursor<uint8_t, 16>;
+using LabelCursor = WindowCursor<char, 16>;
+
+//! Copy a write buffer into a read buffer, as a transport would.
+template<class WriteBuffer, class ReadBuffer>
+static void transfer(WriteBuffer& from, ReadBuffer& to)
 {
-  std::array<T, N> values{};
-  std::size_t count = 0U;
-  Error operator()(const T& element)
+  for(uint32_t i = 0U; i < from.get_size(); ++i)
   {
-    Error return_value = Error::ARRAY_FULL;
-    if(count < N)
-    {
-      values[count] = element;
-      ++count;
-      return_value = Error::NO_ERRORS;
-    }
-    return return_value;
+    to.push(from.get_data()[i]);
+  }
+}
+
+//! Both fields of a message bound to their windows and, per direction, their cursors.
+struct Bound
+{
+  std::array<uint8_t, 4> blob_window{};
+  std::array<char, 8> label_window{};
+  BlobCursor blob;
+  LabelCursor label;
+  BytesField::ChunkCallback blob_cb;
+  StringField::ChunkCallback label_cb;
+
+  void as_source(Msg& msg)
+  {
+    blob_cb.set<BlobCursor, &BlobCursor::produce>(&blob);
+    label_cb.set<LabelCursor, &LabelCursor::produce>(&label);
+    msg.set_blob_window({blob_window.data(), 4U});
+    msg.set_label_window({label_window.data(), 8U});
+    msg.set_blob_on_serialize_chunk(blob_cb);
+    msg.set_label_on_serialize_chunk(label_cb);
+    msg.set_blob_length(blob.length);
+    msg.set_label_length(label.length);
+  }
+
+  void as_sink(Msg& msg)
+  {
+    blob_cb.set<BlobCursor, &BlobCursor::consume>(&blob);
+    label_cb.set<LabelCursor, &LabelCursor::consume>(&label);
+    msg.set_blob_window({blob_window.data(), 4U});
+    msg.set_label_window({label_window.data(), 8U});
+    msg.set_blob_on_deserialize_chunk(blob_cb);
+    msg.set_label_on_deserialize_chunk(label_cb);
   }
 };
 
-// A source-backed message serializes the declared payload and a sink-backed message streams
-// it back; the same generated type drives both bytes and string fields.
+// The generated setters bind both directions; serialized_size() reports the declared lengths
+// without pulling, and the round trip streams the blob through a window smaller than the value.
 TEST(CallbackStorageBytes, round_trip_source_to_sink)
 {
-  SizeReporter blob_size;
-  blob_size.value = 4U;
-  Producer<uint8_t, 4> blob_producer;
-  blob_producer.values = {0xDEU, 0xADU, 0xBEU, 0xEFU};
-  blob_producer.size = 4U;
-  BytesField::SizeCallback blob_size_cb;
-  BytesField::SourceCallback blob_source;
-  blob_size_cb.set(blob_size);
-  blob_source.set(blob_producer);
-
-  SizeReporter label_size;
-  label_size.value = 2U;
-  Producer<char, 2> label_producer;
-  label_producer.values = {'h', 'i'};
-  label_producer.size = 2U;
-  StringField::SizeCallback label_size_cb;
-  StringField::SourceCallback label_source;
-  label_size_cb.set(label_size);
-  label_source.set(label_producer);
+  Bound out_side;
+  out_side.blob.values = {1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 9U, 10U};
+  out_side.blob.length = 10U;
+  const char text[] = "streaming";
+  std::memcpy(out_side.label.values.data(), text, 9U);
+  out_side.label.length = 9U;
 
   Msg out;
-  out.mutable_blob().set_size(blob_size_cb);
-  out.mutable_blob().set_source(blob_source);
-  out.mutable_label().set_size(label_size_cb);
-  out.mutable_label().set_source(label_source);
+  out_side.as_source(out);
+
+  // [tag][10][payload] + [tag][9][payload], nothing pulled for the size.
+  EXPECT_EQ(23U, out.serialized_size());
+  EXPECT_EQ(0U, out_side.blob.position);
 
   ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
   ASSERT_EQ(Error::NO_ERRORS, out.serialize(buffer));
+  EXPECT_EQ(23U, buffer.get_size());
 
-  Collector<uint8_t, 8> blob_collector;
-  BytesField::SinkCallback blob_sink;
-  blob_sink.set(blob_collector);
-  Collector<char, 8> label_collector;
-  StringField::SinkCallback label_sink;
-  label_sink.set(label_collector);
-
+  Bound in_side;
   Msg in;
-  in.mutable_blob().set_sink(blob_sink);
-  in.mutable_label().set_sink(label_sink);
+  in_side.as_sink(in);
 
   ::EmbeddedProto::ReadBufferFixedSize<64> read_buffer;
-  for(uint32_t i = 0U; i < buffer.get_size(); ++i)
-  {
-    read_buffer.push(buffer.get_data()[i]);
-  }
-
+  transfer(buffer, read_buffer);
   ASSERT_EQ(Error::NO_ERRORS, in.deserialize(read_buffer));
 
-  ASSERT_EQ(4U, blob_collector.count);
-  EXPECT_EQ(0xDEU, blob_collector.values[0]);
-  EXPECT_EQ(0xADU, blob_collector.values[1]);
-  EXPECT_EQ(0xBEU, blob_collector.values[2]);
-  EXPECT_EQ(0xEFU, blob_collector.values[3]);
-
-  ASSERT_EQ(2U, label_collector.count);
-  EXPECT_EQ('h', label_collector.values[0]);
-  EXPECT_EQ('i', label_collector.values[1]);
+  ASSERT_EQ(10U, in_side.blob.position);
+  EXPECT_EQ(0, std::memcmp(out_side.blob.values.data(), in_side.blob.values.data(), 10U));
+  ASSERT_EQ(9U, in_side.label.position);
+  EXPECT_EQ(0, std::memcmp(text, in_side.label.values.data(), 9U));
 }
 
-// With no size/source bound both fields report get_length()==0, so the message serializes empty.
+// With no length declared both fields are empty, so the message serializes to nothing.
 TEST(CallbackStorageBytes, serialize_without_binding_emits_nothing)
 {
   Msg out; // nothing bound
@@ -180,26 +185,19 @@ TEST(CallbackStorageBytes, serialize_without_binding_emits_nothing)
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
-// Partial serialize-out: a small write buffer forces the payload to split, and each element is
-// pulled once; the bytes round-trip back through a sink-backed message.
+// Partial serialize-out: a small write buffer forces the payload to split, every window is
+// pulled once, and the bytes round-trip back through a sink-backed message.
 TEST(CallbackStorageBytes, partial_serialize_out_across_split_round_trips)
 {
-  SizeReporter blob_size;
-  blob_size.value = 5U;
-  Producer<uint8_t, 5> blob_producer;
-  blob_producer.values = {1U, 2U, 3U, 4U, 5U};
-  blob_producer.size = 5U;
-  BytesField::SizeCallback blob_size_cb;
-  BytesField::SourceCallback blob_source;
-  blob_size_cb.set(blob_size);
-  blob_source.set(blob_producer);
+  Bound out_side;
+  out_side.blob.values = {1U, 2U, 3U, 4U, 5U};
+  out_side.blob.length = 5U;
 
   Msg out;
-  out.mutable_blob().set_size(blob_size_cb);
-  out.mutable_blob().set_source(blob_source);
+  out_side.as_source(out);
   Msg::StateStack out_state;
 
-  ::EmbeddedProto::WriteBufferFixedSize<4> chunk;
+  ::EmbeddedProto::WriteBufferFixedSize<3> chunk;
   ::EmbeddedProto::ReadBufferFixedSize<64> wire;
   Error result = Error::BUFFER_FULL;
   uint32_t guard = 0U;
@@ -207,28 +205,20 @@ TEST(CallbackStorageBytes, partial_serialize_out_across_split_round_trips)
   {
     result = out.serialize_partial(chunk, out_state.root());
     ASSERT_TRUE((Error::NO_ERRORS == result) || (Error::BUFFER_FULL == result));
-    for(uint32_t i = 0U; i < chunk.get_size(); ++i)
-    {
-      wire.push(chunk.get_data()[i]);
-    }
+    transfer(chunk, wire);
     chunk.clear();
     ++guard;
   }
   ASSERT_EQ(Error::NO_ERRORS, result);
 
-  Collector<uint8_t, 8> blob_collector;
-  BytesField::SinkCallback blob_sink;
-  blob_sink.set(blob_collector);
-
+  Bound in_side;
   Msg in;
-  in.mutable_blob().set_sink(blob_sink);
+  in_side.as_sink(in);
   ASSERT_EQ(Error::NO_ERRORS, in.deserialize(wire));
 
-  ASSERT_EQ(5U, blob_collector.count);
-  for(uint8_t i = 0U; i < 5U; ++i)
-  {
-    EXPECT_EQ(static_cast<uint8_t>(i + 1U), blob_collector.values[i]);
-  }
+  ASSERT_EQ(5U, in_side.blob.position);
+  EXPECT_EQ(0, std::memcmp(out_side.blob.values.data(), in_side.blob.values.data(), 5U));
+  EXPECT_EQ(0U, in_side.label.position);
 }
 
 #endif // PARTIAL_SERIALIZATION_ENABLED

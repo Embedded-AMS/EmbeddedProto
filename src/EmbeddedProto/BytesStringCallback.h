@@ -34,6 +34,7 @@
 #include "FieldStringBytes.h"
 #include "Functional.h"
 #include "Errors.h"
+#include "Defines.h"
 #include "WireFormatter.h"
 
 #include <cstdint>
@@ -43,28 +44,37 @@
 namespace EmbeddedProto
 {
 
-  //! A bytes/string field whose payload is streamed to/from the user, not stored.
+  //! A bytes/string field whose payload is streamed to/from the user in windows, not stored.
   /*!
-      BytesStringCallback is a drop-in storage type for a singular bytes or string
-      field that owns no payload buffer. Instead of holding an array it moves the
-      value across the interface seam one element at a time:
+      BytesStringCallback is the storage type of a singular bytes or string field
+      with the callbackStorage option. It keeps no value resident: the value moves
+      across the interface seam a window at a time, so a large blob (a firmware
+      image, a log, a picture) streams through the message in slices that never
+      add up to a whole value:
 
-        - on serialize, the length prefix is taken from a user *size* callback and
-          the payload is pulled element-by-element from a user *source*;
-        - on deserialize, every parsed element is pushed to a user *sink*.
+        - on deserialize, every freshly parsed window is offered to the user
+          deserialize chunk callback, which returns how many elements it accepted;
+        - on serialize, a writable window is handed to the user serialize chunk
+          callback, which fills it and returns how many elements it produced.
 
-      The length prefix comes from size() without pulling any data, so the field
-      stays LEN-framed (a bytes/string value carries its size as a number) while
-      the payload itself never becomes resident. This lets a device stream a large
-      blob (a firmware image, a log, a picture) through a fixed, tiny RAM footprint
-      (just the three Functional handles). It plugs in through the callbackStorage
-      generator option: it derives from internal::BaseStringBytes and satisfies the
-      same static_assert the customStorage mechanism checks.
+      No offset is passed. A stateful callback tracks its own position.
 
-      Only the whole-value shape is implemented here: the source produces exactly
-      size() elements and the sink consumes the whole parsed value. Window/chunk
-      streaming (an array_view negotiated per call) is a separate, later capability
-      (see doc/callback_storage_chunked_design.md).
+      Serialize needs the total length up front for the LEN prefix, so the user
+      declares it once with set_length() before the first window is pulled. The
+      prefix is then written from that length and serialized_size() reports it
+      without pulling any data. Deserialize needs no such declaration, the wire
+      carries the length.
+
+      The buffer interfaces hand out no contiguous memory, so every window is
+      staged in memory the user binds with set_window(): a view over an array the
+      platform owns, a static array, a DMA buffer or a scratch region shared
+      between fields. Its size is the largest window a callback is offered. The
+      field itself holds only the view, not the window, so the message size does
+      not depend on the platform. One window serves both directions, a field never
+      serializes and deserializes at the same time. A window of one element gives
+      byte-by-byte streaming when that is all the user wants. The class derives
+      from internal::BaseStringBytes and satisfies the same static_assert the
+      customStorage mechanism checks.
 
       \tparam DATA_TYPE The element type: char for a string field, uint8_t for a
                         bytes field.
@@ -77,91 +87,106 @@ namespace EmbeddedProto
 
     public:
 
-      //! Size callback used during serialize: return the total number of elements the source will produce (the LEN prefix).
-      using SizeCallback = Functional<uint32_t()>;
+      //! The window handed to a callback: string_view for a string field, bytes_view for a bytes field.
+      using VIEW = array_view<DATA_TYPE>;
 
-      //! Pull callback used during serialize: fill \p element, return true when a value was produced, false to signal an early end of the stream.
-      using SourceCallback = Functional<bool(DATA_TYPE&)>;
-
-      //! Push callback used during deserialize: consume one parsed \p element, return an Error (NO_ERRORS to continue).
-      using SinkCallback = Functional<Error(const DATA_TYPE&)>;
+      //! Chunk callback shared by both directions, see set_on_serialize_chunk() and set_on_deserialize_chunk().
+      using ChunkCallback = Functional<uint32_t(VIEW)>;
 
       BytesStringCallback() = default;
       ~BytesStringCallback() override = default;
 
       // --- Binding (reference-taking, no ownership) --------------------------
 
-      //! Bind the size callback that reports the payload length written as the LEN prefix.
-      void set_size(const SizeCallback& size) { size_ = size; }
+      //! Bind the callback that fills windows during serialization.
+      /*!
+        The callback receives a writable window of up to the bound window's size
+        and returns how many it produced, at most the window size. Zero before the
+        declared length is reached ends the stream early, which is reported as
+        CALLBACK_SIZE_MISMATCH. The callback is not called once the declared
+        length is reached.
+      */
+      void set_on_serialize_chunk(const ChunkCallback& callback) { on_serialize_chunk_ = callback; }
 
-      //! Bind the source used to pull payload elements during serialization.
-      void set_source(const SourceCallback& source) { source_ = source; }
+      //! Bind the callback that receives windows during deserialization.
+      /*!
+        The callback receives a window of freshly parsed elements it should read
+        and not modify, and returns how many it accepted. Returning less than the
+        window size stops the field: deserialization returns CALLBACK_STOPPED.
+        Under partial deserialization the accepted elements are consumed and the
+        state stays resumable, so a caller may retry after the callback has room
+        again.
+      */
+      void set_on_deserialize_chunk(const ChunkCallback& callback) { on_deserialize_chunk_ = callback; }
 
-      //! Bind the sink used to push payload elements during deserialization.
-      void set_sink(const SinkCallback& sink) { sink_ = sink; }
+      //! Bind the memory the windows are staged in; its size is the largest window a callback is offered.
+      /*!
+        The view does not own the array, which must outlive every serialize or
+        deserialize call, like the bound callbacks. Streaming without a window
+        bound is CALLBACK_NOT_SET.
+      */
+      void set_window(const VIEW& window) { window_ = window; }
 
-      //! Remove the bound size callback.
-      void clear_size() { size_.clear(); }
+      //! Remove the bound window.
+      void clear_window() { window_ = VIEW{nullptr, 0U}; }
 
-      //! Remove the bound source.
-      void clear_source() { source_.clear(); }
+      //! Check whether a usable window is bound.
+      bool is_window_set() const { return (nullptr != window_.data) && (0U < window_.size); }
 
-      //! Remove the bound sink.
-      void clear_sink() { sink_.clear(); }
+      //! Remove the bound serialize chunk callback.
+      void clear_on_serialize_chunk() { on_serialize_chunk_.clear(); }
 
-      //! Check whether a size callback is bound.
-      bool is_size_set() const { return size_.is_set(); }
+      //! Remove the bound deserialize chunk callback.
+      void clear_on_deserialize_chunk() { on_deserialize_chunk_.clear(); }
 
-      //! Check whether a source (pull) callback is bound.
-      bool is_source_set() const { return source_.is_set(); }
+      //! Check whether a serialize chunk callback is bound.
+      bool is_on_serialize_chunk_set() const { return on_serialize_chunk_.is_set(); }
 
-      //! Check whether a sink (push) callback is bound.
-      bool is_sink_set() const { return sink_.is_set(); }
+      //! Check whether a deserialize chunk callback is bound.
+      bool is_on_deserialize_chunk_set() const { return on_deserialize_chunk_.is_set(); }
+
+      //! Declare the total number of elements the serialize chunk callback will produce, written as the LEN prefix.
+      void set_length(const uint32_t length) { length_ = length; }
 
       //! Require a binding for the direction being used.
       /*!
-        When strict, streaming without the relevant callback bound returns
-        CALLBACK_NOT_SET instead of silently discarding (deserialize) or
-        emitting nothing (serialize).
+        When strict, deserializing without a chunk callback bound returns
+        CALLBACK_NOT_SET instead of silently discarding the value.
       */
       void set_strict(bool strict) { strict_ = strict; }
 
       //! Whether strict (require-binding) mode is enabled.
       bool is_strict() const { return strict_; }
 
-      //! Copy the bindings from another callback field (used by the generated message copy/assignment).
+      //! Copy the bindings, the window and the declared length from another chunked field (used by the generated message copy/assignment).
       /*!
-        A callback field owns no payload to copy, so copying it copies the size,
-        source and sink handles: the copy streams through the same user callbacks.
-
         \return Always NO_ERRORS, for signature compatibility with FieldStringBytes::set().
       */
       Error set(const BytesStringCallback<DATA_TYPE>& rhs)
       {
-        size_ = rhs.size_;
-        source_ = rhs.source_;
-        sink_ = rhs.sink_;
+        on_serialize_chunk_ = rhs.on_serialize_chunk_;
+        on_deserialize_chunk_ = rhs.on_deserialize_chunk_;
+        window_ = rhs.window_;
+        length_ = rhs.length_;
         strict_ = rhs.strict_;
         return Error::NO_ERRORS;
       }
 
       // --- FieldStringBytes-shaped interface ---------------------------------
 
-      //! The payload length written as the LEN prefix, taken from the size callback (0 when unbound).
-      uint32_t get_length() const
-      {
-        uint32_t length = 0U;
-        static_cast<void>(size_.invoke(length));
-        return length;
-      }
+      //! The declared payload length written as the LEN prefix, see set_length().
+      uint32_t get_length() const { return length_; }
 
       //! Streaming is effectively unbounded; report a large sentinel so capacity checks never fire.
       uint32_t get_max_length() const { return UINT32_MAX; }
 
+      //! The number of elements the bound window holds, the largest window a callback is offered (0 when unbound).
+      uint32_t get_window_size() const { return is_window_set() ? window_.size : 0U; }
+
       //! Required of a customStorage bytes/string type.
       /*!
         A stream has no finite serialized size, so report the unbounded sentinel; a
-        message with a callback field therefore cannot be statically buffer-sized,
+        message with a chunked field therefore cannot be statically buffer-sized,
         which is inherent to streaming.
       */
       static constexpr uint32_t max_serialized_size(const uint32_t field_number)
@@ -170,76 +195,42 @@ namespace EmbeddedProto
         return UINT32_MAX;
       }
 
-      //! Pull the payload from the bound source and write it (no tag, no size; the caller frames it with serialize_len).
+      //! Pull the payload in windows from the bound callback and write it (no tag, no size; the caller frames it with serialize_len).
       /*!
-          Exactly get_length() (the size callback's value) elements are pulled and
-          pushed. If the source ends early the declared prefix can no longer be
-          honoured, so CALLBACK_SIZE_MISMATCH is returned. A non-empty value with no
-          source bound cannot be produced at all: CALLBACK_NOT_SET.
+          Windows are pulled until exactly get_length() elements are written. A
+          non-empty value with no callback or no window bound cannot be produced:
+          CALLBACK_NOT_SET.
       */
       Error serialize(WriteBufferInterface& buffer) const override
       {
         Error return_value = Error::NO_ERRORS;
-        const uint32_t total = get_length();
-        if(0U == total)
+        uint32_t remaining = length_;
+        if(0U == remaining)
         {
           // Nothing declared to emit; the caller wrote an empty (or no) prefix.
         }
-        else if(!source_.is_set())
+        else if(!on_serialize_chunk_.is_set() || !is_window_set())
         {
           return_value = Error::CALLBACK_NOT_SET;
         }
         else
         {
-          uint32_t written = 0U;
-          while((written < total) && (Error::NO_ERRORS == return_value))
+          while((0U < remaining) && (Error::NO_ERRORS == return_value))
           {
-            DATA_TYPE element = DATA_TYPE();
-            bool produced = false;
-            static_cast<void>(source_.invoke(produced, element));
-            if(!produced)
-            {
-              return_value = Error::CALLBACK_SIZE_MISMATCH;
-            }
-            else if(!buffer.push(static_cast<uint8_t>(element)))
-            {
-              return_value = Error::BUFFER_FULL;
-            }
-            else
-            {
-              ++written;
-            }
+            return_value = pull_window(buffer, remaining);
           }
         }
         return return_value;
       }
 
-      //! Read the LEN prefix, then push each parsed element to the bound sink (drain-and-discard when unbound and not strict).
+      //! Read the LEN prefix, then offer each parsed window to the bound callback (drain-and-discard when unbound and not strict).
       Error deserialize(ReadBufferInterface& buffer) override
       {
-        uint32_t available = 0U;
-        Error return_value = WireFormatter::DeserializeVarint(buffer, available);
-        if(Error::NO_ERRORS == return_value)
+        uint32_t remaining = 0U;
+        Error return_value = WireFormatter::DeserializeVarint(buffer, remaining);
+        while((0U < remaining) && (Error::NO_ERRORS == return_value))
         {
-          uint32_t received = 0U;
-          bool more = true;
-          while(more && (received < available) && (Error::NO_ERRORS == return_value))
-          {
-            uint8_t byte = 0U;
-            if(!buffer.pop(byte))
-            {
-              return_value = Error::END_OF_BUFFER;
-              more = false;
-            }
-            else
-            {
-              return_value = push_to_sink(static_cast<DATA_TYPE>(byte));
-              if(Error::NO_ERRORS == return_value)
-              {
-                ++received;
-              }
-            }
-          }
+          return_value = offer_window(buffer, remaining);
         }
         return return_value;
       }
@@ -258,14 +249,13 @@ namespace EmbeddedProto
       }
 
 #ifdef PARTIAL_SERIALIZATION_ENABLED
-      //! Resumable pull-serialize for the partial engine.
+      //! Resumable window-serialize for the partial engine.
       /*!
-          The TAG and SIZE phases write the tag and the size prefix from
-          get_length() (no data pulled), so the field survives a write buffer that
-          splits before the payload. The DATA phase pulls one element at a time,
-          only ever pulling when the buffer has room, so a not-yet-written element
-          is never lost on a BUFFER_FULL resume. The source's own cursor is the
-          resumable state; no in-flight element is stored in the field.
+          The TAG and SIZE phases write the tag and the declared length, so the
+          field survives a write buffer that splits before the payload. The DATA
+          phase pulls one window at a time, never larger than the room left in the
+          buffer, so a produced window is never lost on a BUFFER_FULL resume. The
+          callback's own cursor is the resumable state.
       */
       Error serialize_partial_as_field(uint32_t field_number,
                                        WriteBufferInterface& buffer,
@@ -275,59 +265,37 @@ namespace EmbeddedProto
         Error return_value = Error::NO_ERRORS;
         if(::EmbeddedProto::FieldProcessingPhase::DATA != state.phase)
         {
-          return_value = serialize_partial_tag_and_size(field_number, get_length(), buffer, state, optional);
+          return_value = serialize_partial_tag_and_size(field_number, length_, buffer, state, optional);
         }
 
         if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
         {
-          if(!source_.is_set())
+          if(!on_serialize_chunk_.is_set() || !is_window_set())
           {
             return_value = Error::CALLBACK_NOT_SET;
           }
           else
           {
-            bool more = true;
-            while(more && (Error::NO_ERRORS == return_value))
+            while((0U < state.bytes_remaining) && (Error::NO_ERRORS == return_value))
             {
-              if(0U == state.bytes_remaining)
-              {
-                state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-                more = false;
-              }
-              else if(0U == buffer.get_available_size())
-              {
-                return_value = Error::BUFFER_FULL;
-              }
-              else
-              {
-                DATA_TYPE element = DATA_TYPE();
-                bool produced = false;
-                static_cast<void>(source_.invoke(produced, element));
-                if(!produced)
-                {
-                  return_value = Error::CALLBACK_SIZE_MISMATCH;
-                }
-                else if(!buffer.push(static_cast<uint8_t>(element)))
-                {
-                  return_value = Error::BUFFER_FULL;
-                }
-                else
-                {
-                  --state.bytes_remaining;
-                }
-              }
+              return_value = pull_window(buffer, state.bytes_remaining);
+            }
+            if(0U == state.bytes_remaining)
+            {
+              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
             }
           }
         }
         return return_value;
       }
 
-      //! Resumable push-deserialize for the partial engine.
+      //! Resumable window-deserialize for the partial engine.
       /*!
           The SIZE phase reads the LEN prefix into state.bytes_remaining; the DATA
-          phase pops elements and pushes them to the sink, decrementing
-          bytes_remaining, and returns END_OF_BUFFER (leaving the phase at DATA) when
-          the read buffer drains mid-value so the next call resumes where it stopped.
+          phase offers windows to the callback, decrementing bytes_remaining, and
+          returns END_OF_BUFFER (leaving the phase at DATA) when the read buffer
+          drains mid-value so the next call resumes where it stopped. A window is
+          at most what the buffer holds, so a refill boundary simply ends a window.
       */
       Error deserialize_partial_as_field(ReadBufferInterface& buffer,
                                          MessageState& state) override
@@ -345,39 +313,21 @@ namespace EmbeddedProto
 
         if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
         {
-          bool more = true;
-          while(more && (Error::NO_ERRORS == return_value))
+          while((0U < state.bytes_remaining) && (Error::NO_ERRORS == return_value))
           {
-            if(0U == state.bytes_remaining)
-            {
-              state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
-              more = false;
-            }
-            else
-            {
-              uint8_t byte = 0U;
-              if(!buffer.pop(byte))
-              {
-                return_value = Error::END_OF_BUFFER;
-                more = false;
-              }
-              else
-              {
-                return_value = push_to_sink(static_cast<DATA_TYPE>(byte));
-                if(Error::NO_ERRORS == return_value)
-                {
-                  --state.bytes_remaining;
-                }
-              }
-            }
+            return_value = offer_window(buffer, state.bytes_remaining);
+          }
+          if(0U == state.bytes_remaining)
+          {
+            state.phase = ::EmbeddedProto::FieldProcessingPhase::COMPLETE;
           }
         }
         return return_value;
       }
 #endif // PARTIAL_SERIALIZATION_ENABLED
 
-      //! No payload is resident, so there is nothing to reset; bindings are kept.
-      void clear() override {}
+      //! Forget the declared length; the bindings and the window are kept.
+      void clear() override { length_ = 0U; }
 
 #ifdef MSG_TO_STRING
       //! A callback field holds no resident value to print, so leave the string unchanged.
@@ -392,15 +342,73 @@ namespace EmbeddedProto
 
     private:
 
-      //! Push one parsed element to the sink, or drain-and-discard when no sink is bound (CALLBACK_NOT_SET in strict mode).
-      Error push_to_sink(const DATA_TYPE& element)
+      //! Pull one window from the serialize callback and push it into the buffer.
+      /*!
+          The window offered is the smallest of the bound window, the elements
+          still to write and the room left in the buffer, so what the callback
+          produces always fits. No room at all is BUFFER_FULL before anything is pulled.
+
+          \param[in] buffer The buffer to write to.
+          \param[in,out] remaining The number of elements still to write, decremented by what was produced.
+      */
+      Error pull_window(WriteBufferInterface& buffer, uint32_t& remaining) const
       {
         Error return_value = Error::NO_ERRORS;
-        if(sink_.is_set())
+        const uint32_t offered = min(min(window_.size, remaining), buffer.get_available_size());
+        if(0U == offered)
         {
-          Error sink_result = Error::NO_ERRORS;
-          static_cast<void>(sink_.invoke(sink_result, element));
-          return_value = sink_result;
+          return_value = Error::BUFFER_FULL;
+        }
+        else
+        {
+          uint32_t produced = 0U;
+          static_cast<void>(on_serialize_chunk_.invoke(produced, VIEW{window_.data, offered}));
+          if((0U == produced) || (offered < produced))
+          {
+            return_value = Error::CALLBACK_SIZE_MISMATCH;
+          }
+          else if(!buffer.push(window_bytes(), produced))
+          {
+            return_value = Error::BUFFER_FULL;
+          }
+          else
+          {
+            remaining -= produced;
+          }
+        }
+        return return_value;
+      }
+
+      //! Peek one window out of the buffer, offer it to the deserialize callback and consume what it accepted.
+      /*!
+          The window offered is the smallest of the bound window, the elements
+          still to read and the bytes the buffer holds. An empty buffer is
+          END_OF_BUFFER before anything is consumed. Without a window nothing can
+          be offered: CALLBACK_NOT_SET. Without a callback no window is needed to
+          drain and discard. The window is peeked, not popped, so only
+          the accepted elements leave the buffer and a stopped field can resume.
+
+          \param[in] buffer The buffer to read from.
+          \param[in,out] remaining The number of elements still to read, decremented by what was accepted.
+      */
+      Error offer_window(ReadBufferInterface& buffer, uint32_t& remaining)
+      {
+        Error return_value = Error::NO_ERRORS;
+        const uint32_t offered = min(remaining, buffer.get_size());
+        if(0U == offered)
+        {
+          return_value = Error::END_OF_BUFFER;
+        }
+        else if(on_deserialize_chunk_.is_set())
+        {
+          if(!is_window_set())
+          {
+            return_value = Error::CALLBACK_NOT_SET;
+          }
+          else
+          {
+            return_value = offer_to_callback(buffer, remaining, min(window_.size, offered));
+          }
         }
         else if(strict_)
         {
@@ -408,23 +416,63 @@ namespace EmbeddedProto
         }
         else
         {
-          // No sink bound and not strict: drain and discard.
-          static_cast<void>(element);
+          // No callback bound and not strict: drain and discard.
+          static_cast<void>(buffer.advance(offered));
+          remaining -= offered;
         }
         return return_value;
       }
 
-      //! When true, streaming without a bound callback is an error rather than a silent drain/no-op.
+      //! Peek the offered elements into the window, hand it to the callback and consume what it accepted.
+      Error offer_to_callback(ReadBufferInterface& buffer, uint32_t& remaining, const uint32_t offered)
+      {
+        Error return_value = Error::NO_ERRORS;
+        for(uint32_t i = 0U; i < offered; ++i)
+        {
+          uint8_t byte = 0U;
+          static_cast<void>(buffer.peek(i, byte));
+          window_.data[i] = static_cast<DATA_TYPE>(byte);
+        }
+
+        uint32_t accepted = 0U;
+        static_cast<void>(on_deserialize_chunk_.invoke(accepted, VIEW{window_.data, offered}));
+        if(offered < accepted)
+        {
+          return_value = Error::CALLBACK_SIZE_MISMATCH;
+        }
+        else
+        {
+          static_cast<void>(buffer.advance(accepted));
+          remaining -= accepted;
+          if(accepted < offered)
+          {
+            return_value = Error::CALLBACK_STOPPED;
+          }
+        }
+        return return_value;
+      }
+
+      //! The window as bytes, the unit the write buffer takes.
+      const uint8_t* window_bytes() const
+      {
+        const void* void_pointer = static_cast<const void*>(window_.data);
+        return static_cast<const uint8_t*>(void_pointer);
+      }
+
+      //! When true, deserializing without a bound callback is an error rather than a silent drain.
       bool strict_ = false;
 
-      //! Size callback invoked to report the payload length written as the LEN prefix.
-      SizeCallback size_{};
+      //! The declared payload length written as the LEN prefix.
+      uint32_t length_ = 0U;
 
-      //! Pull callback invoked to produce payload elements while serializing.
-      SourceCallback source_{};
+      //! The user supplied memory the windows are staged in; its size bounds every window offered.
+      VIEW window_{nullptr, 0U};
 
-      //! Push callback invoked to consume payload elements while deserializing.
-      SinkCallback sink_{};
+      //! Callback invoked to fill a window while serializing.
+      ChunkCallback on_serialize_chunk_{};
+
+      //! Callback invoked with a parsed window while deserializing.
+      ChunkCallback on_deserialize_chunk_{};
   };
 
 } // End of namespace EmbeddedProto
