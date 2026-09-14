@@ -352,6 +352,50 @@ TEST(FieldString, deserialize_end_of_buffer)
   EXPECT_STREQ(msg.txt(), "Foo b");
 }
 
+// The payload of a string is read out of the buffer with a single batched pop(bytes, length)
+// call, never one byte at a time. Only the length prefix is peeked.
+TEST(FieldString, deserialize_is_one_block_pop)
+{
+  const uint8_t payload[5] = {'H', 'e', 'l', 'l', 'o'};
+
+  ::testing::NiceMock<Mocks::ReadBufferMock> buffer;
+  ON_CALL(buffer, get_size()).WillByDefault(Return(5));
+  EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(0x05), Return(true)));
+  EXPECT_CALL(buffer, advance(1)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(buffer, pop(_, 5U)).Times(1).WillOnce(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
+  EXPECT_CALL(buffer, pop(::testing::An<uint8_t&>())).Times(0);
+
+  ::EmbeddedProto::FieldString<10> field;
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, field.deserialize(buffer));
+  EXPECT_EQ(5U, field.get_length());
+  EXPECT_STREQ(field.get_const(), "Hello");
+}
+
+#ifdef PARTIAL_SERIALIZATION_ENABLED
+// The partial data phase reads everything the buffer holds in one batched pop as well.
+TEST(FieldBytes, deserialize_partial_data_phase_is_one_block_pop)
+{
+  const uint8_t payload[4] = {0x01, 0x02, 0x03, 0x04};
+
+  ::testing::NiceMock<Mocks::ReadBufferMock> buffer;
+  ON_CALL(buffer, get_size()).WillByDefault(Return(4));
+  EXPECT_CALL(buffer, pop(_, 4U)).Times(1).WillOnce(
+      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
+  EXPECT_CALL(buffer, pop(::testing::An<uint8_t&>())).Times(0);
+
+  ::EmbeddedProto::FieldBytes<10> field;
+  ::EmbeddedProto::MessageState state;
+  state.phase = ::EmbeddedProto::FieldProcessingPhase::DATA;
+  state.bytes_remaining = 4U;
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, field.deserialize_partial_as_field(buffer, state));
+  EXPECT_EQ(::EmbeddedProto::FieldProcessingPhase::COMPLETE, state.phase);
+  EXPECT_EQ(4U, field.get_length());
+  EXPECT_EQ(0, memcmp(payload, field.get_const(), 4U));
+}
+#endif // PARTIAL_SERIALIZATION_ENABLED
+
 
 TEST(FieldString, oneof_serialize)
 {
