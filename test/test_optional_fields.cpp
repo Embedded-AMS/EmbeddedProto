@@ -261,6 +261,40 @@ TEST(OptionalFields, cleared_serialization)
   EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.serialize(buffer));
 }
 
+TEST(OptionalFields, deserialize_empty_nested_message_continues)
+{
+  // An empty nested message (tag, size 0) is valid protobuf. The single-call
+  // deserialize must accept it and go on to parse the fields that follow it.
+  ::optional_fields<5,10> msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<15> buffer({ 0x10, 0x00, // b
+                                                    0x25, 0x00, 0x00, 0x00, 0x00, // y
+                                                    0x2a, 0x00,  // pos, empty nested message
+                                                    0x30, 0x00,  // state
+                                                    0x3a, 0x00,  // bytes_array
+                                                    0x42, 0x00}); // str
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+
+  EXPECT_TRUE(msg.has_b());
+  EXPECT_TRUE(msg.has_y());
+  EXPECT_TRUE(msg.has_pos());
+  EXPECT_TRUE(msg.has_state());
+  EXPECT_TRUE(msg.has_bytes_array());
+  EXPECT_TRUE(msg.has_str());
+}
+
+TEST(OptionalFields, deserialize_truncated_nested_message)
+{
+  // The nested message declares two bytes but the buffer ends after its tag, so
+  // the genuine truncation must still be reported.
+  ::optional_fields<5,10> msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<3> buffer({ 0x2a, 0x02, 0x09 }); // pos, size 2, tag of xpos only
+
+  EXPECT_EQ(::EmbeddedProto::Error::END_OF_BUFFER, msg.deserialize(buffer));
+}
+
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(OptionalFields, empty_deserialization)

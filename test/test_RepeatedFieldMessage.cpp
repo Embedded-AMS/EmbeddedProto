@@ -369,6 +369,26 @@ TEST(RepeatedFieldMessage, deserialize_empty_array)
 
 }
 
+TEST(RepeatedFieldMessage, deserialize_empty_message_elements)
+{
+  // Two empty nested message elements (tag of b, size 0) followed by another
+  // field. Each empty element is a valid message and must be added; the field
+  // after them must still be parsed.
+  repeated_message<Y_SIZE> msg;
+
+  ::EmbeddedProto::ReadBufferFixedSize<6> buffer({0x12, 0x00,  // b[0], empty
+                                                  0x12, 0x00,  // b[1], empty
+                                                  0x18, 0x07}); // c
+
+  EXPECT_EQ(::EmbeddedProto::Error::NO_ERRORS, msg.deserialize(buffer));
+  EXPECT_EQ(2, msg.get_b().get_length());
+  EXPECT_EQ(0, msg.b(0).u());
+  EXPECT_EQ(0, msg.b(0).v());
+  EXPECT_EQ(0, msg.b(1).u());
+  EXPECT_EQ(0, msg.b(1).v());
+  EXPECT_EQ(7, msg.get_c());
+}
+
 #ifdef PARTIAL_SERIALIZATION_ENABLED
 
 TEST(RepeatedFieldMessage, deserialize_empty_message_array)
