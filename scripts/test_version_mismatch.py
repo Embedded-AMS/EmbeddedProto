@@ -20,7 +20,7 @@ class VersionTest:
         self.root_dir = os.path.dirname(self.script_dir)
         self.version_h_path = os.path.join(self.root_dir, 'src', 'EmbeddedProto', 'Version.h')
         self.backup_path = self.version_h_path + '.bak'
-        self.build_script = os.path.join(self.root_dir, 'build_test.sh')
+        self.build_script = os.path.join(self.script_dir, 'build_test.sh')
 
     def backup_version_h(self):
         """Create backup of Version.h"""

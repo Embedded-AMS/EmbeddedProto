@@ -55,6 +55,6 @@ jobs:
       # which install.py installs into ./venv and not into the system interpreter.
       run: ./venv/bin/python -m unittest discover -s test/python -p 'test_*.py' -v
     - name: Build test
-      run: ./build_test.sh ${{ matrix.serialization-mode }}
+      run: scripts/build_test.sh ${{ matrix.serialization-mode }}
     - name: Code coverage
-      run: ./code_coverage.sh
+      run: scripts/code_coverage.sh

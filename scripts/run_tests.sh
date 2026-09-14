@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
 #
 # This file is part of Embedded Proto.
 #
-# Embedded Proto is open source software: you can redistribute it and/or 
-# modify it under the terms of the GNU General Public License as published 
+# Embedded Proto is open source software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
 # by the Free Software Foundation, version 3 of the license.
 #
 # Embedded Proto  is distributed in the hope that it will be useful,
@@ -28,16 +28,10 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+set -eu
 
-# Remove old builds
-rm -rf dist/*
-rm -rf EmbeddedProto.egg-info
+# Run from the repo root regardless of the directory the script is called from.
+cd "$(dirname "$0")/.."
 
-# Copy src/ to EmbeddedProto/src/
-cp -r src EmbeddedProto/
-
-# Run the build
-python3 -m build
-
-# Clean up
-rm -rf EmbeddedProto/src
+# Run the unit tests but only output tests that failed
+./build/test/test_EmbeddedProto --gtest_brief=1

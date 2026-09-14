@@ -28,9 +28,13 @@
 #   the Netherlands
 #
 
+import os
 from sys import path
-path.append('./build/python/')
-path.append('./EmbeddedProto/')
+
+# Resolve the generated python files relative to the repo root, not the current directory.
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+path.append(os.path.join(ROOT_DIR, 'build', 'python'))
+path.append(os.path.join(ROOT_DIR, 'EmbeddedProto'))
 
 import simple_types_pb2 as st
 import nested_message_pb2 as nm
