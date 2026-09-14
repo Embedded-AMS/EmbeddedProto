@@ -313,6 +313,11 @@ class MessageDefinition(TypeDefinition):
     def get_type(self):
         return self.scope.get_scope_str()
 
+    # The full protobuf name of this message, package and enclosing messages included, as it appears in the type url of
+    # a google.protobuf.Any.
+    def get_full_name(self):
+        return self.scope.get_scope_str().replace("::", ".")
+
     def get_state_depth(self):
         """
         Calculate the required state depth for this message.

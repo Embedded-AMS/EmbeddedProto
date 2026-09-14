@@ -1,0 +1,209 @@
+/*
+ *  Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+ *
+ *  This file is part of Embedded Proto.
+ *
+ *  Embedded Proto is open source software: you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License as published
+ *  by the Free Software Foundation, version 3 of the license.
+ *
+ *  Embedded Proto  is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+ *
+ *  For commercial and closed source application please visit:
+ *  <https://embeddedproto.com/pricing/>.
+ *
+ *  Embedded AMS B.V.
+ *  Info:
+ *    info at EmbeddedProto dot com
+ *
+ *  Postal address:
+ *    Atoomweg 2
+ *    1627 LE, Hoorn
+ *    the Netherlands
+ */
+
+#include "gtest/gtest.h"
+
+#include <EmbeddedProto/ReadBufferFixedSize.h>
+#include <EmbeddedProto/WriteBufferFixedSize.h>
+
+#include <cstdint>
+#include <cstring>
+
+// EAMS message definitions
+#include <any_type_fields.h>
+
+namespace test_EmbeddedAMS_any_type_fields
+{
+
+// The Any as generated from google/protobuf/any.proto, sized for a short type url and a small payload.
+using Envelope = any_test::Envelope<40, 16>;
+
+// Sensor{id: 7, temperature: -3, name: "abc"} as serialized by the Google implementation.
+static constexpr uint8_t SENSOR_BYTES[] = {0x08, 0x07, 0x10, 0x05, 0x1A, 0x03, 0x61, 0x62, 0x63};
+
+// Envelope{sequence: 1, details: Any.Pack(sensor)} as serialized by the Google implementation.
+static constexpr uint8_t ENVELOPE_BYTES[] = {
+  0x08, 0x01, 0x12, 0x30,
+  0x0A, 0x23, 't', 'y', 'p', 'e', '.', 'g', 'o', 'o', 'g', 'l', 'e', 'a', 'p', 'i', 's', '.', 'c', 'o', 'm', '/',
+              'a', 'n', 'y', '_', 't', 'e', 's', 't', '.', 'S', 'e', 'n', 's', 'o', 'r',
+  0x12, 0x09, 0x08, 0x07, 0x10, 0x05, 0x1A, 0x03, 0x61, 0x62, 0x63};
+
+// Envelope{sequence: 2, details: Any.Pack(Button{pressed: true}, type_url_prefix="my.host/")}.
+static constexpr uint8_t BUTTON_ENVELOPE_BYTES[] = {
+  0x08, 0x02, 0x12, 0x1D,
+  0x0A, 0x17, 'm', 'y', '.', 'h', 'o', 's', 't', '/', 'a', 'n', 'y', '_', 't', 'e', 's', 't', '.', 'B', 'u', 't', 't', 'o', 'n',
+  0x12, 0x02, 0x08, 0x01};
+
+TEST(AnyTypeFields, message_full_name)
+{
+  EXPECT_STREQ("any_test.Sensor", any_test::Sensor::MESSAGE_FULL_NAME);
+  EXPECT_STREQ("any_test.Nested.Inner", any_test::Nested::Inner::MESSAGE_FULL_NAME);
+  EXPECT_STREQ("google.protobuf.Any", (::google::protobuf::Any<40, 16>::MESSAGE_FULL_NAME));
+}
+
+TEST(AnyTypeFields, serialize)
+{
+  any_test::Sensor sensor;
+  sensor.set_id(7);
+  sensor.set_temperature(-3);
+  sensor.mutable_name() = "abc";
+
+  // Serialize the message to pack and hand the bytes to the Any together with the type name.
+  ::EmbeddedProto::WriteBufferFixedSize<16> payload;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, sensor.serialize(payload));
+
+  Envelope envelope;
+  envelope.set_sequence(1);
+  envelope.mutable_details().mutable_type_url() = "type.googleapis.com/any_test.Sensor";
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS,
+            envelope.mutable_details().mutable_value().set(payload.get_data(), payload.get_size()));
+
+  ::EmbeddedProto::WriteBufferFixedSize<64> buffer;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, envelope.serialize(buffer));
+  ASSERT_EQ(sizeof(ENVELOPE_BYTES), buffer.get_size());
+  EXPECT_EQ(0, memcmp(ENVELOPE_BYTES, buffer.get_data(), sizeof(ENVELOPE_BYTES)));
+}
+
+TEST(AnyTypeFields, deserialize)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<64> buffer;
+  memcpy(buffer.get_data(), ENVELOPE_BYTES, sizeof(ENVELOPE_BYTES));
+  buffer.set_bytes_written(sizeof(ENVELOPE_BYTES));
+
+  Envelope envelope;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, envelope.deserialize(buffer));
+  EXPECT_EQ(1U, envelope.get_sequence());
+  EXPECT_TRUE(envelope.get_details().get_type_url() == "type.googleapis.com/any_test.Sensor");
+
+  // The message name is what follows the last slash of the type url.
+  const char* const name = strrchr(envelope.get_details().type_url(), '/') + 1;
+  EXPECT_STREQ(any_test::Sensor::MESSAGE_FULL_NAME, name);
+
+  // The value holds the serialized message, read it with a buffer of its own.
+  const auto& value = envelope.get_details().get_value();
+  ASSERT_EQ(sizeof(SENSOR_BYTES), value.get_length());
+  EXPECT_EQ(0, memcmp(SENSOR_BYTES, value.get_const(), sizeof(SENSOR_BYTES)));
+
+  ::EmbeddedProto::ReadBufferFixedSize<16> payload;
+  memcpy(payload.get_data(), value.get_const(), value.get_length());
+  payload.set_bytes_written(value.get_length());
+
+  any_test::Sensor sensor;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, sensor.deserialize(payload));
+  EXPECT_EQ(7U, sensor.get_id());
+  EXPECT_EQ(-3, sensor.get_temperature());
+  EXPECT_TRUE(sensor.get_name() == "abc");
+}
+
+TEST(AnyTypeFields, custom_type_url_prefix)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<64> buffer;
+  memcpy(buffer.get_data(), BUTTON_ENVELOPE_BYTES, sizeof(BUTTON_ENVELOPE_BYTES));
+  buffer.set_bytes_written(sizeof(BUTTON_ENVELOPE_BYTES));
+
+  Envelope envelope;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, envelope.deserialize(buffer));
+  EXPECT_EQ(2U, envelope.get_sequence());
+  EXPECT_TRUE(envelope.get_details().get_type_url() == "my.host/any_test.Button");
+  EXPECT_STREQ(any_test::Button::MESSAGE_FULL_NAME, strrchr(envelope.get_details().type_url(), '/') + 1);
+  ASSERT_EQ(2U, envelope.get_details().get_value().get_length());
+  EXPECT_EQ(0x08, envelope.get_details().get_value()[0]);
+  EXPECT_EQ(0x01, envelope.get_details().get_value()[1]);
+}
+
+TEST(AnyTypeFields, value_too_long)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<64> buffer;
+  memcpy(buffer.get_data(), ENVELOPE_BYTES, sizeof(ENVELOPE_BYTES));
+  buffer.set_bytes_written(sizeof(ENVELOPE_BYTES));
+
+  // The sensor payload is nine bytes, this Any only holds eight.
+  any_test::Envelope<40, 8> envelope;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, envelope.deserialize(buffer));
+}
+
+TEST(AnyTypeFields, type_url_too_long)
+{
+  ::EmbeddedProto::ReadBufferFixedSize<64> buffer;
+  memcpy(buffer.get_data(), ENVELOPE_BYTES, sizeof(ENVELOPE_BYTES));
+  buffer.set_bytes_written(sizeof(ENVELOPE_BYTES));
+
+  // The type url is 35 characters, this Any only holds 20.
+  any_test::Envelope<20, 16> envelope;
+  EXPECT_EQ(::EmbeddedProto::Error::ARRAY_FULL, envelope.deserialize(buffer));
+}
+
+TEST(AnyTypeFields, nested_repeated_and_oneof)
+{
+  // The lengths of the Any propagate through a nested message, a repeated field and a oneof.
+  any_test::Outer<40, 16> outer;
+  outer.mutable_envelope().set_sequence(5);
+  outer.mutable_envelope().mutable_details().mutable_type_url() = "type.googleapis.com/any_test.Button";
+  outer.mutable_envelope().mutable_details().mutable_value()[0] = 0x08;
+  outer.mutable_envelope().mutable_details().mutable_value()[1] = 0x01;
+
+  any_test::RepeatedAny<40, 16> repeated;
+  repeated.add_items(outer.get_envelope().get_details());
+  repeated.add_items(outer.get_envelope().get_details());
+
+  any_test::OneofAny<40, 16> oneof;
+  oneof.set_any(outer.get_envelope().get_details());
+
+  ::EmbeddedProto::WriteBufferFixedSize<256> buffer;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, outer.serialize(buffer));
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, repeated.serialize(buffer));
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, oneof.serialize(buffer));
+
+  ::EmbeddedProto::ReadBufferFixedSize<256> read_buffer;
+  memcpy(read_buffer.get_data(), buffer.get_data(), buffer.get_size());
+  read_buffer.set_bytes_written(buffer.get_size());
+
+  // Read the three back to back, the sizes of the first two are known from their serialization.
+  any_test::Outer<40, 16> outer_out;
+  ::EmbeddedProto::ReadBufferSection outer_section(read_buffer, outer.serialized_size());
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, outer_out.deserialize(outer_section));
+  EXPECT_EQ(5U, outer_out.get_envelope().get_sequence());
+  EXPECT_TRUE(outer_out.get_envelope().get_details().get_type_url() == "type.googleapis.com/any_test.Button");
+  EXPECT_EQ(2U, outer_out.get_envelope().get_details().get_value().get_length());
+
+  any_test::RepeatedAny<40, 16> repeated_out;
+  ::EmbeddedProto::ReadBufferSection repeated_section(read_buffer, repeated.serialized_size());
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, repeated_out.deserialize(repeated_section));
+  ASSERT_EQ(2U, repeated_out.get_items().get_length());
+  EXPECT_TRUE(repeated_out.items(1).get_type_url() == "type.googleapis.com/any_test.Button");
+
+  any_test::OneofAny<40, 16> oneof_out;
+  ASSERT_EQ(::EmbeddedProto::Error::NO_ERRORS, oneof_out.deserialize(read_buffer));
+  using OneofAny = any_test::OneofAny<40, 16>;
+  ASSERT_EQ(OneofAny::FieldNumber::ANY, oneof_out.get_which_payload());
+  EXPECT_EQ(2U, oneof_out.get_any().get_value().get_length());
+}
+
+} // End of namespace test_EmbeddedAMS_any_type_fields
