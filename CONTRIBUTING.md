@@ -39,7 +39,7 @@ Embedded Proto follows git flow. Development happens on **develop**, releases ar
 2. **Beta**: every push of the release branch to the github remote (`git push github release/X.Y.Z`) runs the tests and publishes `X.Y.ZbN` to PyPI, where N counts the commits on the release branch. The workflow also creates a GitHub pre-release with the tag `X.Y.ZbN`. Beta testers install it with `pip install --pre EmbeddedProto` or `pip install EmbeddedProto==X.Y.ZbN`; a plain `pip install` never picks a beta.
 3. **Release**: `scripts/release.sh --version X.Y.Z --release` merges the release branch into master and develop, tags master with `X.Y.Z`, pushes everything and deletes the release branch. The tag publishes the final `X.Y.Z` to PyPI and creates the GitHub release.
 
-Pushes to develop and master publish `X.Y.Z.devN` to TestPyPI only, to keep the packaging exercised.
+Pushes to develop publish `X.Y.Z.devN` to TestPyPI only, to keep the packaging exercised. A push to master publishes nothing, the tag does.
 
 A version published on PyPI can never be replaced. When a beta is broken, push another commit to the release branch to get the next one. Do not force-push a release branch, the reused beta number would be rejected by PyPI.
 

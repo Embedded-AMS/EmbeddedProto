@@ -5,9 +5,10 @@ on:
   # test suite as a gate before building or publishing.
   workflow_call:
   pull_request:
-  # Test every feature branch on push. master, develop and release branches are
-  # intentionally excluded here because they are tested through distribute_pypi.yml
-  # (which calls this workflow) before a build/publish, so we do not run the matrix twice.
+  # Test every feature branch on push. develop and release branches are intentionally
+  # excluded here because they are tested through distribute_pypi.yml (which calls this
+  # workflow) before a build/publish, so we do not run the matrix twice. master is only
+  # changed by a release, the X.Y.Z tag on that same commit runs distribute_pypi.yml.
   push:
     branches-ignore:
       - master

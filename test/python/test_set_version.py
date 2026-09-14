@@ -67,6 +67,10 @@ class TestDeriveVersion(unittest.TestCase):
     def test_other_branch_is_a_development_build(self):
         self.assertEqual(set_version.derive_version("4.1.0", "branch", "develop", "12"), ("4.1.0.dev12", True))
 
+    def test_master_is_refused(self):
+        with self.assertRaises(set_version.VersionError):
+            set_version.derive_version("4.1.0", "branch", "master", "12")
+
     def test_other_branch_requires_a_run_number(self):
         with self.assertRaises(set_version.VersionError):
             set_version.derive_version("4.1.0", "branch", "develop", None)

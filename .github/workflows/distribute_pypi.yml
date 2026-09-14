@@ -1,13 +1,14 @@
 name: Publish the Python Package to PyPi
 
 # What gets published depends on what was pushed, see scripts/set_version.py:
-#   master / develop   -> X.Y.Z.devN  to TestPyPI only
+#   develop            -> X.Y.Z.devN  to TestPyPI only
 #   release/X.Y.Z      -> X.Y.ZbN     to PyPI as a beta, plus a GitHub pre-release
 #   tag X.Y.Z          -> X.Y.Z       to PyPI as the final release, plus a GitHub release
+# A push to master publishes nothing, master only changes by a release and the tag on that commit
+# is what tests and publishes it.
 on:
   push:
     branches:
-      - master
       - develop
       - 'release/**'
     tags:
@@ -113,8 +114,8 @@ jobs:
 
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI
-    # Development builds of master and develop only exercise the packaging, they go to TestPyPI.
-    if: github.ref_name == 'master' || github.ref_name == 'develop'
+    # Development builds of develop only exercise the packaging, they go to TestPyPI.
+    if: github.ref_name == 'develop'
     needs:
     - build
     runs-on: ubuntu-latest

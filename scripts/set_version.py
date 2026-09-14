@@ -41,6 +41,8 @@ the package is built, according to what triggered the build:
   branch release/X.Y.Z  -> X.Y.ZbN      a beta, N counts the commits on the release branch
   any other branch      -> X.Y.Z.devN   a development build, N is the GitHub run number
 
+A build of master is refused, master is released through its tag and never as a development build.
+
 Outside GitHub Actions the files are left alone. With --github-output the derived version and whether
 it is a pre-release are appended to $GITHUB_OUTPUT for later workflow steps.
 """
@@ -98,7 +100,9 @@ def derive_version(base, ref_type, ref_name, run_number, count_commits=count_rel
         result = (base, False)
     elif ref_type == "branch":
         release = RELEASE_BRANCH_RE.fullmatch(ref_name or "")
-        if release:
+        if ref_name == "master":
+            raise VersionError("master is released through its X.Y.Z tag, not as a development build.")
+        elif release:
             if release.group(1) != base:
                 raise VersionError("Branch '%s' does not match version.json '%s'." % (ref_name, base))
             result = ("%sb%d" % (base, count_commits()), True)
