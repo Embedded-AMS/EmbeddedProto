@@ -83,6 +83,34 @@ Building a closed source product? Then you need a commercial license. It removes
 See [embeddedproto.com/pricing](https://EmbeddedProto.com/pricing/). Setting your license token is described on the [installation](https://EmbeddedProto.com/documentation/installation/) page.
 
 
+# Third-party software
+
+For compliance reviews, this is every piece of software Embedded Proto relies on, split by whether it ends up in your product or is only used while generating code.
+
+## In your product
+Only code from Embedded Proto itself ends up in your firmware. It contains no third-party code and depends only on the C++ standard library of your toolchain.
+
+| Component | Copyright | License |
+| --- | --- | --- |
+| Embedded Proto header-only library | Embedded AMS B.V. | GPL-3.0-only OR commercial |
+| Generated message code | Embedded AMS B.V. for the template code, you for your `.proto` definitions | GPL-3.0-only OR commercial |
+
+## During code generation
+These run on your development machine and are not linked into your product. They are installed from PyPI, not redistributed by Embedded Proto.
+
+| Component | Use | License |
+| --- | --- | --- |
+| [Python](https://www.python.org/) 3.11 or newer | Runs the generator | PSF License |
+| [protobuf](https://github.com/protocolbuffers/protobuf) | Parses `.proto` files, `descriptor.proto` is imported by the options file | BSD-3-Clause |
+| [grpcio-tools](https://github.com/grpc/grpc) | Bundles the `protoc` compiler | Apache-2.0, bundled protoc is BSD-3-Clause |
+| [Jinja2](https://github.com/pallets/jinja) | Renders the code templates | BSD-3-Clause |
+| [MarkupSafe](https://github.com/pallets/markupsafe) | Dependency of Jinja2 | BSD-3-Clause |
+| [toposort](https://gitlab.com/ericvsmith/toposort) | Orders message definitions | Apache-2.0 |
+
+## Development only
+[GoogleTest](https://github.com/google/googletest) (BSD-3-Clause) is a git submodule used for the unit tests of the library. It is not part of the generator package or of your product.
+
+
 # Development
 
 If you consider helping with the development of Embedded Proto please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [developer section](https://EmbeddedProto.com/documentation/installation/#for-embedded-proto-developers) of the installation page. They detail how you can build the unit tests included in this repo.
