@@ -6,7 +6,7 @@ authors = [
 ]
 description = "EmbeddedProto generator"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "GPL-3.0 for Open Source projects, a Property license for Commercial companies."}
 classifiers = [ ]
 dependencies = [

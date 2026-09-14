@@ -17,7 +17,7 @@ Natively, protocol buffers are not suitable for microcontrollers. The C++ code p
 
 New to Embedded Proto? Follow the [quick start](https://EmbeddedProto.com/documentation/quick-start/). In about ten minutes you install Embedded Proto, define a message, generate the code for it and serialize the message in a small program on your PC. The same code moves to your microcontroller without changes.
 
-In short, Embedded Proto is installed with pip. The protobuf compiler comes with it, so Python 3.10 or newer is all you need:
+In short, Embedded Proto is installed with pip. The protobuf compiler comes with it, so Python 3.11 or newer is all you need:
 ```bash
 pip install EmbeddedProto
 ```
