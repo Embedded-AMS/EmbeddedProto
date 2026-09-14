@@ -83,6 +83,11 @@ inline {{field.get_type()}}& mutable_{{field.get_name()}}() { return {{field.get
 inline void set_{{field.get_name()}}(const {{field.get_type()}}& rhs) { {{field.get_variable_name()}}.set(rhs); }
 {% endif %}
 inline const {{field.get_type()}}& get_{{field.get_name()}}() const { return {{field.get_variable_name()}}; }
-{% if not field.has_callback_storage() %}
+{% if field.has_callback_storage() %}
+inline void set_{{field.get_name()}}_on_serialize_chunk(const {{field.get_type()}}::ChunkCallback& callback) { {{field.get_variable_name()}}.set_on_serialize_chunk(callback); }
+inline void set_{{field.get_name()}}_on_deserialize_chunk(const {{field.get_type()}}::ChunkCallback& callback) { {{field.get_variable_name()}}.set_on_deserialize_chunk(callback); }
+inline void set_{{field.get_name()}}_window(const {{field.get_type()}}::VIEW& window) { {{field.get_variable_name()}}.set_window(window); }
+inline void set_{{field.get_name()}}_length(const uint32_t length) { {{field.get_variable_name()}}.set_length(length); }
+{% else %}
 inline const uint8_t* {{field.get_name()}}() const { return {{field.get_variable_name()}}.get_const(); }
 {% endif %}

@@ -52,6 +52,7 @@ namespace EmbeddedProto
     CALLBACK_NOT_SET = 12, //!< A callback field was serialized/deserialized without a bound source/sink.
     CALLBACK_SEQUENCE = 13, //!< Callback field requires single-pass access; a size pass or packed encoding attempted on a streaming field violates this constraint.
     CALLBACK_SIZE_MISMATCH = 14, //!< The size reported by the user callback does not match the bytes streamed.
+    CALLBACK_STOPPED = 15, //!< A chunk callback accepted fewer bytes than offered, stopping the field before its end.
   };
 
 }; // End of namespace EmbeddedProto
