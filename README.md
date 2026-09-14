@@ -13,11 +13,24 @@ Embedded Proto is a C++ implementation of [Google Protocol Buffers](https://deve
 Natively, protocol buffers are not suitable for microcontrollers. The C++ code protoc generates is written for server and desktop processors. Embedded Proto is a plugin for *protoc* generating C++ code suitable for microcontrollers. In this way, Embedded Proto provides an easy-to-use interface to exchange data between embedded devices and the outside world. Specify the data format between your IoT device and other devices, servers, apps, or desktop applications in a standardized way!
 
 
+# Requirements
+
+To generate the code for your messages:
+* Python 3.11 or newer, and pip.
+* Git, when you use Embedded Proto as a submodule instead of installing it with pip.
+
+The protobuf compiler comes with Embedded Proto, you do not have to install protoc yourself.
+
+To build the generated code for your target:
+* A C++ compiler supporting C++17.
+* No dynamic memory, no exceptions and no RTTI are required. The library is header only.
+
+
 # Getting started
 
 New to Embedded Proto? Follow the [quick start](https://EmbeddedProto.com/documentation/quick-start/). In about ten minutes you install Embedded Proto, define a message, generate the code for it and serialize the message in a small program on your PC. The same code moves to your microcontroller without changes.
 
-In short, Embedded Proto is installed with pip. The protobuf compiler comes with it, so Python 3.11 or newer is all you need:
+In short, Embedded Proto is installed with pip:
 ```bash
 pip install EmbeddedProto
 ```
