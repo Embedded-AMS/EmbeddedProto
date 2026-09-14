@@ -17,13 +17,16 @@ Natively, protocol buffers are not suitable for microcontrollers. The C++ code p
 
 To generate the code for your messages:
 * Python 3.11 or newer, and pip.
-* Git, when you use Embedded Proto as a submodule instead of installing it with pip.
 
 The protobuf compiler comes with Embedded Proto, you do not have to install protoc yourself.
 
 To build the generated code for your target:
 * A C++ compiler supporting C++17.
 * No dynamic memory, no exceptions and no RTTI are required. The library is header only.
+
+Optional, for the alternative ways to install described on the [installation](https://EmbeddedProto.com/documentation/installation/) page:
+* [uv](https://docs.astral.sh/uv/), a much faster replacement for pip and venv.
+* Git, when you use Embedded Proto as a submodule in your project.
 
 
 # Getting started
