@@ -18,7 +18,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="MessageState*:*MessageInterface*"`
 
@@ -42,7 +42,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="*unkown*:*unknown*:*Wire*:*ReadBufferSection*"`
   - `./build/test/test_EmbeddedProto --gtest_filter="*ReadBuffer*"`
@@ -63,7 +63,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="*string*:*bytes*"`
 - Add/extend tests for split boundaries (SIZE split and DATA split), then rerun the same filter.
@@ -86,7 +86,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="*NestedMessage*:*ReadBufferSection*"`
 - Add/extend chunked nested progression tests if needed and rerun.
@@ -106,7 +106,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="*RepeatedField*:*Repeated*"`
 - Add/extend tests for packed/unpacked chunking and repeated nested messages.
@@ -137,7 +137,7 @@ Each phase includes targeted validation before moving to the next phase.
 ### Verify
 - Regenerate code via existing project generation flow.
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused impacted suites:
   - `./build/test/test_EmbeddedProto --gtest_filter="*SimpleTypes*:*optional*:*oneof*:*unkown*:*NestedMessage*"`
 
@@ -158,7 +158,7 @@ Each phase includes targeted validation before moving to the next phase.
 
 ### Verify
 - Build:
-  - `./build_test.sh`
+  - `scripts/build_test.sh`
 - Run focused negative/robustness tests:
   - `./build/test/test_EmbeddedProto --gtest_filter="*invalid*:*overlong*:*ARRAY_FULL*:*NESTING_TOO_DEEP*:*unkown*"`
 - Add missing negatives if absent; rerun same filters.
@@ -209,7 +209,7 @@ Append and track the remaining unit tests needed to improve parity between parti
 
 ### Verify
 - Build in partial mode:
-  - `./build_test.sh partial`
+  - `scripts/build_test.sh partial`
 - Run focused suites after each batch:
   - `./build/test/test_EmbeddedProto --gtest_filter="*SimpleTypes*"`
   - `./build/test/test_EmbeddedProto --gtest_filter="*oneof*"`

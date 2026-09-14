@@ -31,6 +31,15 @@ When you have trouble compiling the code also include:
 
 If you wish to contribute code to Embedded Proto please use the Github work flow of creating a fork and requesting a pull request. Please note we wish you to branch of the **develop branch**. Your pull request should merge back into develop.
 
+## Building and testing
+
+The development scripts live in `scripts/` and can be called from any directory, they change to the repository root themselves. Set up the virtual environment with `python install.py` first, the unit tests need CMake and the GTest submodule (clone with `--recursive`).
+
+* `scripts/build_test.sh [full|partial] [nullterm]` builds the C++ unit tests, by default with full serialization.
+* `scripts/run_tests.sh` runs the unit tests and only prints the failures.
+* `scripts/code_coverage.sh -l` runs the tests and writes an HTML coverage report to `code_coverage_report/`.
+* `scripts/build_package.sh` builds the python package into `dist/`, run it with the virtual environment active.
+
 ## Release process
 
 Embedded Proto follows git flow. Development happens on **develop**, releases are prepared on a `release/X.Y.Z` branch and end up on **master**. Publishing is done by the GitHub Actions workflow `.github/workflows/distribute_pypi.yml`; the script `scripts/release.sh` only manages branches, version files and tags. The version is stored as plain `X.Y.Z` in `EmbeddedProto/version.json` and `src/EmbeddedProto/Version.h`, the workflow derives any suffix itself.

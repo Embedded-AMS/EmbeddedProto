@@ -1,12 +1,12 @@
 
 # Building and running unit tests
-To build the unit tests use: `./build_test.sh`
-To run all unit tests use short output: `./run_tests.sh`
+To build the unit tests use: `scripts/build_test.sh`
+To run all unit tests use short output: `scripts/run_tests.sh`
 To run just one unit test to specifically test the code you are working on use: `./build/test/test_EmbeddedProto --gtest_filter="DESIRED_TEST_CASE_NAME"`
 
 # Buildin the python package
 Activate the virtual env if not already active: `source ./venv/bin/activate`
-Build the package: `build_package.sh`
+Build the package: `scripts/build_package.sh`
 
 # Releasing
 The version lives in `EmbeddedProto/version.json` and `src/EmbeddedProto/Version.h`, always as plain `X.Y.Z`.
