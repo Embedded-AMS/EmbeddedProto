@@ -302,6 +302,13 @@ class MessageInterface : public ::EmbeddedProto::Field
       if(::EmbeddedProto::Error::NO_ERRORS == return_value)
       {
         return_value = deserialize(bufferSection);
+        if((Error::END_OF_BUFFER == return_value) && (0U == size))
+        {
+          // A size of zero is a valid empty message (all fields default). The nested
+          // deserialize finds no tag in the empty section and reports END_OF_BUFFER,
+          // which is the expected clean end here and not a truncated message.
+          return_value = Error::NO_ERRORS;
+        }
       }
     }
     return return_value;

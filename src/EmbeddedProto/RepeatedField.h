@@ -742,6 +742,12 @@ namespace EmbeddedProto
             {
               ReadBufferSection bufferSection(buffer, size);
               return_value = this->get(index).deserialize(bufferSection);
+              if((Error::END_OF_BUFFER == return_value) && (0U == size))
+              {
+                // An element of size zero is a valid empty message, see
+                // MessageInterface::deserialize_check_type.
+                return_value = Error::NO_ERRORS;
+              }
             }
           }
           else 
