@@ -32,6 +32,9 @@
 # Fail on first non-zero return code
 set -exuo pipefail
 
+# Run from the repo root regardless of the directory the script is called from.
+cd "$(dirname "$0")/.."
+
 # Convert user-friendly parameter to the compiler define enabling partial mode.
 # The serialization mode and, optionally, the extra build defines to test with.
 EP_DEFINES=""

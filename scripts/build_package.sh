@@ -28,6 +28,10 @@
 #   1627 LE, Hoorn
 #   the Netherlands
 #
+set -eu
+
+# Run from the repo root regardless of the directory the script is called from.
+cd "$(dirname "$0")/.."
 
 # Remove old builds
 rm -rf dist/*

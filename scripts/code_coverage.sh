@@ -30,6 +30,9 @@
 #
 set -euxo pipefail
 
+# Run from the repo root regardless of the directory the script is called from.
+cd "$(dirname "$0")/.."
+
 ./build/test/test_EmbeddedProto --gtest_output="xml:build/test/test_details.xml"
 
 rm -rf ./code_coverage_report/*
