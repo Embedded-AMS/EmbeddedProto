@@ -321,7 +321,7 @@ TEST(RepeatedFieldPacked, full_serialize_varint_unaffected)
 
 #if EMBEDDED_PROTO_LITTLE_ENDIAN
 // On a little-endian target a full packed fixed-width block is read out of the
-// buffer with a single batched pop(bytes, length) call. The only per-byte peek
+// buffer with a single batched pop(bytes_view) call. The only per-byte peek
 // is the length prefix; the payload is never read byte-by-byte.
 TEST(RepeatedFieldPacked, full_deserialize_fixed32_is_one_block_pop)
 {
@@ -337,8 +337,8 @@ TEST(RepeatedFieldPacked, full_deserialize_fixed32_is_one_block_pop)
       .WillOnce(DoAll(SetArgReferee<1>(0x10), Return(true)));
   EXPECT_CALL(buffer, advance(1)).Times(1).WillOnce(Return(true));
   // Whole 16 byte block read in a single batched pop, never a per-byte pop.
-  EXPECT_CALL(buffer, pop(_, 16U)).Times(1).WillOnce(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
+  EXPECT_CALL(buffer, pop(Mocks::ViewOfSize(16U))).Times(1).WillOnce(
+      [&](const ::EmbeddedProto::bytes_view& dst){ memcpy(dst.data, payload, dst.size); return true; });
   EXPECT_CALL(buffer, pop(An<uint8_t&>())).Times(0);
 
   EmbeddedProto::RepeatedFieldFixedSize<::EmbeddedProto::fixed32, 8> field;

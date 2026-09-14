@@ -129,15 +129,18 @@ namespace EmbeddedProto
         return return_value;
       }
 
-      //! \see ::EmbeddedProto::ReadBufferInterface::pop(uint8_t*, const uint32_t)
-      bool pop(uint8_t* dest, const uint32_t length) override
+      //! Keep the pointer and length form of pop() reachable next to the override below.
+      using ReadBufferInterface::pop;
+
+      //! \see ::EmbeddedProto::ReadBufferInterface::pop(const bytes_view&)
+      bool pop(const bytes_view& dest) override
       {
         // All-or-nothing: only copy and advance when the whole block is present.
-        const bool return_value = (write_index_ - read_index_) >= length;
+        const bool return_value = (write_index_ - read_index_) >= dest.size;
         if(return_value)
         {
-          memcpy(dest, data_.data() + read_index_, length);
-          read_index_ += length;
+          memcpy(dest.data, data_.data() + read_index_, dest.size);
+          read_index_ += dest.size;
         }
         return return_value;
       }

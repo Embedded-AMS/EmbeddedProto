@@ -108,15 +108,18 @@ namespace EmbeddedProto
       */
       bool pop(uint8_t& byte) override;
 
+      //! Keep the pointer and length form of pop() reachable next to the override below.
+      using ReadBufferInterface::pop;
+
       //! Copy a block of bytes from the parent buffer, respecting the section size.
       /*!
         All-or-nothing: nothing is copied and the section size is left unchanged
-        when length exceeds the number of bytes remaining in this section. This
+        when dest.size exceeds the number of bytes remaining in this section. This
         keeps a fixed-width element that straddles the section boundary from being
         half-consumed.
-        \return True when length bytes were available within the section and copied.
+        \return True when dest.size bytes were available within the section and copied.
       */
-      bool pop(uint8_t* dest, const uint32_t length) override;
+      bool pop(const bytes_view& dest) override;
 
     private:
 
@@ -206,15 +209,15 @@ namespace EmbeddedProto
     return result;
   }
 
-  inline bool ReadBufferSection::pop(uint8_t* dest, const uint32_t length)
+  inline bool ReadBufferSection::pop(const bytes_view& dest)
   {
-    bool result = length <= size_;
+    bool result = dest.size <= size_;
     if(result)
     {
-      result = buffer_.pop(dest, length);
+      result = buffer_.pop(dest);
       if(result)
       {
-        size_ -= length;
+        size_ -= dest.size;
       }
     }
     return result;

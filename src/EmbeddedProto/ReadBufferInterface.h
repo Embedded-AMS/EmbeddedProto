@@ -31,6 +31,8 @@
 #ifndef _READ_BUFFER_INTERFACE_H_
 #define _READ_BUFFER_INTERFACE_H_
 
+#include "Defines.h"
+
 #include <cstdint>
 
 
@@ -105,10 +107,10 @@ namespace EmbeddedProto
       //! Copy a block of bytes out of the buffer, advancing the read index.
       /*!
           This is the batched counterpart of pop(uint8_t&): it lets callers read
-          a whole fixed-width value (or a run of them) in one virtual call instead
-          of one call per byte.
+          a whole fixed-width value, a run of them or a string payload in one
+          virtual call instead of one call per byte.
 
-          The operation is all-or-nothing: when fewer than length bytes are
+          The operation is all-or-nothing: when fewer than dest.size bytes are
           available nothing is copied and the read index is left unmoved, matching
           the advance(n_bytes) / pop() semantics which never partially consume the
           buffer.
@@ -117,18 +119,28 @@ namespace EmbeddedProto
           are encouraged to override it with a single block copy (e.g. memcpy) so
           the batching actually reduces the number of operations.
 
+          \param[out] dest A view on the destination array, dest.size bytes are copied into it.
+          \return True when dest.size bytes were available and copied into dest.
+      */
+      virtual bool pop(const bytes_view& dest)
+      {
+        bool result = get_size() >= dest.size;
+        for(uint32_t i = 0; result && (i < dest.size); ++i)
+        {
+          result = pop(dest.data[i]);
+        }
+        return result;
+      }
+
+      //! Copy a block of bytes out of the buffer, pointer and length form of pop(const bytes_view&).
+      /*!
           \param[out] dest   Destination array which must be able to hold length bytes.
           \param[in]  length The number of bytes to copy out of the buffer.
           \return True when length bytes were available and copied into dest.
       */
       virtual bool pop(uint8_t* dest, const uint32_t length)
       {
-        bool result = get_size() >= length;
-        for(uint32_t i = 0; result && (i < length); ++i)
-        {
-          result = pop(dest[i]);
-        }
-        return result;
+        return pop(bytes_view{dest, length});
       }
 
   };

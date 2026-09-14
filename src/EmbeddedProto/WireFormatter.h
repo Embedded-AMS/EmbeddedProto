@@ -579,7 +579,7 @@ namespace EmbeddedProto
           Reads `count` values, each `sizeof(VAR_TYPE)` bytes wide, from the packed
           little-endian on-wire layout (protobuf fixed32/fixed64). On a
           little-endian target the whole block is copied out of the buffer with a
-          single pop(bytes, length) call. On a big-endian target every value is
+          single pop(bytes_view) call. On a big-endian target every value is
           read individually so the little-endian wire order is honoured.
 
           The operation is all-or-nothing: when the buffer holds fewer than
@@ -605,7 +605,7 @@ namespace EmbeddedProto
         // the whole block can be popped in one call.
         auto* const raw = reinterpret_cast<uint8_t*>(dest);
         const uint32_t n_bytes = count * static_cast<uint32_t>(sizeof(VAR_TYPE));
-        return buffer.pop(raw, n_bytes) ? Error::NO_ERRORS : Error::END_OF_BUFFER;
+        return buffer.pop(bytes_view{raw, n_bytes}) ? Error::NO_ERRORS : Error::END_OF_BUFFER;
 #else
         // Big-endian fallback: read every value from its little-endian byte order.
         using UINT_TYPE = typename std::conditional<4U == sizeof(VAR_TYPE),

@@ -219,11 +219,12 @@ namespace EmbeddedProto
             {
               clear();
 
-              uint8_t byte = 0;
-              while((current_length_ < availiable) && buffer.pop(byte)) 
+              // Read what the buffer holds in one batched pop instead of one virtual call per
+              // byte. A truncated buffer still yields the leading bytes, as before.
+              const uint32_t bytes_to_read = std::min(availiable, buffer.get_size());
+              if(buffer.pop(bytes_view{data_as_bytes(), bytes_to_read}))
               {
-                (data_[current_length_]) = static_cast<DATA_TYPE>(byte);
-                ++current_length_;
+                current_length_ = bytes_to_read;
               }
 
               if(current_length_ != availiable)
@@ -286,18 +287,13 @@ namespace EmbeddedProto
           if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
-            for(uint32_t i = 0U; i < bytes_to_read; ++i)
+            if(buffer.pop(bytes_view{data_as_bytes() + current_length_, bytes_to_read}))
             {
-              uint8_t byte = 0U;
-              if(buffer.pop(byte))
-              {
-                data_[current_length_] = static_cast<DATA_TYPE>(byte);
-                ++current_length_;
-              }
-              else
-              {
-                return_value = Error::END_OF_BUFFER;
-              }
+              current_length_ += bytes_to_read;
+            }
+            else
+            {
+              return_value = Error::END_OF_BUFFER;
             }
 
             if(Error::NO_ERRORS == return_value)
@@ -501,6 +497,12 @@ namespace EmbeddedProto
         static constexpr uint32_t clamp_index(const uint32_t index)
         {
           return (0U < MAX_LENGTH) ? std::min(index, MAX_LENGTH - 1U) : 0U;
+        }
+
+        //! View the storage as raw bytes, the form the read buffer copies into.
+        uint8_t* data_as_bytes()
+        {
+          return static_cast<uint8_t*>(static_cast<void*>(data_.data()));
         }
 
         //! The element at a clamped index, or the scratch element when there is no element at all.

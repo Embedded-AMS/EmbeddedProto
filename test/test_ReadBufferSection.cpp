@@ -127,7 +127,7 @@ TEST(ReadBufferSection, pop)
 {
   Mocks::ReadBufferMock read_buffer_mock;
   EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(1));
-  EXPECT_CALL(read_buffer_mock, pop(_)).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
+  EXPECT_CALL(read_buffer_mock, pop(::testing::An<uint8_t&>())).WillOnce(DoAll(SetArgReferee<0>(1), Return(true)));
 
   EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 1);
   
@@ -152,8 +152,8 @@ TEST(ReadBufferSection, pop_block)
   Mocks::ReadBufferMock read_buffer_mock;
   EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(8));
   const uint8_t src[3] = { 1, 2, 3 };
-  EXPECT_CALL(read_buffer_mock, pop(_, 3U)).WillOnce(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, src, n); return true; });
+  EXPECT_CALL(read_buffer_mock, pop(Mocks::ViewOfSize(3U))).WillOnce(
+      [&](const ::EmbeddedProto::bytes_view& dst){ memcpy(dst.data, src, dst.size); return true; });
 
   EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 5);
 
@@ -172,7 +172,7 @@ TEST(ReadBufferSection, pop_block_respects_boundary)
   // never half-consumed.
   Mocks::ReadBufferMock read_buffer_mock;
   EXPECT_CALL(read_buffer_mock, get_size()).WillRepeatedly(Return(8));
-  EXPECT_CALL(read_buffer_mock, pop(_, _)).Times(0);
+  EXPECT_CALL(read_buffer_mock, pop(::testing::An<const ::EmbeddedProto::bytes_view&>())).Times(0);
 
   EmbeddedProto::ReadBufferSection read_buffer_section(read_buffer_mock, 3);
 
