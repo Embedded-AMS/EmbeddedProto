@@ -88,15 +88,16 @@ See [embeddedproto.com/pricing](https://EmbeddedProto.com/pricing/). Setting you
 For compliance reviews, this is every piece of software Embedded Proto relies on, split by whether it ends up in your product or is only used while generating code.
 
 ## In your product
-Only code from Embedded Proto itself ends up in your firmware. It contains no third-party code and depends only on the C++ standard library of your toolchain.
+Only code from Embedded Proto itself ends up in your firmware. It contains no third-party code. It does use the C++ standard library, which comes from your own toolchain and is licensed by its vendor, not by Embedded Proto.
 
 | Component | Copyright | License |
 | --- | --- | --- |
 | Embedded Proto header-only library | Embedded AMS B.V. | GPL-3.0-only OR commercial |
 | Generated message code | Embedded AMS B.V. for the template code, you for your `.proto` definitions | GPL-3.0-only OR commercial |
+| C++ standard library | The vendor of your toolchain | Whatever your toolchain uses, for example GCC's libstdc++ is GPL-3.0 with the runtime library exception |
 
 ## During code generation
-These run on your development machine and are not linked into your product. They are installed from PyPI, not redistributed by Embedded Proto.
+These run on your development machine and are not linked into your product. Python comes from your own installation, the packages are installed from PyPI. None of them are redistributed by Embedded Proto.
 
 | Component | Use | License |
 | --- | --- | --- |
