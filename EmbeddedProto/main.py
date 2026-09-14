@@ -32,6 +32,7 @@ import io
 import sys
 import locale
 import json
+import re
 from datetime import datetime
 from EmbeddedProto.ProtoFile import ProtoFile, is_excluded_proto_file
 from EmbeddedProto import custom_header
@@ -42,17 +43,29 @@ from google.protobuf.compiler import plugin_pb2 as plugin
 import jinja2
 from importlib.resources import path as resource_path
 
+def parse_version(version_string):
+    """Split a version string into its numeric parts, tolerating a pre-release or dev suffix.
+
+    Accepts "4.1.0" as well as PEP 440 forms such as "4.1.0b1", "4.1.0rc2" and "4.1.0.dev7". The
+    returned dictionary holds the integer "major", "minor" and "patch" numbers and the full "string".
+    """
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(.*)", version_string)
+    if not match:
+        raise Exception("Invalid version string: \"" + version_string + "\".")
+    return {
+        "major": int(match.group(1)),
+        "minor": int(match.group(2)),
+        "patch": int(match.group(3)),
+        "string": version_string
+    }
+
+
 def load_version_info():
     """Load version information from version.json"""
     with resource_path("EmbeddedProto", "version.json") as filepath:
         with open(filepath) as f:
             version_data = json.load(f)
-            version_parts = version_data["version"].split(".")
-            return {
-                "major": int(version_parts[0]),
-                "minor": int(version_parts[1]),
-                "patch": int(version_parts[2])
-            }
+            return parse_version(version_data["version"])
 
 
 # -----------------------------------------------------------------------------

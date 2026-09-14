@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+#
+# This file is part of Embedded Proto.
+#
+# Embedded Proto is open source software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, version 3 of the license.
+#
+# Embedded Proto  is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial and closed source application please visit:
+# <https://embeddedproto.com/pricing/>.
+#
+# Embedded AMS B.V.
+# Info:
+#   info at EmbeddedProto dot com
+#
+# Postal address:
+#   Atoomweg 2
+#   1627 LE, Hoorn
+#   the Netherlands
+#
+
+
+"""Derive the package version for a CI build and write it into the version files.
+
+The checked-in EmbeddedProto/version.json and src/EmbeddedProto/Version.h always hold the plain
+release version X.Y.Z. In GitHub Actions this script rewrites both files in the checkout, right before
+the package is built, according to what triggered the build:
+
+  tag X.Y.Z             -> X.Y.Z        the final release, the tag must equal the file version
+  branch release/X.Y.Z  -> X.Y.ZbN      a beta, N counts the commits on the release branch
+  any other branch      -> X.Y.Z.devN   a development build, N is the GitHub run number
+
+A build of master is refused, master is released through its tag and never as a development build.
+
+Outside GitHub Actions the files are left alone. With --github-output the derived version and whether
+it is a pre-release are appended to $GITHUB_OUTPUT for later workflow steps.
+"""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VERSION_JSON = os.path.join(REPO_ROOT, "EmbeddedProto", "version.json")
+VERSION_H = os.path.join(REPO_ROOT, "src", "EmbeddedProto", "Version.h")
+
+BASE_VERSION_RE = re.compile(r"\d+\.\d+\.\d+")
+RELEASE_BRANCH_RE = re.compile(r"release/(\d+\.\d+\.\d+)")
+
+
+class VersionError(Exception):
+    pass
+
+
+def read_base_version(version_json=VERSION_JSON):
+    """Return the X.Y.Z version stored in version.json, rejecting anything with a suffix."""
+    with open(version_json) as f:
+        version = json.load(f)["version"]
+    if not BASE_VERSION_RE.fullmatch(version):
+        raise VersionError("version.json holds '%s', expected a plain MAJOR.MINOR.PATCH version." % version)
+    return version
+
+
+def count_release_commits(version_json=VERSION_JSON):
+    """Count the commits on the current branch since version.json was last changed, that commit included."""
+    stage_commit = subprocess.run(["git", "log", "-1", "--format=%H", "--", version_json],
+                                  capture_output=True, text=True, check=True, cwd=REPO_ROOT).stdout.strip()
+    if not stage_commit:
+        raise VersionError("version.json has no history, is the checkout shallow?")
+    count = subprocess.run(["git", "rev-list", "--count", stage_commit + "^..HEAD"],
+                           capture_output=True, text=True, check=True, cwd=REPO_ROOT).stdout.strip()
+    return int(count)
+
+
+def derive_version(base, ref_type, ref_name, run_number, count_commits=count_release_commits):
+    """Return (version, is_prerelease) for the given base version and GitHub ref.
+
+    ref_type is "tag", "branch" or None when not running in GitHub Actions. count_commits is only
+    called for a release branch, so tests can inject a number without a git repository.
+    """
+    if ref_type is None:
+        result = (base, False)
+    elif ref_type == "tag":
+        if ref_name != base:
+            raise VersionError("Tag '%s' does not match version.json '%s'." % (ref_name, base))
+        result = (base, False)
+    elif ref_type == "branch":
+        release = RELEASE_BRANCH_RE.fullmatch(ref_name or "")
+        if ref_name == "master":
+            raise VersionError("master is released through its X.Y.Z tag, not as a development build.")
+        elif release:
+            if release.group(1) != base:
+                raise VersionError("Branch '%s' does not match version.json '%s'." % (ref_name, base))
+            result = ("%sb%d" % (base, count_commits()), True)
+        else:
+            if not run_number:
+                raise VersionError("GITHUB_RUN_NUMBER is required for a development build.")
+            result = ("%s.dev%s" % (base, run_number), True)
+    else:
+        raise VersionError("Unknown GITHUB_REF_TYPE '%s'." % ref_type)
+    return result
+
+
+def write_version_files(version, version_json=VERSION_JSON, version_h=VERSION_H):
+    """Store the version string in version.json and in the VERSION_STRING macro of Version.h."""
+    with open(version_json, "w") as f:
+        json.dump({"version": version}, f, indent=2)
+        f.write("\n")
+
+    with open(version_h) as f:
+        content = f.read()
+    content, replaced = re.subn(r'#define EMBEDDEDPROTO_VERSION_STRING "[^"]*"',
+                                '#define EMBEDDEDPROTO_VERSION_STRING "%s"' % version, content)
+    if replaced != 1:
+        raise VersionError("EMBEDDEDPROTO_VERSION_STRING not found in %s." % version_h)
+    with open(version_h, "w") as f:
+        f.write(content)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--github-output", action="store_true",
+                        help="append version=... and prerelease=... to the file named by $GITHUB_OUTPUT")
+    parser.add_argument("--no-write", action="store_true", help="only print the derived version")
+    args = parser.parse_args(argv)
+
+    base = read_base_version()
+    version, prerelease = derive_version(base,
+                                         os.environ.get("GITHUB_REF_TYPE"),
+                                         os.environ.get("GITHUB_REF_NAME"),
+                                         os.environ.get("GITHUB_RUN_NUMBER"))
+    print(version)
+
+    if version != base and not args.no_write:
+        write_version_files(version)
+
+    if args.github_output:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write("version=%s\n" % version)
+            f.write("prerelease=%s\n" % ("true" if prerelease else "false"))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except VersionError as e:
+        print("Error: %s" % e, file=sys.stderr)
+        sys.exit(1)

@@ -1,20 +1,53 @@
 name: Publish the Python Package to PyPi
 
+# What gets published depends on what was pushed, see scripts/set_version.py:
+#   develop            -> X.Y.Z.devN  to TestPyPI only
+#   release/X.Y.Z      -> X.Y.ZbN     to PyPI as a beta, plus a GitHub pre-release
+#   tag X.Y.Z          -> X.Y.Z       to PyPI as the final release, plus a GitHub release
+# A push to master publishes nothing, master only changes by a release and the tag on that commit
+# is what tests and publishes it.
 on:
   push:
     branches:
-      - master
       - develop
-    # Pushing a tag is what triggers an actual release to PyPI (see the
-    # publish-to-pypi job's ref guard below).
+      - 'release/**'
     tags:
-      - '**'
+      - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
+  # Fail fast on inconsistent version files or a tag that does not match them, before the test matrix
+  # spends its time.
+  validate:
+    name: Validate version files
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Check that version.json, Version.h and the git ref agree
+      env:
+        REF_TYPE: ${{ github.ref_type }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+        json=$(python3 -c 'import json; print(json.load(open("EmbeddedProto/version.json"))["version"])')
+        string=$(sed -n 's/^#define EMBEDDEDPROTO_VERSION_STRING "\(.*\)"$/\1/p' src/EmbeddedProto/Version.h)
+        major=$(sed -n 's/^#define EMBEDDEDPROTO_VERSION_MAJOR \([0-9]*\)$/\1/p' src/EmbeddedProto/Version.h)
+        minor=$(sed -n 's/^#define EMBEDDEDPROTO_VERSION_MINOR \([0-9]*\)$/\1/p' src/EmbeddedProto/Version.h)
+        patch=$(sed -n 's/^#define EMBEDDEDPROTO_VERSION_PATCH \([0-9]*\)$/\1/p' src/EmbeddedProto/Version.h)
+        echo "version.json=$json Version.h=$string ($major.$minor.$patch) ref=$REF_TYPE/$REF_NAME"
+        [[ "$json" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version.json '$json' is not MAJOR.MINOR.PATCH"; exit 1; }
+        [[ "$json" == "$string" ]] || { echo "::error::version.json ($json) differs from Version.h ($string)"; exit 1; }
+        [[ "$json" == "$major.$minor.$patch" ]] || { echo "::error::the numeric macros in Version.h do not match $json"; exit 1; }
+        if [[ "$REF_TYPE" == "tag" ]]; then
+          [[ "$REF_NAME" == "$json" ]] || { echo "::error::tag $REF_NAME differs from version.json $json"; exit 1; }
+        elif [[ "$REF_NAME" == release/* ]]; then
+          [[ "${REF_NAME#release/}" == "$json" ]] || { echo "::error::branch $REF_NAME differs from version.json $json"; exit 1; }
+        fi
+
   # Run the full test suite first; nothing is built or published unless it
   # passes. This reuses ci.yml so there is a single source of truth for tests.
   test:
     name: Test before release
+    needs: validate
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
@@ -22,9 +55,15 @@ jobs:
     name: Build distribution 📦
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
 
     steps:
     - uses: actions/checkout@v7
+      with:
+        # The full history is needed to number a beta by the commits on its release branch.
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v7
       with:
@@ -32,6 +71,10 @@ jobs:
 
     - name: Install pypa/build
       run: python3 -m pip install build --user
+
+    - name: Derive the package version from the git ref
+      id: version
+      run: python3 scripts/set_version.py --github-output
 
     - name: Build a binary wheel and a source tarball
       run: ./build_package.sh
@@ -45,7 +88,9 @@ jobs:
 
   publish-to-pypi:
     name: Publish Python 🐍 distribution 📦 to PyPI
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
+    # Final releases (tags) and betas (release branches) go to PyPI. A published version can never be
+    # replaced, a second push of the same version fails here.
+    if: github.ref_type == 'tag' || startsWith(github.ref_name, 'release/')
     needs:
     - build
     runs-on: ubuntu-latest
@@ -69,6 +114,8 @@ jobs:
 
   publish-to-testpypi:
     name: Publish Python 🐍 distribution 📦 to TestPyPI
+    # Development builds of develop only exercise the packaging, they go to TestPyPI.
+    if: github.ref_name == 'develop'
     needs:
     - build
     runs-on: ubuntu-latest
@@ -90,3 +137,36 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
+
+
+  github-release:
+    name: Create the GitHub release
+    # Only after PyPI accepted the package, so a failed upload never leaves a release behind. For a
+    # beta this also creates the X.Y.ZbN tag; tags made with the workflow token do not trigger workflows.
+    needs:
+    - build
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v8
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Create the release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        VERSION: ${{ needs.build.outputs.version }}
+        PRERELEASE: ${{ needs.build.outputs.prerelease }}
+      run: |
+        set -euo pipefail
+        flags=()
+        if [[ "$PRERELEASE" == "true" ]]; then
+          flags+=(--prerelease)
+        fi
+        gh release create "$VERSION" dist/* --title "$VERSION" --target "$GITHUB_SHA" --generate-notes "${flags[@]}"

@@ -1,0 +1,205 @@
+#! /bin/sh
+
+#
+# Copyright (C) 2020-2026 Embedded AMS B.V. - All Rights Reserved
+#
+# This file is part of Embedded Proto.
+#
+# Embedded Proto is open source software: you can redistribute it and/or 
+# modify it under the terms of the GNU General Public License as published 
+# by the Free Software Foundation, version 3 of the license.
+#
+# Embedded Proto  is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Embedded Proto. If not, see <https://www.gnu.org/licenses/>.
+#
+# For commercial and closed source application please visit:
+# <https://embeddedproto.com/pricing/>.
+#
+# Embedded AMS B.V.
+# Info:
+#   info at EmbeddedProto dot com
+#
+# Postal address:
+#   Atoomweg 2
+#   1627 LE, Hoorn
+#   the Netherlands
+#
+# Release Embedded Proto following git flow. Publishing is done by the GitHub Actions workflow in
+# .github/workflows/distribute_pypi.yml, this script only manages branches, version files and tags:
+#
+#   --stage    branch release/X.Y.Z off develop, set the version files to X.Y.Z and push. From then on
+#              every push of that branch to the github remote publishes a beta X.Y.ZbN to PyPI.
+#   --release  merge release/X.Y.Z into master and develop, tag master with X.Y.Z and push. The tag
+#              publishes the final release to PyPI.
+
+set -eu
+
+REMOTES="origin github"
+VERSION_H="src/EmbeddedProto/Version.h"
+VERSION_JSON="EmbeddedProto/version.json"
+
+show_usage() {
+  echo "Usage: scripts/release.sh --version MAJOR.MINOR.PATCH (--stage | --release)"
+  echo "Options:"
+  echo "  --version MAJOR.MINOR.PATCH   The version to release (required)"
+  echo "  --stage                       Create the release branch and set the version files"
+  echo "  --release                     Merge the release branch into master and develop and tag it"
+  echo ""
+  echo "Example:"
+  echo "  scripts/release.sh --version 4.1.0 --stage      # from develop"
+  echo "  git push github release/4.1.0                   # every push publishes a beta 4.1.0bN"
+  echo "  scripts/release.sh --version 4.1.0 --release    # publishes the final 4.1.0"
+}
+
+fail() {
+  echo "Error: $1" >&2
+  exit 1
+}
+
+parse_version() {
+  if ! echo "$1" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$" > /dev/null; then
+    fail "Version must be in format MAJOR.MINOR.PATCH"
+  fi
+  VERSION_MAJOR=$(echo "$1" | cut -d. -f1)
+  VERSION_MINOR=$(echo "$1" | cut -d. -f2)
+  VERSION_PATCH=$(echo "$1" | cut -d. -f3)
+}
+
+require_clean_tree() {
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    fail "The working tree has uncommitted changes"
+  fi
+}
+
+require_branch() {
+  if [ "$(git rev-parse --abbrev-ref HEAD)" != "$1" ]; then
+    fail "Run this from the $1 branch"
+  fi
+}
+
+update_version_files() {
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MAJOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MAJOR $VERSION_MAJOR/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_MINOR [0-9]*/#define EMBEDDEDPROTO_VERSION_MINOR $VERSION_MINOR/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_PATCH [0-9]*/#define EMBEDDEDPROTO_VERSION_PATCH $VERSION_PATCH/" "$VERSION_H"
+  sed -i "s/#define EMBEDDEDPROTO_VERSION_STRING \".*\"/#define EMBEDDEDPROTO_VERSION_STRING \"$VERSION\"/" "$VERSION_H"
+
+  printf '{\n  "version": "%s"\n}\n' "$VERSION" > "$VERSION_JSON"
+}
+
+create_stage() {
+  require_branch develop
+  if git rev-parse --verify --quiet "refs/heads/$BRANCH" > /dev/null || \
+     git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" > /dev/null; then
+    fail "Branch $BRANCH already exists"
+  fi
+
+  git checkout -b "$BRANCH"
+  update_version_files
+  git add "$VERSION_H" "$VERSION_JSON"
+  git commit -m "Preparing for release $VERSION"
+
+  for remote in $REMOTES; do
+    git push "$remote" "$BRANCH"
+  done
+
+  echo ""
+  echo "Branch $BRANCH is staged. Every push of it to the github remote publishes a beta:"
+  echo "  git push github $BRANCH"
+  echo "When done run: scripts/release.sh --version $VERSION --release"
+}
+
+perform_release() {
+  if ! git rev-parse --verify --quiet "refs/heads/$BRANCH" > /dev/null; then
+    fail "Branch $BRANCH does not exist locally"
+  fi
+  if git rev-parse --verify --quiet "refs/tags/$VERSION" > /dev/null; then
+    fail "Tag $VERSION already exists"
+  fi
+
+  # Merge into master and tag the master merge commit, not whatever is checked out afterwards.
+  git checkout master
+  git pull --ff-only origin master
+  git merge --no-ff "$BRANCH" -m "Merge release $VERSION into master"
+  git tag -a "$VERSION" master -m "Release $VERSION"
+
+  git checkout develop
+  git pull --ff-only origin develop
+  git merge --no-ff "$BRANCH" -m "Merge release $VERSION into develop"
+
+  # Push develop before the tag: the tag push triggers the release workflow on github.
+  for remote in $REMOTES; do
+    git push "$remote" develop
+    git push "$remote" master
+    git push "$remote" "$VERSION"
+  done
+
+  # Clean up the release branch.
+  git branch -d "$BRANCH"
+  for remote in $REMOTES; do
+    git push "$remote" --delete "$BRANCH"
+  done
+
+  # The workflow created a X.Y.ZbN tag on github for every beta, mirror them to origin.
+  git fetch github --tags
+  for tag in $(git tag -l "${VERSION}b*"); do
+    git push origin "$tag"
+  done
+}
+
+# Parse command line arguments
+VERSION=""
+DO_STAGE=false
+DO_RELEASE=false
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --version)
+      VERSION="$2"
+      shift 2
+      ;;
+    --stage)
+      DO_STAGE=true
+      shift
+      ;;
+    --release)
+      DO_RELEASE=true
+      shift
+      ;;
+    --help)
+      show_usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      show_usage
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "$VERSION" ]; then
+  show_usage
+  fail "Version is required"
+fi
+if [ "$DO_STAGE" = "$DO_RELEASE" ]; then
+  show_usage
+  fail "Specify exactly one of --stage or --release"
+fi
+
+parse_version "$VERSION"
+BRANCH="release/$VERSION"
+
+cd "$(git rev-parse --show-toplevel)"
+require_clean_tree
+git fetch --all --tags --prune
+
+if [ "$DO_STAGE" = true ]; then
+  create_stage
+else
+  perform_release
+fi

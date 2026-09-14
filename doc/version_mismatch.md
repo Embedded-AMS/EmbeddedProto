@@ -32,7 +32,7 @@ The system performs different levels of checks based on the version component:
 ## Implementation Details
 
 ### Core Library Version
-The core library version is defined in `src/Version.h`:
+The core library version is defined in `src/EmbeddedProto/Version.h`:
 ```cpp
 //! The major version number of the Embedded Proto library.
 #define EMBEDDEDPROTO_VERSION_MAJOR X
@@ -46,6 +46,10 @@ The core library version is defined in `src/Version.h`:
 //! The complete version string of the Embedded Proto library.
 #define EMBEDDEDPROTO_VERSION_STRING "X.Y.Z"
 ```
+
+In a beta or development build the version string carries a suffix, for example `"4.1.0b2"` or
+`"4.1.0.dev57"`. The numeric macros stay `X`, `Y` and `Z`, and the compatibility check below ignores the
+suffix, so a beta of a version is treated as that version.
 
 ### Generated Code Version
 Each generated header file includes version information:
