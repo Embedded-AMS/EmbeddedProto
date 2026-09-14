@@ -222,7 +222,7 @@ namespace EmbeddedProto
               // Read what the buffer holds in one batched pop instead of one virtual call per
               // byte. A truncated buffer still yields the leading bytes, as before.
               const uint32_t bytes_to_read = std::min(availiable, buffer.get_size());
-              if(buffer.pop(data_as_bytes(), bytes_to_read))
+              if(buffer.pop(bytes_view{data_as_bytes(), bytes_to_read}))
               {
                 current_length_ = bytes_to_read;
               }
@@ -287,7 +287,7 @@ namespace EmbeddedProto
           if((Error::NO_ERRORS == return_value) && (::EmbeddedProto::FieldProcessingPhase::DATA == state.phase))
           {
             const uint32_t bytes_to_read = std::min(state.bytes_remaining, buffer.get_size());
-            if(buffer.pop(data_as_bytes() + current_length_, bytes_to_read))
+            if(buffer.pop(bytes_view{data_as_bytes() + current_length_, bytes_to_read}))
             {
               current_length_ += bytes_to_read;
             }

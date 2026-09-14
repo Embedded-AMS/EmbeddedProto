@@ -133,7 +133,7 @@ namespace test_EmbeddedAMS_ReadBufferFixedSize
     EXPECT_FALSE(buffer.peek(byte));
   }
 
-  // The batched pop(dest, length) copies a whole block out and advances the read
+  // The batched pop(bytes_view) copies a whole block out and advances the read
   // index by length. It is all-or-nothing: a request larger than the number of
   // bytes available copies nothing and leaves the read index untouched, matching
   // the pop(byte) / advance(n) semantics.

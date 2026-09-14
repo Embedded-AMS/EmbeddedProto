@@ -352,7 +352,7 @@ TEST(FieldString, deserialize_end_of_buffer)
   EXPECT_STREQ(msg.txt(), "Foo b");
 }
 
-// The payload of a string is read out of the buffer with a single batched pop(bytes, length)
+// The payload of a string is read out of the buffer with a single batched pop(bytes_view)
 // call, never one byte at a time. Only the length prefix is peeked.
 TEST(FieldString, deserialize_is_one_block_pop)
 {
@@ -362,8 +362,8 @@ TEST(FieldString, deserialize_is_one_block_pop)
   ON_CALL(buffer, get_size()).WillByDefault(Return(5));
   EXPECT_CALL(buffer, peek(_, _)).Times(1).WillOnce(DoAll(SetArgReferee<1>(0x05), Return(true)));
   EXPECT_CALL(buffer, advance(1)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(buffer, pop(_, 5U)).Times(1).WillOnce(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
+  EXPECT_CALL(buffer, pop(Mocks::ViewOfSize(5U))).Times(1).WillOnce(
+      [&](const ::EmbeddedProto::bytes_view& dst){ memcpy(dst.data, payload, dst.size); return true; });
   EXPECT_CALL(buffer, pop(::testing::An<uint8_t&>())).Times(0);
 
   ::EmbeddedProto::FieldString<10> field;
@@ -380,8 +380,8 @@ TEST(FieldBytes, deserialize_partial_data_phase_is_one_block_pop)
 
   ::testing::NiceMock<Mocks::ReadBufferMock> buffer;
   ON_CALL(buffer, get_size()).WillByDefault(Return(4));
-  EXPECT_CALL(buffer, pop(_, 4U)).Times(1).WillOnce(
-      [&](uint8_t* dst, uint32_t n){ memcpy(dst, payload, n); return true; });
+  EXPECT_CALL(buffer, pop(Mocks::ViewOfSize(4U))).Times(1).WillOnce(
+      [&](const ::EmbeddedProto::bytes_view& dst){ memcpy(dst.data, payload, dst.size); return true; });
   EXPECT_CALL(buffer, pop(::testing::An<uint8_t&>())).Times(0);
 
   ::EmbeddedProto::FieldBytes<10> field;
