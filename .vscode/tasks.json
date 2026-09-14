@@ -3,7 +3,7 @@
     {
       "type": "shell",
       "label": "build test",
-      "command": "/bin/bash ${workspaceFolder}/build_test.sh",
+      "command": "/bin/bash ${workspaceFolder}/scripts/build_test.sh",
       "problemMatcher": [ ],
       "group": {
         "kind": "build",
