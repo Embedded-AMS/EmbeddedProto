@@ -69,18 +69,18 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 
 # License
 
-Embedded Proto uses a dual licensing model. One for open source projects and one for commercial usage.
+Embedded Proto is dual licensed. See [LICENSE](LICENSE) for the full notice.
 
-## Open Source
-You can use Embedded Proto for free in open source projects or for testing. The code is licensed under the GNU General Public License V3.0, which you can use for all your non-commercial projects. On demand support is only available with a commercial license.
+## Open source
+Embedded Proto is free under the GNU General Public License v3.0 for any project whose own source code is released under a GPLv3-compatible open source license. Evaluation and testing before purchase are free as well. The GPL version comes without support.
 
-## Commercial License
-Are you developing a commercial product? If so, you need to buy a commercial license from Embedded Proto. There is a suitable license for each type of business, from startup to enterprise. Depending on the license, it may give you access to the following:
-* An unlimited number of mcu’s
+## Commercial
+Building a closed source product? Then you need a commercial license. It removes the GPL obligation to publish your source code, and depending on the tier includes:
+* An unlimited number of MCUs
 * Professional support
-* Code quality report
+* A code quality report
 
-You can request more information about a commercial license on our [website](https://EmbeddedProto.com/pricing/). How to set your license token is described on the [installation](https://EmbeddedProto.com/documentation/installation/) page.
+See [embeddedproto.com/pricing](https://EmbeddedProto.com/pricing/). Setting your license token is described on the [installation](https://EmbeddedProto.com/documentation/installation/) page.
 
 
 # Development

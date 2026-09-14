@@ -7,7 +7,8 @@ authors = [
 description = "EmbeddedProto generator"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "GPL-3.0 for Open Source projects, a Property license for Commercial companies."}
+license = "GPL-3.0-only OR LicenseRef-EmbeddedProto-Commercial"
+license-files = ["LICENSE", "LICENSES/*"]
 classifiers = [ ]
 dependencies = [
     "Jinja2>=3,<4",
@@ -29,6 +30,6 @@ embeddedproto = "EmbeddedProto.EmbeddedProto:run_protoc"
 EmbeddedProto = ["templates/*", "version.json", "src/**/*", "embedded_proto_options.proto"]
 
 [build-system]
-requires = ["setuptools>=64", "grpcio-tools==1.83.1"]
+requires = ["setuptools>=77", "grpcio-tools==1.83.1"]
 build-backend = "setuptools.build_meta"
 
