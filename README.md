@@ -33,6 +33,7 @@ To stay up to date, signup for our [User Update](https://EmbeddedProto.com/signu
 * Included the C++ source files in the python package. You can get the location of these C++ source files by running: `embeddedproto --cpp-src-location`.
 * Added the `NULL_TERMINATED_STRINGS` build define. When defined every string field reserves one extra character behind its maximum length which always holds a null terminator, so `get_const()` is a valid c style string also when the string is completely full. It costs one byte of RAM per string field and changes nothing on the wire; bytes fields are unaffected. The default is not to reserve it, which keeps the memory layout of earlier versions.
 * Added support for `map<K, V>` fields. A map is declared as in any other protobuf implementation and sized with `maxLength` (the number of entries) plus `keyMaxLength` and `valueMaxLength` for a string or bytes key and value. The generated API is map shaped: `set_`, `get_`, `has_`, `remove_`, `clear_`, `find_` and `_size`. Entries may also be streamed through callbacks with `callbackStorage`, in which case no entries are stored in the message. See [doc/maps.md](doc/maps.md).
+* Added support for `google.protobuf.Any` fields. Import `google/protobuf/any.proto` and the generator emits `google/protobuf/any.h` next to your own headers. The type url and value are a string and a bytes field sized with a template parameter or from the options file. Every generated message carries a `MESSAGE_FULL_NAME` constant for filling the type url. See [the Any manual page](https://EmbeddedProto.com/documentation/using-a-message/any/).
 * Added the `customStorage` field option. With `[(EmbeddedProto.options).customStorage = true]` you take control of the storage type of a repeated, string, bytes or message field. The generated message exposes the storage type as a plain template parameter (without a size parameter and without a default), so you supply the complete type yourself. The supplied type must derive from `::EmbeddedProto::RepeatedField<T>` (repeated), `::EmbeddedProto::internal::BaseStringBytes` (string/bytes) or `::EmbeddedProto::MessageInterface` (message); this is enforced with a `static_assert`. The option takes precedence over `maxLength`. Fields without the option keep their existing behaviour, so existing `.proto` files and generated user code are unchanged.
 
 ## 3.6.2
@@ -318,6 +319,8 @@ oneof | Full
 singular | Full
 repeated | Length fixed via template or custom option
 optional | Full
+map | Length fixed via template or custom option, see [doc/maps.md](doc/maps.md)
+google.protobuf.Any | Type url and value length fixed via template or options file, see [the manual](https://EmbeddedProto.com/documentation/using-a-message/any/)
 
 At this moment, proto2 is not supported, and it is unlikely that Embedded Proto will support proto2 in the future.
 
