@@ -39,6 +39,7 @@ The development scripts live in `scripts/` and can be called from any directory,
 * `scripts/run_tests.sh` runs the unit tests and only prints the failures.
 * `scripts/code_coverage.sh -l` runs the tests and writes an HTML coverage report to `code_coverage_report/`.
 * `scripts/build_package.sh` builds the python package into `dist/`, run it with the virtual environment active.
+* `scripts/test_generate_sources.ps1` generates the test protos with the `embeddedproto` command on Windows and checks that a header was written for each of them. The C++ tests are not built on Windows, this is what the CI runs there.
 
 ## Release process
 
