@@ -21,6 +21,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Linux builds and runs the C++ unit tests in both serialization modes. Windows only installs the
+  # package, checks the license and generates the test protos with the embeddedproto command, the
+  # C++ tests are not built there.
   build-test:
     env:
       EMBEDDEDPROTO_BUILD_TOKEN: ${{ secrets.EMBEDDEDPROTO_BUILD_TOKEN }}
@@ -30,11 +33,24 @@ jobs:
       UV_CONFIG_FILE: ${{ github.workspace }}/.github/uv-ci.toml
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-24.04, windows-2025]
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         serialization-mode: ["full", "partial"]
         installer: ["pip", "uv"]
+        exclude:
+          # The serialization mode is a compiler define for the C++ tests, it means nothing on Windows.
+          - os: windows-2025
+            serialization-mode: partial
+        include:
+          - os: ubuntu-24.04
+            venv-bin: venv/bin
+          - os: windows-2025
+            venv-bin: venv/Scripts
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # Git Bash on Windows, so the steps below are written once for both operating systems.
+        shell: bash
     steps:
     - uses: actions/checkout@v7
       with:
@@ -44,6 +60,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install gcovr
+      if: runner.os == 'Linux'
       run: pip install gcovr==8.6
     - name: Install uv
       if: matrix.installer == 'uv'
@@ -53,12 +70,19 @@ jobs:
     - name: Check EmbeddedProto license
       run: |
         echo "token present: ${EMBEDDEDPROTO_BUILD_TOKEN:+yes}"
-        ./venv/bin/embeddedproto --check-license
+        ./${{ matrix.venv-bin }}/embeddedproto --check-license
+    - name: Generate the test protos with the embeddedproto command
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: ./scripts/test_generate_sources.ps1
     - name: Python unit tests
       # Use the venv interpreter: the tests import protobuf and run grpc_tools.protoc,
       # which install.py installs into ./venv and not into the system interpreter.
+      if: runner.os == 'Linux'
       run: ./venv/bin/python -m unittest discover -s test/python -p 'test_*.py' -v
     - name: Build test
+      if: runner.os == 'Linux'
       run: scripts/build_test.sh ${{ matrix.serialization-mode }}
     - name: Code coverage
+      if: runner.os == 'Linux'
       run: scripts/code_coverage.sh
