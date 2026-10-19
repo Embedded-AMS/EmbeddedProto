@@ -15,7 +15,7 @@ dependencies = [
     "MarkupSafe>=2.0,<4",
     "toposort>=1.7,<2",
     "protobuf==7.36.1",
-    "grpcio-tools==1.83.1",
+    "grpcio-tools==1.84.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -30,6 +30,6 @@ embeddedproto = "EmbeddedProto.EmbeddedProto:run_protoc"
 EmbeddedProto = ["templates/*", "version.json", "src/**/*", "embedded_proto_options.proto"]
 
 [build-system]
-requires = ["setuptools>=77", "grpcio-tools==1.83.1"]
+requires = ["setuptools>=77", "grpcio-tools==1.84.0"]
 build-backend = "setuptools.build_meta"
 

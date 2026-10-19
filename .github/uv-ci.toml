@@ -1,0 +1,3 @@
+# Used by ci.yml through UV_CONFIG_FILE. A missing wheel must fail the job instead of compiling
+# grpcio-tools from source, which hides the error Windows users get.
+no-build-package = ["grpcio-tools", "grpcio", "protobuf"]
