@@ -1,0 +1,12 @@
+Embedded Proto Commercial License
+
+This file refers to the commercial license for Embedded Proto, offered by
+Embedded AMS B.V. as an alternative to the GPL-3.0-only license. The commercial
+license removes the obligation to publish your source code. It is a signed
+agreement between Embedded AMS B.V. and the licensee; the agreement itself is
+the governing document.
+
+To obtain a commercial license, see https://embeddedproto.com/pricing/ or
+contact info at EmbeddedProto dot com.
+
+Embedded AMS B.V., Atoomweg 2, 1627 LE Hoorn, the Netherlands
